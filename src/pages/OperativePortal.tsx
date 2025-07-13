@@ -19,6 +19,7 @@ import MyPayslips from '@/components/operative/MyPayslips';
 import MyQualifications from '@/components/compliance/MyQualifications';
 import MyTraining from '@/components/training/MyTraining';
 import SiteNotices from '@/components/notices/SiteNotices';
+import MyInductions from '@/components/inductions/MyInductions';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
@@ -29,6 +30,13 @@ const OperativeDashboard = () => {
       description: 'View important safety alerts and notices',
       icon: Bell,
       action: () => navigate('/operative/notices'),
+      highlight: true
+    },
+    {
+      title: 'My Inductions',
+      description: 'Complete required site inductions',
+      icon: FileText,
+      action: () => navigate('/operative/inductions'),
       highlight: true
     },
     {
@@ -192,6 +200,7 @@ const OperativePortal = () => {
       <Route path="/payslips" element={<MyPayslips />} />
       <Route path="/qualifications" element={<MyQualifications />} />
       <Route path="/training" element={<MyTraining />} />
+      <Route path="/inductions" element={<MyInductions />} />
       {/* Placeholder routes for future components */}
       <Route path="/timesheets" element={<div className="p-8 text-center text-muted-foreground">Timesheets coming soon...</div>} />
       <Route path="/profile" element={<div className="p-8 text-center text-muted-foreground">Profile coming soon...</div>} />

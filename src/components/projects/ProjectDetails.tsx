@@ -35,6 +35,8 @@ import TeamTraining from '@/components/training/TeamTraining';
 import TrainingMatrix from '@/components/training/TrainingMatrix';
 import BroadcastNotices from '@/components/notices/BroadcastNotices';
 import NoticesComplianceLog from '@/components/notices/NoticesComplianceLog';
+import ProjectInductions from '@/components/inductions/ProjectInductions';
+import InductionBuilder from '@/components/inductions/InductionBuilder';
 
 // Mock project data - in real app, fetch from backend using projectId
 const mockProject = {
@@ -272,7 +274,7 @@ const ProjectDetails = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-10">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-12">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="levels">Levels & Plots</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
@@ -281,6 +283,8 @@ const ProjectDetails = () => {
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           <TabsTrigger value="training">Team Training</TabsTrigger>
           <TabsTrigger value="notices">Site Notices</TabsTrigger>
+          <TabsTrigger value="inductions">Inductions</TabsTrigger>
+          <TabsTrigger value="builder">Builder</TabsTrigger>
           <TabsTrigger value="matrix">Matrix</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
@@ -376,6 +380,14 @@ const ProjectDetails = () => {
               <TrainingMatrix />
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="inductions">
+          <ProjectInductions />
+        </TabsContent>
+
+        <TabsContent value="builder">
+          <InductionBuilder />
         </TabsContent>
 
         <TabsContent value="documents">
