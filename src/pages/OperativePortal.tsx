@@ -20,6 +20,7 @@ import MyQualifications from '@/components/compliance/MyQualifications';
 import MyTraining from '@/components/training/MyTraining';
 import SiteNotices from '@/components/notices/SiteNotices';
 import MyInductions from '@/components/inductions/MyInductions';
+import MySignatures from '@/components/signatures/MySignatures';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
@@ -56,6 +57,12 @@ const OperativeDashboard = () => {
       description: 'Track training progress and compliance',
       icon: BookOpen,
       action: () => navigate('/operative/training'),
+    },
+    {
+      title: 'My Signatures',
+      description: 'View signature history and compliance records',
+      icon: FileText,
+      action: () => navigate('/operative/signatures'),
     },
     {
       title: 'My Timesheets',
@@ -201,6 +208,7 @@ const OperativePortal = () => {
       <Route path="/qualifications" element={<MyQualifications />} />
       <Route path="/training" element={<MyTraining />} />
       <Route path="/inductions" element={<MyInductions />} />
+      <Route path="/signatures" element={<MySignatures />} />
       {/* Placeholder routes for future components */}
       <Route path="/timesheets" element={<div className="p-8 text-center text-muted-foreground">Timesheets coming soon...</div>} />
       <Route path="/profile" element={<div className="p-8 text-center text-muted-foreground">Profile coming soon...</div>} />
