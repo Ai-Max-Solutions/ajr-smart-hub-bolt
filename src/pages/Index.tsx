@@ -95,6 +95,24 @@ const Index = () => {
             </Button>
           </div>
 
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              onClick={() => navigate('/admin')}
+              variant="outline" 
+              className="h-12 px-8 text-lg"
+            >
+              <Settings className="w-5 h-5 mr-2" />
+              Admin Dashboard
+            </Button>
+            <Button 
+              onClick={() => navigate('/director')}
+              className="btn-accent h-12 px-8 text-lg"
+            >
+              <FolderOpen className="w-5 h-5 mr-2" />
+              Director Dashboard
+            </Button>
+          </div>
+
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
             {stats.map((stat, index) => (

@@ -10,6 +10,7 @@ import ProjectsManagement from "./pages/ProjectsManagement";
 import OperativePortal from "./pages/OperativePortal";
 import DocumentStatusChecker from "./pages/DocumentStatusChecker";
 import AdminDashboard from "./pages/AdminDashboard";
+import DirectorDashboard from "./pages/DirectorDashboard";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/operative/*" element={<OperativePortal />} />
           <Route path="/check/:docId" element={<DocumentStatusChecker />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/director" element={<DirectorDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
