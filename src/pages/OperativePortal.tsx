@@ -23,6 +23,7 @@ import SiteNotices from '@/components/notices/SiteNotices';
 import MyInductions from '@/components/inductions/MyInductions';
 import MySignatures from '@/components/signatures/MySignatures';
 import MyDataRetention from '@/components/retention/MyDataRetention';
+import PrivacyDashboard from '@/components/security/PrivacyDashboard';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
@@ -218,6 +219,7 @@ const OperativePortal = () => {
       <Route path="/inductions" element={<MyInductions />} />
       <Route path="/signatures" element={<MySignatures />} />
       <Route path="/data-retention" element={<MyDataRetention />} />
+      <Route path="/my-data" element={<PrivacyDashboard userId="current-user" />} />
       {/* Placeholder routes for future components */}
       <Route path="/timesheets" element={<div className="p-8 text-center text-muted-foreground">Timesheets coming soon...</div>} />
       <Route path="/profile" element={<div className="p-8 text-center text-muted-foreground">Profile coming soon...</div>} />
