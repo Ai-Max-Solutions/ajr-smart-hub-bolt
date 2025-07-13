@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { 
   Building2, 
   Users, 
@@ -20,7 +22,8 @@ import {
   Clock,
   Settings,
   Upload,
-  Download
+  Download,
+  Loader2
 } from 'lucide-react';
 import LevelsAndPlots from './LevelsAndPlots';
 import TeamManagement from './TeamManagement';
@@ -44,85 +47,98 @@ import DataArchiveLog from '@/components/retention/DataArchiveLog';
 import OnHireTracker from '@/components/projects/OnHireTracker';
 import ProjectManagerDashboard from './ProjectManagerDashboard';
 
-// Mock project data - in real app, fetch from backend using projectId
-const mockProject = {
-  id: '1',
-  name: 'Riverside Development Phase 1',
-  client: 'Riverside Holdings Ltd',
-  description: 'A comprehensive residential development featuring 24 luxury apartments across 3 levels, including underground parking and communal facilities.',
-  address: '123 River Street, London SE1 2AB',
-  status: 'Active',
-  startDate: '2024-01-15',
-  endDate: '2024-06-30',
-  projectManager: {
-    id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@ajryan.com',
-    avatar: '/placeholder.svg'
-  },
-  plotsTotal: 24,
-  plotsCompleted: 18,
-  compliancePercentage: 92,
-  operativesAssigned: 12,
-  issuesOpen: 2,
-  levels: [
-    {
-      id: '1',
-      name: 'Basement',
-      plots: ['B01', 'B02', 'B03', 'B04', 'B05', 'B06']
-    },
-    {
-      id: '2', 
-      name: 'Ground Floor',
-      plots: ['G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08']
-    },
-    {
-      id: '3',
-      name: 'First Floor', 
-      plots: ['F01', 'F02', 'F03', 'F04', 'F05', 'F06', 'F07', 'F08']
-    },
-    {
-      id: '4',
-      name: 'Second Floor',
-      plots: ['S01', 'S02']
-    }
-  ],
-  recentActivity: [
-    {
-      id: '1',
-      type: 'plot_completed',
-      message: 'Plot F07 marked as completed',
-      timestamp: '2024-01-20T10:30:00Z',
-      user: 'Tom Wilson'
-    },
-    {
-      id: '2',
-      type: 'document_uploaded',
-      message: 'Updated RAMS document uploaded',
-      timestamp: '2024-01-19T14:15:00Z',
-      user: 'Sarah Johnson'
-    },
-    {
-      id: '3',
-      type: 'operative_assigned',
-      message: 'Mike Brown assigned to project',
-      timestamp: '2024-01-18T09:00:00Z',
-      user: 'Sarah Johnson'
-    }
-  ]
-};
-
+interface ProjectData {
+  whalesync_postgres_id: string;
+  projectname: string;
+  clientname: string;
+  siteaddress: string;
+  status: string;
+  startdate: string;
+  plannedenddate: string;
+  projectmanager: string;
+  totalplots: number;
+  budgetspent: number;
+  projectvalue: number;
+  activehireitems: number;
+  healthsafetystatus: string;
+  projectnotes: string;
+}
 const ProjectDetails = () => {
   const { projectId } = useParams();
+  const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState('overview');
-  
-  // In real app, fetch project data using projectId
-  const project = mockProject;
+  const [project, setProject] = useState<ProjectData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProject = async () => {
+      if (!projectId || !profile) return;
+
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('Projects')
+          .select(`
+            whalesync_postgres_id,
+            projectname,
+            clientname,
+            siteaddress,
+            status,
+            startdate,
+            plannedenddate,
+            projectmanager,
+            totalplots,
+            budgetspent,
+            projectvalue,
+            activehireitems,
+            healthsafetystatus,
+            projectnotes
+          `)
+          .eq('whalesync_postgres_id', projectId)
+          .single();
+
+        if (error) {
+          setError(error.message);
+        } else {
+          setProject(data);
+        }
+      } catch (err) {
+        setError('Failed to fetch project');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProject();
+  }, [projectId, profile]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !project) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-destructive">Error loading project</h3>
+          <p className="text-muted-foreground">{error || 'Project not found'}</p>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
         return <Badge className="bg-success text-success-foreground">Active</Badge>;
+      case 'Planning':
+        return <Badge variant="secondary">Planning</Badge>;
       case 'On Hold':
         return <Badge variant="secondary">On Hold</Badge>;
       case 'Completed':
@@ -132,8 +148,6 @@ const ProjectDetails = () => {
     }
   };
 
-  const completionPercentage = Math.round((project.plotsCompleted / project.plotsTotal) * 100);
-
   return (
     <div className="space-y-6">
       {/* Project Header */}
@@ -142,13 +156,13 @@ const ProjectDetails = () => {
           <div className="flex items-start justify-between">
             <div className="space-y-2">
               <div className="flex items-center space-x-3">
-                <h1 className="text-2xl font-bold text-primary">{project.name}</h1>
+                <h1 className="text-2xl font-bold text-primary">{project.projectname}</h1>
                 {getStatusBadge(project.status)}
               </div>
-              <p className="text-muted-foreground">{project.client}</p>
+              <p className="text-muted-foreground">{project.clientname}</p>
               <div className="flex items-center text-muted-foreground text-sm">
                 <MapPin className="w-4 h-4 mr-1" />
-                {project.address}
+                {project.siteaddress}
               </div>
             </div>
             <div className="flex space-x-2">
@@ -172,29 +186,27 @@ const ProjectDetails = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Start Date</p>
-                  <p className="font-medium">{new Date(project.startDate).toLocaleDateString()}</p>
+                  <p className="font-medium">{project.startdate ? new Date(project.startdate).toLocaleDateString() : 'TBD'}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">End Date</p>
-                  <p className="font-medium">{new Date(project.endDate).toLocaleDateString()}</p>
+                  <p className="font-medium">{project.plannedenddate ? new Date(project.plannedenddate).toLocaleDateString() : 'TBD'}</p>
                 </div>
               </div>
               
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Client Name</p>
-                <p className="font-medium">{project.client}</p>
+                <p className="font-medium">{project.clientname}</p>
               </div>
               
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Project Manager</p>
                 <div className="flex items-center space-x-3">
                   <Avatar className="w-8 h-8">
-                    <AvatarImage src={project.projectManager.avatar} />
-                    <AvatarFallback>{project.projectManager.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    <AvatarFallback>{project.projectmanager?.split(' ').map(n => n[0]).join('') || 'PM'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{project.projectManager.name}</p>
-                    <p className="text-sm text-muted-foreground">{project.projectManager.email}</p>
+                    <p className="font-medium">{project.projectmanager}</p>
                   </div>
                 </div>
               </div>
@@ -248,32 +260,32 @@ const ProjectDetails = () => {
         <Card className="card-hover">
           <CardContent className="pt-6 text-center">
             <Users className="w-8 h-8 text-primary mx-auto mb-2" />
-            <p className="text-2xl font-bold text-primary">{project.operativesAssigned}</p>
-            <p className="text-xs text-muted-foreground">Operatives</p>
+            <p className="text-2xl font-bold text-primary">{project.activehireitems}</p>
+            <p className="text-xs text-muted-foreground">Active Hire</p>
           </CardContent>
         </Card>
         
         <Card className="card-hover">
           <CardContent className="pt-6 text-center">
             <Building2 className="w-8 h-8 text-accent mx-auto mb-2" />
-            <p className="text-2xl font-bold text-accent">{project.levels.length}</p>
-            <p className="text-xs text-muted-foreground">Levels</p>
+            <p className="text-2xl font-bold text-accent">{project.totalplots}</p>
+            <p className="text-xs text-muted-foreground">Total Plots</p>
           </CardContent>
         </Card>
         
         <Card className="card-hover">
           <CardContent className="pt-6 text-center">
             <CheckCircle2 className="w-8 h-8 text-success mx-auto mb-2" />
-            <p className="text-2xl font-bold text-success">{project.plotsCompleted}</p>
-            <p className="text-xs text-muted-foreground">Completed</p>
+            <p className="text-2xl font-bold text-success">£{(project.budgetspent / 1000).toFixed(0)}k</p>
+            <p className="text-xs text-muted-foreground">Budget Spent</p>
           </CardContent>
         </Card>
         
         <Card className="card-hover">
           <CardContent className="pt-6 text-center">
-            <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-2" />
-            <p className="text-2xl font-bold text-destructive">{project.issuesOpen}</p>
-            <p className="text-xs text-muted-foreground">Open Issues</p>
+            <Shield className="w-8 h-8 text-warning mx-auto mb-2" />
+            <p className="text-2xl font-bold text-warning">{project.healthsafetystatus}</p>
+            <p className="text-xs text-muted-foreground">Safety Status</p>
           </CardContent>
         </Card>
       </div>
@@ -302,7 +314,7 @@ const ProjectDetails = () => {
         </TabsList>
 
         <TabsContent value="pm-dashboard">
-          <ProjectManagerDashboard projectId={project.id} />
+          <ProjectManagerDashboard projectId={project.whalesync_postgres_id} />
         </TabsContent>
 
         <TabsContent value="overview" className="space-y-6">
@@ -313,7 +325,7 @@ const ProjectDetails = () => {
                 <CardTitle>Project Description</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground leading-relaxed">{project.description}</p>
+                <p className="text-muted-foreground leading-relaxed">{project.projectnotes || 'No description available'}</p>
               </CardContent>
             </Card>
 
@@ -324,19 +336,17 @@ const ProjectDetails = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {project.recentActivity.map((activity) => (
-                    <div key={activity.id} className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{activity.message}</p>
-                        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                          <span>{activity.user}</span>
-                          <span>•</span>
-                          <span>{new Date(activity.timestamp).toLocaleDateString()}</span>
-                        </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">Project loaded from Supabase</p>
+                      <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                        <span>System</span>
+                        <span>•</span>
+                        <span>{new Date().toLocaleDateString()}</span>
                       </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -344,24 +354,24 @@ const ProjectDetails = () => {
           
           {/* RAMS & Task Plans Section in Overview */}
           <div className="mt-6">
-            <RAMSTable projectId={project.id} />
+            <RAMSTable projectId={project.whalesync_postgres_id} />
           </div>
         </TabsContent>
 
         <TabsContent value="levels">
-          <LevelsAndPlots projectId={project.id} levels={project.levels} />
+          <LevelsAndPlots projectId={project.whalesync_postgres_id} levels={[]} />
         </TabsContent>
 
         <TabsContent value="team">
-          <TeamManagement projectId={project.id} />
+          <TeamManagement projectId={project.whalesync_postgres_id} />
         </TabsContent>
 
         <TabsContent value="timesheets">
-          <WeeklyTimesheetApproval projectId={project.id} />
+          <WeeklyTimesheetApproval projectId={project.whalesync_postgres_id} />
         </TabsContent>
 
         <TabsContent value="payroll">
-          <PayrollExport projectId={project.id} />
+          <PayrollExport projectId={project.whalesync_postgres_id} />
         </TabsContent>
 
         <TabsContent value="compliance">
@@ -423,11 +433,11 @@ const ProjectDetails = () => {
             </TabsContent>
 
         <TabsContent value="on-hire">
-          <OnHireTracker projectId={project.id} />
+          <OnHireTracker projectId={project.whalesync_postgres_id} />
         </TabsContent>
 
         <TabsContent value="documents">
-          <ProjectDocuments projectId={project.id} />
+          <ProjectDocuments projectId={project.whalesync_postgres_id} />
         </TabsContent>
       </Tabs>
     </div>

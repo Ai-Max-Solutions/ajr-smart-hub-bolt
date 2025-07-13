@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { 
   Building2, 
   Users, 
@@ -16,67 +18,90 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
 
-// Mock data - In real app, this would come from your backend
-const mockProjects = [
-  {
-    id: '1',
-    name: 'Riverside Development Phase 1',
-    client: 'Riverside Holdings Ltd',
-    address: '123 River Street, London SE1 2AB',
-    status: 'Active',
-    startDate: '2024-01-15',
-    endDate: '2024-06-30',
-    projectManager: 'Sarah Johnson',
-    plotsTotal: 24,
-    plotsCompleted: 18,
-    compliancePercentage: 92,
-    operativesAssigned: 12,
-    issuesOpen: 2
-  },
-  {
-    id: '2',
-    name: 'Central Plaza Tower',
-    client: 'Metro Construction',
-    address: '456 Central Avenue, Birmingham B1 1AA',
-    status: 'Active',
-    startDate: '2024-02-01',
-    endDate: '2024-08-15',
-    projectManager: 'Mike Wilson',
-    plotsTotal: 36,
-    plotsCompleted: 8,
-    compliancePercentage: 88,
-    operativesAssigned: 18,
-    issuesOpen: 5
-  },
-  {
-    id: '3',
-    name: 'Heritage Apartments',
-    client: 'Heritage Developments',
-    address: '789 Old Town Road, Manchester M1 3BB',
-    status: 'On Hold',
-    startDate: '2024-03-01',
-    endDate: '2024-09-30',
-    projectManager: 'Emma Davis',
-    plotsTotal: 16,
-    plotsCompleted: 2,
-    compliancePercentage: 76,
-    operativesAssigned: 6,
-    issuesOpen: 8
-  }
-];
+interface Project {
+  whalesync_postgres_id: string;
+  projectname: string;
+  clientname: string;
+  siteaddress: string;
+  status: string;
+  startdate: string;
+  plannedenddate: string;
+  projectmanager: string;
+  totalplots: number;
+  budgetspent: number;
+  projectvalue: number;
+  activehireitems: number;
+}
 
 const ProjectDashboard = () => {
   const navigate = useNavigate();
+  const { profile } = useUserProfile();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!profile) return;
+
+      try {
+        setLoading(true);
+        let query = supabase
+          .from('Projects')
+          .select(`
+            whalesync_postgres_id,
+            projectname,
+            clientname,
+            siteaddress,
+            status,
+            startdate,
+            plannedenddate,
+            projectmanager,
+            totalplots,
+            budgetspent,
+            projectvalue,
+            activehireitems
+          `);
+
+        // Apply role-based filtering
+        if (profile.role !== 'Admin' && profile.role !== 'Director') {
+          // Non-admin users only see their current project
+          if (profile.currentproject) {
+            query = query.eq('whalesync_postgres_id', profile.currentproject);
+          } else {
+            setProjects([]);
+            setLoading(false);
+            return;
+          }
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          setError(error.message);
+        } else {
+          setProjects(data || []);
+        }
+      } catch (err) {
+        setError('Failed to fetch projects');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [profile]);
   
-  const filteredProjects = mockProjects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.client.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || project.status.toLowerCase() === statusFilter;
+  const filteredProjects = projects.filter(project => {
+    const matchesSearch = project.projectname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         project.clientname?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || project.status?.toLowerCase() === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -85,6 +110,8 @@ const ProjectDashboard = () => {
     switch (status) {
       case 'Active':
         return <Badge className="bg-success text-success-foreground">Active</Badge>;
+      case 'Planning':
+        return <Badge variant="secondary">Planning</Badge>;
       case 'On Hold':
         return <Badge variant="secondary">On Hold</Badge>;
       case 'Completed':
@@ -101,10 +128,30 @@ const ProjectDashboard = () => {
   };
 
   // Calculate overview stats
-  const totalProjects = mockProjects.length;
-  const activeProjects = mockProjects.filter(p => p.status === 'Active').length;
-  const totalOperatives = mockProjects.reduce((sum, p) => sum + p.operativesAssigned, 0);
-  const avgCompliance = Math.round(mockProjects.reduce((sum, p) => sum + p.compliancePercentage, 0) / totalProjects);
+  const totalProjects = projects.length;
+  const activeProjects = projects.filter(p => p.status === 'Active').length;
+  const totalBudget = projects.reduce((sum, p) => sum + (p.projectvalue || 0), 0);
+  const totalSpent = projects.reduce((sum, p) => sum + (p.budgetspent || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-destructive">Error loading projects</h3>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -138,8 +185,8 @@ const ProjectDashboard = () => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Operatives</p>
-                <p className="text-2xl font-bold text-primary">{totalOperatives}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Budget</p>
+                <p className="text-2xl font-bold text-primary">£{(totalBudget / 1000).toFixed(0)}k</p>
               </div>
               <Users className="h-8 w-8 text-primary/60" />
             </div>
@@ -150,8 +197,8 @@ const ProjectDashboard = () => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg Compliance</p>
-                <p className="text-2xl font-bold text-accent">{avgCompliance}%</p>
+                <p className="text-sm font-medium text-muted-foreground">Budget Utilization</p>
+                <p className="text-2xl font-bold text-accent">{totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0}%</p>
               </div>
               <CheckCircle2 className="h-8 w-8 text-accent/60" />
             </div>
@@ -192,19 +239,19 @@ const ProjectDashboard = () => {
           {/* Projects List */}
           <div className="space-y-4">
             {filteredProjects.map((project) => (
-              <Card key={project.id} className="card-hover cursor-pointer" onClick={() => navigate(`/projects/${project.id}`)}>
+              <Card key={project.whalesync_postgres_id} className="card-hover cursor-pointer" onClick={() => navigate(`/projects/${project.whalesync_postgres_id}`)}>
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                     {/* Project Info */}
                     <div className="lg:col-span-2">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-lg text-primary">{project.name}</h3>
+                        <h3 className="font-semibold text-lg text-primary">{project.projectname}</h3>
                         {getStatusBadge(project.status)}
                       </div>
-                      <p className="text-muted-foreground text-sm mb-1">{project.client}</p>
+                      <p className="text-muted-foreground text-sm mb-1">{project.clientname}</p>
                       <div className="flex items-center text-muted-foreground text-sm">
                         <MapPin className="w-4 h-4 mr-1" />
-                        {project.address}
+                        {project.siteaddress}
                       </div>
                     </div>
                     
@@ -212,21 +259,21 @@ const ProjectDashboard = () => {
                     <div className="space-y-3">
                       <div>
                         <div className="flex justify-between text-sm mb-1">
-                          <span>Plots Progress</span>
-                          <span>{project.plotsCompleted}/{project.plotsTotal}</span>
+                          <span>Budget Progress</span>
+                          <span>{project.projectvalue ? Math.round((project.budgetspent / project.projectvalue) * 100) : 0}%</span>
                         </div>
-                        <Progress value={(project.plotsCompleted / project.plotsTotal) * 100} className="h-2" />
+                        <Progress value={project.projectvalue ? (project.budgetspent / project.projectvalue) * 100 : 0} className="h-2" />
                       </div>
                       
                       <div>
                         <div className="flex justify-between text-sm mb-1">
-                          <span>Compliance</span>
-                          <span>{project.compliancePercentage}%</span>
+                          <span>Total Plots</span>
+                          <span>{project.totalplots || 0}</span>
                         </div>
-                        <Progress 
-                          value={project.compliancePercentage} 
-                          className={`h-2 ${getComplianceColor(project.compliancePercentage)}`}
-                        />
+                        <div className="flex justify-between text-sm">
+                          <span>Project Value</span>
+                          <span>£{(project.projectvalue / 1000).toFixed(0)}k</span>
+                        </div>
                       </div>
                     </div>
                     
@@ -234,21 +281,19 @@ const ProjectDashboard = () => {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">PM:</span>
-                        <span className="font-medium">{project.projectManager}</span>
+                        <span className="font-medium">{project.projectmanager}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Operatives:</span>
-                        <span className="font-medium">{project.operativesAssigned}</span>
+                        <span className="text-muted-foreground">Active Hire Items:</span>
+                        <span className="font-medium">{project.activehireitems || 0}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Issues:</span>
-                        <span className={`font-medium ${project.issuesOpen > 0 ? 'text-destructive' : 'text-success'}`}>
-                          {project.issuesOpen}
-                        </span>
+                        <span className="text-muted-foreground">Budget Spent:</span>
+                        <span className="font-medium">£{(project.budgetspent / 1000).toFixed(0)}k</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium">{new Date(project.endDate).toLocaleDateString()}</span>
+                        <span className="font-medium">{project.plannedenddate ? new Date(project.plannedenddate).toLocaleDateString() : 'TBD'}</span>
                       </div>
                     </div>
                   </div>

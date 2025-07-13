@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { 
   Plus, 
@@ -18,27 +19,33 @@ import {
   Clock,
   AlertTriangle,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 import PlotDetailsCard from './PlotDetailsCard';
 
 interface Plot {
-  id: string;
-  name: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'on-hold';
-  assignedTo?: string;
-  completedDate?: string;
+  whalesync_postgres_id: string;
+  plotnumber: string;
+  plotstatus: string;
+  completion_percentage: number;
+  plannedhandoverdate: string;
+  actualhandoverdate: string;
+  plotnotes: string;
+  level: string;
 }
 
 interface Level {
-  id: string;
-  name: string;
-  plots: string[];
+  whalesync_postgres_id: string;
+  levelname: string;
+  levelnumber: number;
+  levelstatus: string;
+  block: string;
 }
 
 interface LevelsAndPlotsProps {
   projectId: string;
-  levels: Level[];
+  levels?: any[];
 }
 
 // Mock expanded plot data
