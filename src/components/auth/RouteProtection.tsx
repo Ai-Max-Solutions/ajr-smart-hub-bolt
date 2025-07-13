@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/auth/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { RBACService } from '@/lib/security';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -27,9 +28,10 @@ export const RouteProtection = ({
 }: RouteProtectionProps) => {
   const location = useLocation();
   const { user, session, loading } = useAuth();
+  const { profile, loading: profileLoading } = useUserProfile();
   
   // Show loading spinner while auth is loading
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -42,9 +44,8 @@ export const RouteProtection = ({
     return <Navigate to={`/auth?redirect=${encodeURIComponent(location.pathname)}`} replace />;
   }
 
-  // For now, use simplified role checking until we have real user data from Supabase
-  // TODO: Implement proper role checking with Supabase user profiles
-  const userRole = 'admin'; // Temporary - will be fetched from user profile
+  // Get user role from profile
+  const userRole = profile?.role?.toLowerCase() || 'operative';
   
   // Check role-based access
   const hasRequiredRole = requiredRole.length === 0 || requiredRole.includes(userRole);
@@ -125,17 +126,51 @@ export const RouteProtection = ({
 // Hook for checking permissions in components
 export const usePermissions = () => {
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   
-  // For now, use simplified role until we have proper user profiles
-  const userRole = 'admin'; // TODO: Get from user profile
+  const userRole = profile?.role?.toLowerCase() || 'operative';
 
   const hasPermission = (resource: string, action: string = 'read', context?: any) => {
-    // Simplified permission check for now
-    return true; // TODO: Implement proper permission checking
+    if (!profile) return false;
+    
+    // Admin and DPO have access to everything
+    if (profile.role === 'Admin' || profile.system_role === 'Admin') return true;
+    
+    // Define role-based permissions
+    const rolePermissions: Record<string, string[]> = {
+      'admin': ['user_management', 'audit_logs', 'security_dashboard', 'project_data', 'my_dashboard', 'onboarding'],
+      'dpo': ['user_management', 'audit_logs', 'security_dashboard', 'project_data', 'my_dashboard', 'onboarding'], 
+      'director': ['project_data', 'my_dashboard', 'onboarding'],
+      'project manager': ['project_data', 'team_management', 'my_dashboard', 'onboarding'],
+      'pm': ['project_data', 'team_management', 'my_dashboard', 'onboarding'],
+      'supervisor': ['team_data', 'my_dashboard', 'onboarding'],
+      'site supervisor': ['team_data', 'my_dashboard', 'onboarding'],
+      'operative': ['my_dashboard', 'onboarding'],
+      'worker': ['my_dashboard', 'onboarding']
+    };
+    
+    const permissions = rolePermissions[userRole] || ['my_dashboard', 'onboarding'];
+    return permissions.includes(resource);
   };
 
   const canAccessDashboard = (dashboard: string) => {
-    return RBACService.canAccessDashboard(userRole, dashboard);
+    if (!profile) return false;
+    
+    // Define role-based dashboard access
+    const roleDashboards: Record<string, string[]> = {
+      'admin': ['admin_dashboard', 'director_dashboard', 'pm_dashboard', 'supervisor_dashboard'],
+      'dpo': ['admin_dashboard', 'director_dashboard', 'pm_dashboard', 'supervisor_dashboard'],
+      'director': ['director_dashboard'],
+      'project manager': ['pm_dashboard'],
+      'pm': ['pm_dashboard'],
+      'supervisor': ['supervisor_dashboard'],
+      'site supervisor': ['supervisor_dashboard'],
+      'operative': [],
+      'worker': []
+    };
+    
+    const dashboards = roleDashboards[userRole] || [];
+    return dashboards.includes(dashboard);
   };
 
   const canManageRole = (targetRole: string) => {
@@ -143,7 +178,7 @@ export const usePermissions = () => {
   };
 
   return {
-    user,
+    user: profile,
     userRole,
     hasPermission,
     canAccessDashboard,

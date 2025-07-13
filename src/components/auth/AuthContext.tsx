@@ -41,6 +41,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoading(false);
 
         if (event === 'SIGNED_IN' && session?.user) {
+          // Update last sign in for the user
+          await supabase
+            .from('Users')
+            .update({ last_sign_in: new Date().toISOString() })
+            .eq('supabase_auth_id', session.user.id);
+          
           toast.success('Successfully signed in!');
         } else if (event === 'SIGNED_OUT') {
           toast.success('Successfully signed out!');
@@ -62,7 +68,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -74,6 +80,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         toast.error(error.message);
         return { error };
+      }
+
+      // If user was created, also create entry in Users table
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('Users')
+          .insert({
+            supabase_auth_id: data.user.id,
+            email: data.user.email,
+            firstname: userData?.first_name || '',
+            lastname: userData?.last_name || '',
+            fullname: userData?.full_name || `${userData?.first_name || ''} ${userData?.last_name || ''}`.trim(),
+            role: 'Operative',
+            employmentstatus: 'Active',
+            auth_provider: 'supabase',
+            system_role: 'Worker'
+          });
+
+        if (profileError) {
+          console.error('Error creating user profile:', profileError);
+        }
       }
 
       toast.success('Account created! Please check your email to verify your account.');
