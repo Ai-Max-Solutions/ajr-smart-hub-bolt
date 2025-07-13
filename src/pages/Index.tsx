@@ -1,264 +1,104 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { useNavigate } from 'react-router-dom';
-import { Settings, Users, FileText, CheckCircle, ArrowRight, Shield, Clock, Award, Building2, FolderOpen, User } from 'lucide-react';
-import RoleBasedNavigation from '@/components/navigation/RoleBasedNavigation';
-import { UserContextService } from '@/lib/userContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RoleBasedNavigation } from "@/components/navigation/RoleBasedNavigation";
+import { useAuth } from "@/components/auth/AuthContext";
+import { Building, Users, FileText, Shield, Calendar, TrendingUp, LogIn } from "lucide-react";
 
 const Index = () => {
-  const navigate = useNavigate();
-  const currentUser = UserContextService.getCurrentUser();
-  const userProjects = UserContextService.getUserProjects(currentUser.id);
-  const userTeams = UserContextService.getUserTeams(currentUser.id);
+  const { user, session } = useAuth();
 
-  const features = [
-    {
-      icon: Users,
-      title: 'Smart Onboarding',
-      description: 'Streamlined operative registration with CSCS verification'
-    },
-    {
-      icon: Building2,
-      title: 'Projects Management',
-      description: 'Complete project oversight with levels, plots, and team management'
-    },
-    {
-      icon: FileText,
-      title: 'Digital RAMS',
-      description: 'Electronic safety document management and signing'
-    },
-    {
-      icon: Shield,
-      title: 'Compliance Tracking',
-      description: 'Automated safety compliance and audit trails'
-    },
-    {
-      icon: Clock,
-      title: 'Time Management',
-      description: 'Digital timesheets and project tracking'
-    }
-  ];
+  // If user is not authenticated, show landing page with login option
+  if (!session || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center mb-6">
+              <Building className="h-12 w-12 text-primary mr-4" />
+              <h1 className="text-4xl font-bold text-primary">A&J Ryan SmartWork Hub</h1>
+            </div>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Comprehensive Construction Management Platform
+            </p>
+            <p className="text-muted-foreground mt-2">
+              Streamlined workflows, enhanced safety compliance, and real-time project oversight
+            </p>
+            
+            <div className="mt-8">
+              <Button asChild size="lg" className="mr-4">
+                <a href="/auth">
+                  <LogIn className="w-5 h-5 mr-2" />
+                  Sign In
+                </a>
+              </Button>
+            </div>
+          </div>
 
-  const stats = [
-    { label: 'Active Operatives', value: '2,847' },
-    { label: 'Projects Completed', value: '156' },
-    { label: 'Safety Documents', value: '1,923' },
-    { label: 'Compliance Rate', value: '99.8%' }
-  ];
+          {/* Feature Overview for Unauthenticated Users */}
+          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <Card>
+              <CardHeader>
+                <Shield className="h-8 w-8 text-primary mb-2" />
+                <CardTitle>Safety First</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Comprehensive safety compliance tracking and incident management
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <Users className="h-8 w-8 text-primary mb-2" />
+                <CardTitle>Team Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Efficient workforce coordination and skills tracking
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <TrendingUp className="h-8 w-8 text-primary mb-2" />
+                <CardTitle>Project Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Real-time insights and performance monitoring
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground py-6 px-4">
-        <div className="container mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">AJ Ryan SmartWork Hub</h1>
-              <p className="text-primary-foreground/80">Operative Management Platform</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm">
-                <User className="w-4 h-4" />
-                <span>{currentUser.name}</span>
-                <Badge variant="secondary" className="bg-accent text-accent-foreground capitalize">
-                  {currentUser.role}
-                </Badge>
-              </div>
-              <Badge variant="secondary" className="bg-warning text-warning-foreground">
-                DEMO
-              </Badge>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center mb-6">
+            <Building className="h-12 w-12 text-primary mr-4" />
+            <h1 className="text-4xl font-bold text-primary">A&J Ryan SmartWork Hub</h1>
           </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-primary mb-6">
-              Welcome back, {currentUser.name}
-            </h2>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Access your personalized dashboard and manage your work through our secure, 
-              role-based SmartWork Hub platform.
-            </p>
-          </div>
-
-          {/* User Context Information */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <Card className="card-hover">
-              <CardContent className="pt-6 text-center">
-                <User className="w-8 h-8 text-primary mx-auto mb-3" />
-                <div className="text-lg font-semibold text-primary mb-1">Your Role</div>
-                <Badge variant="outline" className="capitalize">{currentUser.role}</Badge>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {currentUser.role === 'operative' && 'Access your personal data and assigned work'}
-                  {currentUser.role === 'supervisor' && 'Manage your team and project activities'}
-                  {currentUser.role === 'pm' && 'Full project management and oversight'}
-                  {currentUser.role === 'admin' && 'Complete system administration access'}
-                  {currentUser.role === 'dpo' && 'Data protection and compliance oversight'}
-                  {currentUser.role === 'director' && 'Executive read-only access to all projects'}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardContent className="pt-6 text-center">
-                <Building2 className="w-8 h-8 text-accent mx-auto mb-3" />
-                <div className="text-lg font-semibold text-primary mb-1">Your Projects</div>
-                <div className="text-2xl font-bold text-accent">{userProjects.length}</div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {userProjects.length === 0 && 'No projects assigned'}
-                  {userProjects.length === 1 && '1 active project'}
-                  {userProjects.length > 1 && `${userProjects.length} active projects`}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardContent className="pt-6 text-center">
-                <Users className="w-8 h-8 text-success mx-auto mb-3" />
-                <div className="text-lg font-semibold text-primary mb-1">Your Teams</div>
-                <div className="text-2xl font-bold text-success">{userTeams.length}</div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {userTeams.length === 0 && 'No teams assigned'}
-                  {userTeams.length === 1 && '1 team member'}
-                  {userTeams.length > 1 && `${userTeams.length} team assignments`}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Separator className="my-8" />
-
-          {/* Role-Based Navigation */}
-          <RoleBasedNavigation />
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 px-4 bg-muted/20">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-primary mb-4">Platform Statistics</h3>
-            <p className="text-lg text-muted-foreground">
-              Real-time metrics from across the AJ Ryan operations
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {stats.map((stat, index) => (
-              <Card key={index} className="card-hover">
-                <CardContent className="pt-6 text-center">
-                  <div className="text-2xl font-bold text-primary mb-1">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 px-4 bg-muted/30">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-primary mb-4">Key Features</h3>
-            <p className="text-lg text-muted-foreground">
-              Built for the modern construction industry with AJ Ryan's values at the core
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            {features.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <Card key={index} className="card-hover">
-                  <CardHeader className="text-center">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-3">
-                      <Icon className="w-6 h-6 text-primary" />
-                    </div>
-                    <CardTitle className="text-lg">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-center">
-                      {feature.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Onboarding Preview */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-primary mb-4">Onboarding Flow Preview</h3>
-            <p className="text-lg text-muted-foreground">
-              A modern, step-by-step process that ensures compliance and safety
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {[
-              { step: 1, title: 'Sign Up', description: 'Secure account creation' },
-              { step: 2, title: 'Personal Details', description: 'CSCS card & emergency contact' },
-              { step: 3, title: 'Work Types', description: 'Select roles & sign RAMS' },
-              { step: 4, title: 'Complete', description: 'Verification & approval' }
-            ].map((item) => (
-              <Card key={item.step} className="card-hover">
-                <CardContent className="pt-6 text-center">
-                  <div className="w-10 h-10 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-3 font-bold">
-                    {item.step}
-                  </div>
-                  <h4 className="font-semibold mb-2">{item.title}</h4>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="text-center">
-            <Card className="card-hover border-accent/50 bg-accent/5">
-              <CardContent className="pt-6">
-                <Award className="w-12 h-12 text-accent mx-auto mb-4" />
-                <h4 className="text-xl font-bold text-primary mb-2">
-                  Significantly Improved Experience
-                </h4>
-                <p className="text-muted-foreground mb-6">
-                  This onboarding flow represents a major upgrade from traditional methods, 
-                  featuring modern UI/UX, mobile responsiveness, and streamlined compliance processes.
-                </p>
-                <Button 
-                  onClick={() => navigate('/onboarding')}
-                  className="btn-primary"
-                >
-                  Experience the Demo
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-primary text-primary-foreground py-8 px-4">
-        <div className="container mx-auto text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <CheckCircle className="w-5 h-5 text-accent" />
-            <span className="font-medium">AJ Ryan Values: Integrity | Teamwork | Passion | Quality | Accessibility</span>
-          </div>
-          <p className="text-primary-foreground/80 text-sm">
-            © 2024 AJ Ryan SmartWork Hub. Built with modern web technologies for the construction industry.
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Welcome back, {user.email}
+          </p>
+          <p className="text-muted-foreground mt-2">
+            Streamlined workflows, enhanced safety compliance, and real-time project oversight
           </p>
         </div>
-      </footer>
+
+        {/* Role-Based Navigation */}
+        <RoleBasedNavigation />
+
+      </div>
     </div>
   );
 };

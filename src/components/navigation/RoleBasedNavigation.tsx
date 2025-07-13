@@ -34,7 +34,7 @@ interface NavigationItem {
 export const RoleBasedNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, hasPermission, canAccessDashboard } = usePermissions();
+  const { user, userRole, hasPermission, canAccessDashboard } = usePermissions();
 
   const navigationItems: NavigationItem[] = [
     // Core operational dashboards
@@ -122,7 +122,7 @@ export const RoleBasedNavigation = () => {
 
   const isAccessible = (item: NavigationItem) => {
     // Check role-based access
-    if (item.roles && !item.roles.includes(currentUser.role)) {
+    if (item.roles && !item.roles.includes(userRole)) {
       return false;
     }
 
@@ -152,7 +152,7 @@ export const RoleBasedNavigation = () => {
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="capitalize">
             <Lock className="w-3 h-3 mr-1" />
-            {currentUser.role}
+            {userRole}
           </Badge>
         </div>
       </div>
@@ -205,26 +205,26 @@ export const RoleBasedNavigation = () => {
           <span className="font-medium text-sm">Role Permissions</span>
         </div>
         <div className="text-sm text-muted-foreground">
-          {currentUser.role === 'operative' && (
+          {userRole === 'operative' && (
             <p>You have access to your personal data, timesheets, and assigned project documents.</p>
           )}
-          {currentUser.role === 'supervisor' && (
+          {userRole === 'supervisor' && (
             <p>You can manage your team's data and approve activities for your assigned projects.</p>
           )}
-          {currentUser.role === 'pm' && (
+          {userRole === 'pm' && (
             <p>You have full project management access for your assigned projects, including team management and reporting.</p>
           )}
-          {currentUser.role === 'director' && (
+          {userRole === 'director' && (
             <p>You have read-only access to all company data for strategic oversight and reporting.</p>
           )}
-          {(currentUser.role === 'admin' || currentUser.role === 'dpo') && (
+          {(userRole === 'admin' || userRole === 'dpo') && (
             <p>You have full system access including user management, security controls, and data administration.</p>
           )}
         </div>
       </div>
 
       {/* Quick Actions for Admin/DPO */}
-      {(currentUser.role === 'admin' || currentUser.role === 'dpo') && (
+      {(userRole === 'admin' || userRole === 'dpo') && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <PermissionGate resource="user_management" action="read">
             <Button 
