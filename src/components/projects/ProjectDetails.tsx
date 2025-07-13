@@ -42,6 +42,7 @@ import SignatureVaultExport from '@/components/signatures/SignatureVaultExport';
 import RetentionSettings from '@/components/retention/RetentionSettings';
 import DataArchiveLog from '@/components/retention/DataArchiveLog';
 import OnHireTracker from '@/components/projects/OnHireTracker';
+import ProjectManagerDashboard from './ProjectManagerDashboard';
 
 // Mock project data - in real app, fetch from backend using projectId
 const mockProject = {
@@ -279,7 +280,8 @@ const ProjectDetails = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-17">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-18">
+          <TabsTrigger value="pm-dashboard">PM Dashboard</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="levels">Levels & Plots</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
@@ -298,6 +300,10 @@ const ProjectDetails = () => {
           <TabsTrigger value="matrix">Matrix</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="pm-dashboard">
+          <ProjectManagerDashboard projectId={project.id} />
+        </TabsContent>
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
