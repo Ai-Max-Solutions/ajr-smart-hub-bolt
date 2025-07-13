@@ -29,6 +29,8 @@ import ProjectDocuments from './ProjectDocuments';
 import RAMSTable from './RAMSTable';
 import WeeklyTimesheetApproval from './WeeklyTimesheetApproval';
 import { PayrollExport } from './PayrollExport';
+import TeamCompliance from '@/components/compliance/TeamCompliance';
+import ComplianceMatrix from '@/components/compliance/ComplianceMatrix';
 
 // Mock project data - in real app, fetch from backend using projectId
 const mockProject = {
@@ -266,13 +268,14 @@ const ProjectDetails = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-7">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="levels">Levels & Plots</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
           <TabsTrigger value="payroll">Payroll Export</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          <TabsTrigger value="matrix">Matrix</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
@@ -336,7 +339,11 @@ const ProjectDetails = () => {
         </TabsContent>
 
         <TabsContent value="compliance">
-          <ComplianceTracking projectId={project.id} />
+          <TeamCompliance />
+        </TabsContent>
+
+        <TabsContent value="matrix">
+          <ComplianceMatrix />
         </TabsContent>
 
         <TabsContent value="documents">

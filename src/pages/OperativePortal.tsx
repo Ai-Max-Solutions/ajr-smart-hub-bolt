@@ -14,6 +14,7 @@ import {
   Shield
 } from 'lucide-react';
 import MyPayslips from '@/components/operative/MyPayslips';
+import MyQualifications from '@/components/compliance/MyQualifications';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
@@ -27,6 +28,12 @@ const OperativeDashboard = () => {
       highlight: true
     },
     {
+      title: 'My Qualifications',
+      description: 'Manage certifications and training records',
+      icon: Shield,
+      action: () => navigate('/operative/qualifications'),
+    },
+    {
       title: 'My Timesheets',
       description: 'Submit and track weekly timesheets',
       icon: Clock,
@@ -37,12 +44,6 @@ const OperativeDashboard = () => {
       description: 'Update personal details and CSCS info',
       icon: User,
       action: () => navigate('/operative/profile'),
-    },
-    {
-      title: 'Project Documents',
-      description: 'Access RAMS and safety documents',
-      icon: FileText,
-      action: () => navigate('/operative/documents'),
     }
   ];
 
@@ -50,7 +51,7 @@ const OperativeDashboard = () => {
     { label: 'This Week Status', value: 'Approved', color: 'success' },
     { label: 'YTD Earnings', value: '£26,420', color: 'primary' },
     { label: 'Current Project', value: 'Woodberry Down', color: 'accent' },
-    { label: 'CSCS Status', value: 'Valid', color: 'success' }
+    { label: 'Qualification Status', value: '3 Valid, 1 Expiring', color: 'warning' }
   ];
 
   return (
@@ -88,10 +89,10 @@ const OperativeDashboard = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="max-w-6xl mx-auto">
-        <h3 className="text-xl font-semibold mb-6 text-primary">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Quick Actions */}
+        <div className="max-w-6xl mx-auto">
+          <h3 className="text-xl font-semibold mb-6 text-primary">Quick Actions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {quickActions.map((action, index) => {
             const Icon = action.icon;
             return (
@@ -172,6 +173,7 @@ const OperativePortal = () => {
     <Routes>
       <Route path="/" element={<OperativeDashboard />} />
       <Route path="/payslips" element={<MyPayslips />} />
+      <Route path="/qualifications" element={<MyQualifications />} />
       {/* Placeholder routes for future components */}
       <Route path="/timesheets" element={<div className="p-8 text-center text-muted-foreground">Timesheets coming soon...</div>} />
       <Route path="/profile" element={<div className="p-8 text-center text-muted-foreground">Profile coming soon...</div>} />
