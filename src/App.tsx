@@ -9,6 +9,7 @@ import OnboardingFlow from "./pages/OnboardingFlow";
 import ProjectsManagement from "./pages/ProjectsManagement";
 import OperativePortal from "./pages/OperativePortal";
 import DocumentStatusChecker from "./pages/DocumentStatusChecker";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/projects/*" element={<ProjectsManagement />} />
           <Route path="/operative/*" element={<OperativePortal />} />
           <Route path="/check/:docId" element={<DocumentStatusChecker />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
