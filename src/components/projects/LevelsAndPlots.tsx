@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from '@/hooks/use-toast';
 import { 
   Plus, 
@@ -15,8 +16,11 @@ import {
   Trash2,
   CheckCircle2,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
+import PlotDetailsCard from './PlotDetailsCard';
 
 interface Plot {
   id: string;
@@ -71,6 +75,8 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
   const [selectedLevel, setSelectedLevel] = useState<string>('');
   const [newLevelName, setNewLevelName] = useState('');
   const [newPlotName, setNewPlotName] = useState('');
+  const [expandedLevels, setExpandedLevels] = useState<Record<string, boolean>>({});
+  const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -121,6 +127,17 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
     setNewPlotName('');
     setSelectedLevel('');
     setIsAddingPlot(false);
+  };
+
+  const toggleLevel = (levelId: string) => {
+    setExpandedLevels(prev => ({
+      ...prev,
+      [levelId]: !prev[levelId]
+    }));
+  };
+
+  const handlePlotClick = (plot: Plot) => {
+    setSelectedPlot(plot);
   };
 
   return (
@@ -216,70 +233,105 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
         </div>
       </div>
 
-      {/* Levels and Plots */}
-      <div className="space-y-6">
+      {/* Levels and Plots Tree Structure */}
+      <div className="space-y-4">
         {levels.map((level) => {
           const plots = level.plots.map(plotId => mockPlotsData[plotId] || { id: plotId, name: plotId, status: 'pending' as const });
           const completedPlots = plots.filter(p => p.status === 'completed').length;
           const completionPercentage = Math.round((completedPlots / plots.length) * 100);
+          const isExpanded = expandedLevels[level.id] ?? true;
           
           return (
             <Card key={level.id} className="overflow-hidden">
-              <CardHeader className="bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Building className="w-5 h-5 text-primary" />
-                    <div>
-                      <CardTitle className="text-lg">{level.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {plots.length} plots • {completedPlots} completed ({completionPercentage}%)
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {plots.map((plot) => (
-                    <Card key={plot.id} className="card-hover cursor-pointer">
-                      <CardContent className="pt-4 pb-4">
-                        <div className="text-center space-y-2">
-                          <div className="flex items-center justify-center space-x-2">
-                            {getStatusIcon(plot.status)}
-                            <span className="font-medium">{plot.name}</span>
-                          </div>
-                          
-                          {getStatusBadge(plot.status)}
-                          
-                          {plot.assignedTo && (
-                            <p className="text-xs text-muted-foreground">{plot.assignedTo}</p>
-                          )}
-                          
-                          {plot.completedDate && (
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(plot.completedDate).toLocaleDateString()}
-                            </p>
-                          )}
+              <Collapsible open={isExpanded} onOpenChange={() => toggleLevel(level.id)}>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="bg-muted/30 cursor-pointer hover:bg-muted/40 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        {isExpanded ? (
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <Building className="w-5 h-5 text-primary" />
+                        <div>
+                          <CardTitle className="text-lg">{level.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            {plots.length} plots • {completedPlots} completed ({completionPercentage}%)
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-destructive hover:text-destructive"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent>
+                  <CardContent className="pt-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                      {plots.map((plot) => (
+                        <Card 
+                          key={plot.id} 
+                          className="card-hover cursor-pointer"
+                          onClick={() => handlePlotClick(plot)}
+                        >
+                          <CardContent className="pt-4 pb-4">
+                            <div className="text-center space-y-2">
+                              <div className="flex items-center justify-center space-x-2">
+                                {getStatusIcon(plot.status)}
+                                <span className="font-medium">{plot.name}</span>
+                              </div>
+                              
+                              {getStatusBadge(plot.status)}
+                              
+                              {plot.assignedTo && (
+                                <p className="text-xs text-muted-foreground">{plot.assignedTo}</p>
+                              )}
+                              
+                              {plot.completedDate && (
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(plot.completedDate).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
             </Card>
           );
         })}
       </div>
+
+      {/* Plot Details Modal */}
+      {selectedPlot && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <PlotDetailsCard 
+            plot={{
+              ...selectedPlot,
+              ramsRequired: ['Electrical Safety', 'Working at Height'],
+              timesheetsLinked: 3
+            }}
+            onClose={() => setSelectedPlot(null)}
+          />
+        </div>
+      )}
 
       {levels.length === 0 && (
         <Card>

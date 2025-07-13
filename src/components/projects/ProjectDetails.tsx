@@ -26,6 +26,7 @@ import LevelsAndPlots from './LevelsAndPlots';
 import TeamManagement from './TeamManagement';
 import ComplianceTracking from './ComplianceTracking';
 import ProjectDocuments from './ProjectDocuments';
+import RAMSTable from './RAMSTable';
 
 // Mock project data - in real app, fetch from backend using projectId
 const mockProject = {
@@ -134,60 +135,91 @@ const ProjectDetails = () => {
                 {project.address}
               </div>
             </div>
-            <Button className="btn-primary">
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Project
-            </Button>
+            <div className="flex space-x-2">
+              <Button variant="outline">
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Docs
+              </Button>
+              <Button className="btn-primary">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Project
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Progress */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Progress</span>
-                <span>{project.plotsCompleted}/{project.plotsTotal} plots</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Project Summary Panel */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-primary">Project Summary</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Start Date</p>
+                  <p className="font-medium">{new Date(project.startDate).toLocaleDateString()}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">End Date</p>
+                  <p className="font-medium">{new Date(project.endDate).toLocaleDateString()}</p>
+                </div>
               </div>
-              <Progress value={completionPercentage} className="h-3" />
-              <p className="text-xs text-muted-foreground">{completionPercentage}% complete</p>
+              
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Client Name</p>
+                <p className="font-medium">{project.client}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Project Manager</p>
+                <div className="flex items-center space-x-3">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={project.projectManager.avatar} />
+                    <AvatarFallback>{project.projectManager.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{project.projectManager.name}</p>
+                    <p className="text-sm text-muted-foreground">{project.projectManager.email}</p>
+                  </div>
+                </div>
+              </div>
             </div>
             
-            {/* Compliance */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Compliance</span>
-                <span>{project.compliancePercentage}%</span>
-              </div>
-              <Progress value={project.compliancePercentage} className="h-3 bg-success" />
-              <p className="text-xs text-muted-foreground">Safety compliance</p>
-            </div>
-            
-            {/* Timeline */}
-            <div className="space-y-2">
-              <div className="flex items-center text-sm">
-                <Calendar className="w-4 h-4 mr-1" />
-                Timeline
-              </div>
-              <p className="text-sm font-medium">
-                {new Date(project.startDate).toLocaleDateString()} - {new Date(project.endDate).toLocaleDateString()}
-              </p>
-              <p className="text-xs text-muted-foreground">5 months duration</p>
-            </div>
-            
-            {/* Project Manager */}
-            <div className="space-y-2">
-              <div className="flex items-center text-sm">
-                <Users className="w-4 h-4 mr-1" />
-                Project Manager
-              </div>
-              <div className="flex items-center space-x-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src={project.projectManager.avatar} />
-                  <AvatarFallback>{project.projectManager.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium">{project.projectManager.name}</p>
-                  <p className="text-xs text-muted-foreground">{project.projectManager.email}</p>
+            {/* Compliance Progress */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-primary">Compliance Progress</h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="flex items-center">
+                      <CheckCircle2 className="w-4 h-4 mr-2 text-success" />
+                      CSCS Verified
+                    </span>
+                    <span className="font-medium">88% ✅</span>
+                  </div>
+                  <Progress value={88} className="h-2" />
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="flex items-center">
+                      <FileText className="w-4 h-4 mr-2 text-accent" />
+                      RAMS Signed
+                    </span>
+                    <span className="font-medium">82% ✅</span>
+                  </div>
+                  <Progress value={82} className="h-2" />
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="flex items-center">
+                      <Shield className="w-4 h-4 mr-2 text-warning" />
+                      Safety Docs Completed
+                    </span>
+                    <span className="font-medium">95% ✅</span>
+                  </div>
+                  <Progress value={95} className="h-2" />
                 </div>
               </div>
             </div>
@@ -275,6 +307,11 @@ const ProjectDetails = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+          
+          {/* RAMS & Task Plans Section in Overview */}
+          <div className="mt-6">
+            <RAMSTable projectId={project.id} />
           </div>
         </TabsContent>
 
