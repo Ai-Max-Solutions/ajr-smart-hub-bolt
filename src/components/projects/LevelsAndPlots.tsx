@@ -325,9 +325,12 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
           <PlotDetailsCard 
             plot={{
               ...selectedPlot,
-              ramsRequired: ['Electrical Safety', 'Working at Height'],
-              timesheetsLinked: 3
+              level: levels.find(level => level.plots.includes(selectedPlot.id))?.name || 'Unknown Level',
+              workCategories: ['1st Fix', '2nd Fix'],
+              estimatedCompletion: '2024-02-15',
+              notes: 'Standard electrical installation work'
             }}
+            userRole="pm"
             onClose={() => setSelectedPlot(null)}
           />
         </div>
