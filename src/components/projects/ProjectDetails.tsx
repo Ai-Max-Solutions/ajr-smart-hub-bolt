@@ -31,6 +31,8 @@ import WeeklyTimesheetApproval from './WeeklyTimesheetApproval';
 import { PayrollExport } from './PayrollExport';
 import TeamCompliance from '@/components/compliance/TeamCompliance';
 import ComplianceMatrix from '@/components/compliance/ComplianceMatrix';
+import TeamTraining from '@/components/training/TeamTraining';
+import TrainingMatrix from '@/components/training/TrainingMatrix';
 
 // Mock project data - in real app, fetch from backend using projectId
 const mockProject = {
@@ -275,6 +277,7 @@ const ProjectDetails = () => {
           <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
           <TabsTrigger value="payroll">Payroll Export</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          <TabsTrigger value="training">Team Training</TabsTrigger>
           <TabsTrigger value="matrix">Matrix</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
@@ -342,8 +345,21 @@ const ProjectDetails = () => {
           <TeamCompliance />
         </TabsContent>
 
+        <TabsContent value="training">
+          <TeamTraining />
+        </TabsContent>
+
         <TabsContent value="matrix">
-          <ComplianceMatrix />
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Qualifications Matrix</h2>
+              <ComplianceMatrix />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Training Matrix</h2>
+              <TrainingMatrix />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="documents">

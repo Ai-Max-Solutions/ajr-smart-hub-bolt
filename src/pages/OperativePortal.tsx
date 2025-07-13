@@ -11,10 +11,12 @@ import {
   User, 
   Building2, 
   ArrowRight,
-  Shield
+  Shield,
+  BookOpen
 } from 'lucide-react';
 import MyPayslips from '@/components/operative/MyPayslips';
 import MyQualifications from '@/components/compliance/MyQualifications';
+import MyTraining from '@/components/training/MyTraining';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
@@ -32,6 +34,12 @@ const OperativeDashboard = () => {
       description: 'Manage certifications and training records',
       icon: Shield,
       action: () => navigate('/operative/qualifications'),
+    },
+    {
+      title: 'My Training',
+      description: 'Track training progress and compliance',
+      icon: BookOpen,
+      action: () => navigate('/operative/training'),
     },
     {
       title: 'My Timesheets',
@@ -174,6 +182,7 @@ const OperativePortal = () => {
       <Route path="/" element={<OperativeDashboard />} />
       <Route path="/payslips" element={<MyPayslips />} />
       <Route path="/qualifications" element={<MyQualifications />} />
+      <Route path="/training" element={<MyTraining />} />
       {/* Placeholder routes for future components */}
       <Route path="/timesheets" element={<div className="p-8 text-center text-muted-foreground">Timesheets coming soon...</div>} />
       <Route path="/profile" element={<div className="p-8 text-center text-muted-foreground">Profile coming soon...</div>} />
