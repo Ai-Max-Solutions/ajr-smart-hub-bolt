@@ -14,7 +14,8 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
-  FileText
+  FileText,
+  QrCode
 } from 'lucide-react';
 import { AsiteDocument, AsiteApiService, DocumentViewerService } from '@/lib/asite';
 
@@ -66,17 +67,35 @@ const AsiteDocumentViewer = ({ document, userId, userName, onReadConfirmed }: As
 
   const handleDownload = async () => {
     try {
+      setIsLoading(true);
       const signedUrl = await AsiteApiService.getSignedUrl(document.asiteDocId, userId);
-      const link = window.document.createElement('a');
-      link.href = signedUrl;
-      link.download = `${document.drawingNumber}-${document.version}.pdf`;
-      window.document.body.appendChild(link);
-      link.click();
-      window.document.body.removeChild(link);
+      
+      // Fetch the original PDF
+      const response = await fetch(signedUrl);
+      const pdfBytes = await response.arrayBuffer();
+      
+      // Prepare document info for watermarking
+      const docInfo = {
+        projectName: 'SmartWork Hub Project',
+        documentNumber: document.drawingNumber,
+        title: document.title,
+        revision: document.version,
+        status: document.approvalStatus === 'approved_for_construction' ? 'Current' as const : 'Superseded' as const,
+        dateIssued: new Date(document.uploadedDate).toLocaleDateString(),
+        asiteDocId: document.asiteDocId
+      };
+      
+      // Add watermark and QR code
+      const { PDFWatermarkService } = await import('@/lib/pdfWatermark');
+      const watermarkedPdf = await PDFWatermarkService.addWatermarkToPDF(pdfBytes, docInfo);
+      
+      // Download watermarked PDF
+      const filename = `${document.drawingNumber}-${document.version}.pdf`;
+      PDFWatermarkService.downloadWatermarkedPDF(watermarkedPdf, filename);
       
       toast({
         title: "Download Started",
-        description: `${document.drawingNumber} is downloading...`
+        description: `Watermarked ${document.drawingNumber} is downloading...`
       });
     } catch (error) {
       toast({
@@ -84,6 +103,8 @@ const AsiteDocumentViewer = ({ document, userId, userName, onReadConfirmed }: As
         description: error instanceof Error ? error.message : "Failed to download document",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -223,10 +244,26 @@ const AsiteDocumentViewer = ({ document, userId, userName, onReadConfirmed }: As
                 variant="outline" 
                 size="sm" 
                 onClick={handleDownload}
-                disabled={document.approvalStatus !== 'approved_for_construction'}
+                disabled={isLoading || document.approvalStatus !== 'approved_for_construction'}
               >
                 <Download className="w-4 h-4 mr-1" />
-                Download
+                {isLoading ? 'Processing...' : 'Download'}
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const qrUrl = `${window.location.origin}/check/${document.drawingNumber}-${document.version}`;
+                  navigator.clipboard.writeText(qrUrl);
+                  toast({
+                    title: "QR Check URL Copied",
+                    description: "Share this URL to verify document status"
+                  });
+                }}
+              >
+                <QrCode className="w-4 h-4 mr-1" />
+                QR Check
               </Button>
               
               {document.readRequired && !hasRead && (
