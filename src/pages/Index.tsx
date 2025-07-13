@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Users, FileText, CheckCircle, ArrowRight, Shield, Clock, Award } from 'lucide-react';
+import { Settings, Users, FileText, CheckCircle, ArrowRight, Shield, Clock, Award, Building2, FolderOpen } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -12,6 +12,11 @@ const Index = () => {
       icon: Users,
       title: 'Smart Onboarding',
       description: 'Streamlined operative registration with CSCS verification'
+    },
+    {
+      icon: Building2,
+      title: 'Projects Management',
+      description: 'Complete project oversight with levels, plots, and team management'
     },
     {
       icon: FileText,
@@ -73,6 +78,13 @@ const Index = () => {
               <Users className="w-5 h-5 mr-2" />
               Start Onboarding Demo
             </Button>
+            <Button 
+              onClick={() => navigate('/projects')}
+              className="btn-accent h-12 px-8 text-lg"
+            >
+              <Building2 className="w-5 h-5 mr-2" />
+              Explore Projects
+            </Button>
             <Button variant="outline" className="h-12 px-8 text-lg">
               <FileText className="w-5 h-5 mr-2" />
               View Documentation
@@ -103,7 +115,7 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
