@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { 
   FileText, 
@@ -20,8 +21,17 @@ import {
   Plus,
   File,
   Image,
-  Archive
+  Archive,
+  RefreshCw,
+  Settings,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
+import { AsiteDocument, AsiteWorkspace, AsiteApiService, AsiteSyncResult } from '@/lib/asite';
+import AsiteDocumentViewer from './AsiteDocumentViewer';
 
 interface ProjectDocument {
   id: string;
@@ -33,6 +43,14 @@ interface ProjectDocument {
   fileSize: string;
   status: 'active' | 'archived' | 'pending';
   workTypes?: string[];
+  // Enhanced for Asite integration
+  asiteDocId?: string;
+  asiteRevision?: string;
+  approvalStatus?: 'approved_for_construction' | 'draft' | 'superseded' | 'pending';
+  sourceSystem?: 'asite' | 'local';
+  readRequired?: boolean;
+  plotsLinked?: string[];
+  levelsLinked?: string[];
 }
 
 interface ProjectDocumentsProps {
@@ -109,14 +127,120 @@ const ProjectDocuments = ({ projectId }: ProjectDocumentsProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [isUploading, setIsUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState('asite');
+  
+  // Asite integration state
+  const [asiteDocuments, setAsiteDocuments] = useState<AsiteDocument[]>([]);
+  const [asiteWorkspace, setAsiteWorkspace] = useState<AsiteWorkspace | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<AsiteSyncResult | null>(null);
+  const [isConnectingWorkspace, setIsConnectingWorkspace] = useState(false);
+
+  // Mock current user - in real app, get from auth context
+  const currentUser = {
+    id: 'user-123',
+    name: 'John Smith',
+    role: 'operative'
+  };
+
+  useEffect(() => {
+    loadAsiteData();
+  }, [projectId]);
+
+  const loadAsiteData = async () => {
+    try {
+      const workspace = await AsiteApiService.getWorkspace(projectId);
+      setAsiteWorkspace(workspace);
+      
+      if (workspace) {
+        const docs = await AsiteApiService.getDocuments(projectId, { currentOnly: true });
+        setAsiteDocuments(docs);
+      }
+    } catch (error) {
+      console.error('Error loading Asite data:', error);
+    }
+  };
+
+  const handleSyncDocuments = async () => {
+    if (!asiteWorkspace) return;
+    
+    setIsSyncing(true);
+    try {
+      const result = await AsiteApiService.syncDocuments(projectId);
+      setSyncResult(result);
+      
+      if (result.success) {
+        toast({
+          title: "Sync Complete",
+          description: `Updated ${result.documentsUpdated} documents, added ${result.newDocuments} new documents`
+        });
+        await loadAsiteData();
+      } else {
+        toast({
+          title: "Sync Failed",
+          description: result.errors.join(', '),
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Sync Error",
+        description: "Failed to sync with Asite",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleConnectWorkspace = async () => {
+    setIsConnectingWorkspace(true);
+    try {
+      // Mock workspace connection - in real app, show form to collect workspace details
+      const workspaceId = await AsiteApiService.connectWorkspace({
+        name: `Project ${projectId} Workspace`,
+        projectId,
+        apiKey: 'mock-api-key',
+        folderId: 'for-construction-folder'
+      });
+      
+      toast({
+        title: "Workspace Connected",
+        description: "Successfully connected to Asite workspace"
+      });
+      
+      await loadAsiteData();
+      await handleSyncDocuments();
+    } catch (error) {
+      toast({
+        title: "Connection Failed",
+        description: "Failed to connect to Asite workspace",
+        variant: "destructive"
+      });
+    } finally {
+      setIsConnectingWorkspace(false);
+    }
+  };
 
   const filteredDocuments = mockDocuments.filter(doc => {
     const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'all' || doc.type === typeFilter;
     const matchesStatus = statusFilter === 'all' || doc.status === statusFilter;
+    const matchesSource = sourceFilter === 'all' || 
+      (sourceFilter === 'asite' && doc.sourceSystem === 'asite') ||
+      (sourceFilter === 'local' && (!doc.sourceSystem || doc.sourceSystem === 'local'));
     
-    return matchesSearch && matchesType && matchesStatus;
+    return matchesSearch && matchesType && matchesStatus && matchesSource;
+  });
+
+  const filteredAsiteDocuments = asiteDocuments.filter(doc => {
+    const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         doc.drawingNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === 'all' || doc.type === typeFilter;
+    
+    return matchesSearch && matchesType;
   });
 
   const getTypeBadge = (type: string) => {
@@ -172,16 +296,53 @@ const ProjectDocuments = ({ projectId }: ProjectDocumentsProps) => {
   };
 
   const documentStats = {
-    total: mockDocuments.length,
-    active: mockDocuments.filter(d => d.status === 'active').length,
-    rams: mockDocuments.filter(d => d.type === 'rams').length,
-    drawings: mockDocuments.filter(d => d.type === 'drawing').length
+    total: mockDocuments.length + asiteDocuments.length,
+    active: mockDocuments.filter(d => d.status === 'active').length + 
+            asiteDocuments.filter(d => d.approvalStatus === 'approved_for_construction').length,
+    rams: mockDocuments.filter(d => d.type === 'rams').length + 
+          asiteDocuments.filter(d => d.type === 'rams').length,
+    drawings: mockDocuments.filter(d => d.type === 'drawing').length + 
+              asiteDocuments.filter(d => d.type === 'drawing').length,
+    asite: asiteDocuments.length,
+    readRequired: asiteDocuments.filter(d => d.readRequired).length
   };
 
   return (
     <div className="space-y-6">
+      {/* Asite Connection Status */}
+      {asiteWorkspace && (
+        <Card className="border-primary/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                {asiteWorkspace.syncStatus === 'connected' ? (
+                  <Wifi className="w-5 h-5 text-success" />
+                ) : (
+                  <WifiOff className="w-5 h-5 text-destructive" />
+                )}
+                <div>
+                  <h3 className="font-medium">Asite Workspace Connected</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Last sync: {asiteWorkspace.lastSyncDate?.toLocaleString() || 'Never'}
+                  </p>
+                </div>
+              </div>
+              
+              <Button
+                onClick={handleSyncDocuments}
+                disabled={isSyncing}
+                className="btn-primary"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Syncing...' : 'Sync Now'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Document Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Card className="card-hover">
           <CardContent className="pt-6 text-center">
             <FileText className="w-8 h-8 text-primary mx-auto mb-2" />
@@ -213,6 +374,22 @@ const ProjectDocuments = ({ projectId }: ProjectDocumentsProps) => {
             <p className="text-xs text-muted-foreground">Drawings</p>
           </CardContent>
         </Card>
+        
+        <Card className="card-hover">
+          <CardContent className="pt-6 text-center">
+            <Wifi className="w-8 h-8 text-primary mx-auto mb-2" />
+            <p className="text-2xl font-bold text-primary">{documentStats.asite}</p>
+            <p className="text-xs text-muted-foreground">Asite Docs</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="card-hover">
+          <CardContent className="pt-6 text-center">
+            <Clock className="w-8 h-8 text-warning mx-auto mb-2" />
+            <p className="text-2xl font-bold text-warning">{documentStats.readRequired}</p>
+            <p className="text-xs text-muted-foreground">Read Required</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Document Management */}
@@ -221,16 +398,24 @@ const ProjectDocuments = ({ projectId }: ProjectDocumentsProps) => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <CardTitle className="flex items-center">
               <FileText className="w-5 h-5 mr-2 text-primary" />
-              Project Documents
+              Document Register & Drawing Viewer
             </CardTitle>
             
-            <Dialog open={isUploading} onOpenChange={setIsUploading}>
-              <DialogTrigger asChild>
-                <Button className="btn-accent">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Document
+            <div className="flex space-x-2">
+              {!asiteWorkspace && (
+                <Button onClick={handleConnectWorkspace} disabled={isConnectingWorkspace}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  {isConnectingWorkspace ? 'Connecting...' : 'Connect Asite'}
                 </Button>
-              </DialogTrigger>
+              )}
+              
+              <Dialog open={isUploading} onOpenChange={setIsUploading}>
+                <DialogTrigger asChild>
+                  <Button className="btn-accent">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Local Document
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Upload New Document</DialogTitle>
@@ -284,12 +469,26 @@ const ProjectDocuments = ({ projectId }: ProjectDocumentsProps) => {
                 </div>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </CardHeader>
         
         <CardContent>
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Document Source Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="asite" className="flex items-center">
+                <Wifi className="w-4 h-4 mr-2" />
+                Asite Documents ({asiteDocuments.length})
+              </TabsTrigger>
+              <TabsTrigger value="local" className="flex items-center">
+                <Archive className="w-4 h-4 mr-2" />
+                Local Documents ({mockDocuments.length})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 mt-4">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -327,11 +526,74 @@ const ProjectDocuments = ({ projectId }: ProjectDocumentsProps) => {
                 <SelectItem value="pending">Pending</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="asite">Asite</SelectItem>
+                <SelectItem value="local">Local Upload</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Documents List */}
-          <div className="space-y-4">
-            {filteredDocuments.map((document) => (
+          {/* Asite Documents */}
+          <TabsContent value="asite" className="space-y-4">
+            {!asiteWorkspace ? (
+              <div className="text-center py-8">
+                <Wifi className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground">Connect to Asite</h3>
+                <p className="text-muted-foreground mb-4">
+                  Connect your project to an Asite workspace to access live drawings and documents
+                </p>
+                <Button onClick={handleConnectWorkspace} disabled={isConnectingWorkspace}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  {isConnectingWorkspace ? 'Connecting...' : 'Connect Asite Workspace'}
+                </Button>
+              </div>
+            ) : filteredAsiteDocuments.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground">No Asite documents found</h3>
+                <p className="text-muted-foreground mb-4">
+                  Try syncing with Asite or adjust your search filters
+                </p>
+                <Button onClick={handleSyncDocuments} disabled={isSyncing}>
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Syncing...' : 'Sync with Asite'}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredAsiteDocuments.map((document) => (
+                  <AsiteDocumentViewer
+                    key={document.asiteDocId}
+                    document={document}
+                    userId={currentUser.id}
+                    userName={currentUser.name}
+                    onReadConfirmed={() => {
+                      // Refresh data to update read status
+                      loadAsiteData();
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Local Documents */}
+          <TabsContent value="local" className="space-y-4">
+            {filteredDocuments.length === 0 ? (
+              <div className="text-center py-8">
+                <Archive className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground">No local documents found</h3>
+                <p className="text-muted-foreground">Try adjusting your search or filters</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredDocuments.map((document) => (
               <Card key={document.id} className="card-hover">
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -401,15 +663,10 @@ const ProjectDocuments = ({ projectId }: ProjectDocumentsProps) => {
                 </CardContent>
               </Card>
             ))}
-          </div>
-          
-          {filteredDocuments.length === 0 && (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-muted-foreground">No documents found</h3>
-              <p className="text-muted-foreground">Try adjusting your search or filters</p>
-            </div>
-          )}
+              </div>
+            )}
+          </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
