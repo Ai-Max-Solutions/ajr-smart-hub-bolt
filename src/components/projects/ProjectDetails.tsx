@@ -28,6 +28,7 @@ import ComplianceTracking from './ComplianceTracking';
 import ProjectDocuments from './ProjectDocuments';
 import RAMSTable from './RAMSTable';
 import WeeklyTimesheetApproval from './WeeklyTimesheetApproval';
+import { PayrollExport } from './PayrollExport';
 
 // Mock project data - in real app, fetch from backend using projectId
 const mockProject = {
@@ -265,11 +266,12 @@ const ProjectDetails = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="levels">Levels & Plots</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
+          <TabsTrigger value="payroll">Payroll Export</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
@@ -327,6 +329,10 @@ const ProjectDetails = () => {
 
         <TabsContent value="timesheets">
           <WeeklyTimesheetApproval projectId={project.id} />
+        </TabsContent>
+
+        <TabsContent value="payroll">
+          <PayrollExport projectId={project.id} />
         </TabsContent>
 
         <TabsContent value="compliance">
