@@ -13,7 +13,8 @@ import {
   ArrowRight,
   Shield,
   BookOpen,
-  Bell
+  Bell,
+  Database
 } from 'lucide-react';
 import MyPayslips from '@/components/operative/MyPayslips';
 import MyQualifications from '@/components/compliance/MyQualifications';
@@ -21,6 +22,7 @@ import MyTraining from '@/components/training/MyTraining';
 import SiteNotices from '@/components/notices/SiteNotices';
 import MyInductions from '@/components/inductions/MyInductions';
 import MySignatures from '@/components/signatures/MySignatures';
+import MyDataRetention from '@/components/retention/MyDataRetention';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
@@ -63,6 +65,12 @@ const OperativeDashboard = () => {
       description: 'View signature history and compliance records',
       icon: FileText,
       action: () => navigate('/operative/signatures'),
+    },
+    {
+      title: 'My Data',
+      description: 'View data retention and deletion status',
+      icon: Database,
+      action: () => navigate('/operative/data-retention'),
     },
     {
       title: 'My Timesheets',
@@ -209,6 +217,7 @@ const OperativePortal = () => {
       <Route path="/training" element={<MyTraining />} />
       <Route path="/inductions" element={<MyInductions />} />
       <Route path="/signatures" element={<MySignatures />} />
+      <Route path="/data-retention" element={<MyDataRetention />} />
       {/* Placeholder routes for future components */}
       <Route path="/timesheets" element={<div className="p-8 text-center text-muted-foreground">Timesheets coming soon...</div>} />
       <Route path="/profile" element={<div className="p-8 text-center text-muted-foreground">Profile coming soon...</div>} />

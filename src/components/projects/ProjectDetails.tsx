@@ -39,6 +39,8 @@ import ProjectInductions from '@/components/inductions/ProjectInductions';
 import InductionBuilder from '@/components/inductions/InductionBuilder';
 import SignatureVault from '@/components/signatures/SignatureVault';
 import SignatureVaultExport from '@/components/signatures/SignatureVaultExport';
+import RetentionSettings from '@/components/retention/RetentionSettings';
+import DataArchiveLog from '@/components/retention/DataArchiveLog';
 
 // Mock project data - in real app, fetch from backend using projectId
 const mockProject = {
@@ -276,7 +278,7 @@ const ProjectDetails = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-14">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-16">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="levels">Levels & Plots</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
@@ -289,6 +291,8 @@ const ProjectDetails = () => {
           <TabsTrigger value="builder">Builder</TabsTrigger>
           <TabsTrigger value="signatures">Signatures</TabsTrigger>
           <TabsTrigger value="vault">Vault Export</TabsTrigger>
+          <TabsTrigger value="retention">Retention</TabsTrigger>
+          <TabsTrigger value="archive">Archive</TabsTrigger>
           <TabsTrigger value="matrix">Matrix</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
@@ -398,9 +402,17 @@ const ProjectDetails = () => {
           <SignatureVault />
         </TabsContent>
 
-        <TabsContent value="vault">
-          <SignatureVaultExport />
-        </TabsContent>
+            <TabsContent value="vault">
+              <SignatureVaultExport />
+            </TabsContent>
+
+            <TabsContent value="retention">
+              <RetentionSettings />
+            </TabsContent>
+
+            <TabsContent value="archive">
+              <DataArchiveLog />
+            </TabsContent>
 
         <TabsContent value="documents">
           <ProjectDocuments projectId={project.id} />
