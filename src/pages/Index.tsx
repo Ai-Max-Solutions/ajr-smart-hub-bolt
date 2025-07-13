@@ -85,9 +85,13 @@ const Index = () => {
               <Building2 className="w-5 h-5 mr-2" />
               Explore Projects
             </Button>
-            <Button variant="outline" className="h-12 px-8 text-lg">
-              <FileText className="w-5 h-5 mr-2" />
-              View Documentation
+            <Button 
+              onClick={() => navigate('/operative')}
+              variant="outline" 
+              className="h-12 px-8 text-lg"
+            >
+              <Shield className="w-5 h-5 mr-2" />
+              Operative Portal
             </Button>
           </div>
 
