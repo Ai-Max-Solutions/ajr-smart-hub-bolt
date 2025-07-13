@@ -12,22 +12,30 @@ import {
   Building2, 
   ArrowRight,
   Shield,
-  BookOpen
+  BookOpen,
+  Bell
 } from 'lucide-react';
 import MyPayslips from '@/components/operative/MyPayslips';
 import MyQualifications from '@/components/compliance/MyQualifications';
 import MyTraining from '@/components/training/MyTraining';
+import SiteNotices from '@/components/notices/SiteNotices';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
 
   const quickActions = [
     {
+      title: 'Site Notices',
+      description: 'View important safety alerts and notices',
+      icon: Bell,
+      action: () => navigate('/operative/notices'),
+      highlight: true
+    },
+    {
       title: 'My Payslips',
       description: 'View weekly earnings and payment status',
       icon: DollarSign,
       action: () => navigate('/operative/payslips'),
-      highlight: true
     },
     {
       title: 'My Qualifications',
@@ -180,6 +188,7 @@ const OperativePortal = () => {
   return (
     <Routes>
       <Route path="/" element={<OperativeDashboard />} />
+      <Route path="/notices" element={<SiteNotices />} />
       <Route path="/payslips" element={<MyPayslips />} />
       <Route path="/qualifications" element={<MyQualifications />} />
       <Route path="/training" element={<MyTraining />} />

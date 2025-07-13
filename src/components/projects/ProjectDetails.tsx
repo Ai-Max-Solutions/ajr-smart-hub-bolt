@@ -33,6 +33,8 @@ import TeamCompliance from '@/components/compliance/TeamCompliance';
 import ComplianceMatrix from '@/components/compliance/ComplianceMatrix';
 import TeamTraining from '@/components/training/TeamTraining';
 import TrainingMatrix from '@/components/training/TrainingMatrix';
+import BroadcastNotices from '@/components/notices/BroadcastNotices';
+import NoticesComplianceLog from '@/components/notices/NoticesComplianceLog';
 
 // Mock project data - in real app, fetch from backend using projectId
 const mockProject = {
@@ -270,7 +272,7 @@ const ProjectDetails = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-8">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-10">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="levels">Levels & Plots</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
@@ -278,6 +280,7 @@ const ProjectDetails = () => {
           <TabsTrigger value="payroll">Payroll Export</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           <TabsTrigger value="training">Team Training</TabsTrigger>
+          <TabsTrigger value="notices">Site Notices</TabsTrigger>
           <TabsTrigger value="matrix">Matrix</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
@@ -347,6 +350,19 @@ const ProjectDetails = () => {
 
         <TabsContent value="training">
           <TeamTraining />
+        </TabsContent>
+
+        <TabsContent value="notices">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Broadcast Notices</h2>
+              <BroadcastNotices />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Notices Compliance Log</h2>
+              <NoticesComplianceLog />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="matrix">
