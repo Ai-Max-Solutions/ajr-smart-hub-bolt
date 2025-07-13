@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { RouteProtection } from "@/components/auth/RouteProtection";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import OnboardingFlow from "./pages/OnboardingFlow";
@@ -22,13 +23,73 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/onboarding/*" element={<OnboardingFlow />} />
-          <Route path="/projects/*" element={<ProjectsManagement />} />
-          <Route path="/operative/*" element={<OperativePortal />} />
+          
+          {/* Public/General Access Routes */}
           <Route path="/check/:docId" element={<DocumentStatusChecker />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/director" element={<DirectorDashboard />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          
+          {/* Onboarding - All authenticated users */}
+          <Route 
+            path="/onboarding/*" 
+            element={
+              <RouteProtection requiredResource="onboarding" requiredAction="read">
+                <OnboardingFlow />
+              </RouteProtection>
+            } 
+          />
+          
+          {/* Operative Portal - Operative role and above */}
+          <Route 
+            path="/operative/*" 
+            element={
+              <RouteProtection requiredRole={['operative', 'supervisor', 'pm', 'admin', 'dpo']}>
+                <OperativePortal />
+              </RouteProtection>
+            } 
+          />
+          
+          {/* Projects Management - PM role and above */}
+          <Route 
+            path="/projects/*" 
+            element={
+              <RouteProtection 
+                requiredRole={['pm', 'admin', 'dpo']} 
+                requiredResource="project_data" 
+                requiredAction="read"
+              >
+                <ProjectsManagement />
+              </RouteProtection>
+            } 
+          />
+          
+          {/* Admin Dashboard - Admin and DPO only */}
+          <Route 
+            path="/admin" 
+            element={
+              <RouteProtection 
+                requiredRole={['admin', 'dpo']} 
+                requiredResource="admin_dashboard" 
+                requiredAction="read"
+              >
+                <AdminDashboard />
+              </RouteProtection>
+            } 
+          />
+          
+          {/* Director Dashboard - Director, Admin, and DPO only */}
+          <Route 
+            path="/director" 
+            element={
+              <RouteProtection 
+                requiredRole={['director', 'admin', 'dpo']} 
+                requiredResource="director_dashboard" 
+                requiredAction="read"
+              >
+                <DirectorDashboard />
+              </RouteProtection>
+            } 
+          />
+          
+          {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -1,11 +1,17 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Users, FileText, CheckCircle, ArrowRight, Shield, Clock, Award, Building2, FolderOpen } from 'lucide-react';
+import { Settings, Users, FileText, CheckCircle, ArrowRight, Shield, Clock, Award, Building2, FolderOpen, User } from 'lucide-react';
+import RoleBasedNavigation from '@/components/navigation/RoleBasedNavigation';
+import { UserContextService } from '@/lib/userContext';
 
 const Index = () => {
   const navigate = useNavigate();
+  const currentUser = UserContextService.getCurrentUser();
+  const userProjects = UserContextService.getUserProjects(currentUser.id);
+  const userTeams = UserContextService.getUserTeams(currentUser.id);
 
   const features = [
     {
@@ -52,69 +58,97 @@ const Index = () => {
               <h1 className="text-2xl font-bold">AJ Ryan SmartWork Hub</h1>
               <p className="text-primary-foreground/80">Operative Management Platform</p>
             </div>
-            <Badge variant="secondary" className="bg-accent text-accent-foreground">
-              DEMO
-            </Badge>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm">
+                <User className="w-4 h-4" />
+                <span>{currentUser.name}</span>
+                <Badge variant="secondary" className="bg-accent text-accent-foreground capitalize">
+                  {currentUser.role}
+                </Badge>
+              </div>
+              <Badge variant="secondary" className="bg-warning text-warning-foreground">
+                DEMO
+              </Badge>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
       <section className="py-16 px-4">
-        <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-4xl font-bold text-primary mb-6">
-            Welcome to the Future of Construction Management
-          </h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Experience our cutting-edge onboarding flow designed specifically for AJ Ryan operatives. 
-            Streamlined, compliant, and significantly improved from traditional methods.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button 
-              onClick={() => navigate('/onboarding')}
-              className="btn-primary h-12 px-8 text-lg"
-            >
-              <Users className="w-5 h-5 mr-2" />
-              Start Onboarding Demo
-            </Button>
-            <Button 
-              onClick={() => navigate('/projects')}
-              className="btn-accent h-12 px-8 text-lg"
-            >
-              <Building2 className="w-5 h-5 mr-2" />
-              Explore Projects
-            </Button>
-            <Button 
-              onClick={() => navigate('/operative')}
-              variant="outline" 
-              className="h-12 px-8 text-lg"
-            >
-              <Shield className="w-5 h-5 mr-2" />
-              Operative Portal
-            </Button>
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-primary mb-6">
+              Welcome back, {currentUser.name}
+            </h2>
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Access your personalized dashboard and manage your work through our secure, 
+              role-based SmartWork Hub platform.
+            </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              onClick={() => navigate('/admin')}
-              variant="outline" 
-              className="h-12 px-8 text-lg"
-            >
-              <Settings className="w-5 h-5 mr-2" />
-              Admin Dashboard
-            </Button>
-            <Button 
-              onClick={() => navigate('/director')}
-              className="btn-accent h-12 px-8 text-lg"
-            >
-              <FolderOpen className="w-5 h-5 mr-2" />
-              Director Dashboard
-            </Button>
+          {/* User Context Information */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <Card className="card-hover">
+              <CardContent className="pt-6 text-center">
+                <User className="w-8 h-8 text-primary mx-auto mb-3" />
+                <div className="text-lg font-semibold text-primary mb-1">Your Role</div>
+                <Badge variant="outline" className="capitalize">{currentUser.role}</Badge>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {currentUser.role === 'operative' && 'Access your personal data and assigned work'}
+                  {currentUser.role === 'supervisor' && 'Manage your team and project activities'}
+                  {currentUser.role === 'pm' && 'Full project management and oversight'}
+                  {currentUser.role === 'admin' && 'Complete system administration access'}
+                  {currentUser.role === 'dpo' && 'Data protection and compliance oversight'}
+                  {currentUser.role === 'director' && 'Executive read-only access to all projects'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="card-hover">
+              <CardContent className="pt-6 text-center">
+                <Building2 className="w-8 h-8 text-accent mx-auto mb-3" />
+                <div className="text-lg font-semibold text-primary mb-1">Your Projects</div>
+                <div className="text-2xl font-bold text-accent">{userProjects.length}</div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {userProjects.length === 0 && 'No projects assigned'}
+                  {userProjects.length === 1 && '1 active project'}
+                  {userProjects.length > 1 && `${userProjects.length} active projects`}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="card-hover">
+              <CardContent className="pt-6 text-center">
+                <Users className="w-8 h-8 text-success mx-auto mb-3" />
+                <div className="text-lg font-semibold text-primary mb-1">Your Teams</div>
+                <div className="text-2xl font-bold text-success">{userTeams.length}</div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {userTeams.length === 0 && 'No teams assigned'}
+                  {userTeams.length === 1 && '1 team member'}
+                  {userTeams.length > 1 && `${userTeams.length} team assignments`}
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+          <Separator className="my-8" />
+
+          {/* Role-Based Navigation */}
+          <RoleBasedNavigation />
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 px-4 bg-muted/20">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <h3 className="text-3xl font-bold text-primary mb-4">Platform Statistics</h3>
+            <p className="text-lg text-muted-foreground">
+              Real-time metrics from across the AJ Ryan operations
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
               <Card key={index} className="card-hover">
                 <CardContent className="pt-6 text-center">

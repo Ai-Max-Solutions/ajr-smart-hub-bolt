@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 // Security Types
 export interface UserRole {
   id: string;
-  name: 'operative' | 'supervisor' | 'pm' | 'admin' | 'dpo';
+  name: 'operative' | 'supervisor' | 'pm' | 'admin' | 'dpo' | 'director';
   permissions: Permission[];
 }
 
@@ -20,6 +20,8 @@ export interface Permission {
     ownDataOnly?: boolean;
     projectBased?: boolean;
     teamBased?: boolean;
+    readOnlyOrgWide?: boolean;
+    requiresAdmin?: boolean;
   };
 }
 
@@ -74,65 +76,91 @@ export class EncryptionService {
 export class RBACService {
   private static rolePermissions: Record<string, Permission[]> = {
     operative: [
-      {
-        resource: 'personal_data',
-        actions: ['read', 'write'],
-        conditions: { ownDataOnly: true }
-      },
-      {
-        resource: 'timesheets',
-        actions: ['read', 'write'],
-        conditions: { ownDataOnly: true }
-      },
-      {
-        resource: 'qualifications',
-        actions: ['read', 'write'],
-        conditions: { ownDataOnly: true }
-      }
+      // Own data access only
+      { resource: 'onboarding', actions: ['read', 'write'], conditions: { ownDataOnly: true } },
+      { resource: 'my_dashboard', actions: ['read'], conditions: { ownDataOnly: true } },
+      { resource: 'plots', actions: ['read'], conditions: { ownDataOnly: true } },
+      { resource: 'training_matrix', actions: ['read', 'write'], conditions: { ownDataOnly: true } },
+      { resource: 'rams_documents', actions: ['read'], conditions: { ownDataOnly: true } },
+      { resource: 'site_notices', actions: ['read'], conditions: { ownDataOnly: true } },
+      { resource: 'inductions', actions: ['read'], conditions: { ownDataOnly: true } },
+      { resource: 'timesheets', actions: ['read', 'write'], conditions: { ownDataOnly: true } },
+      { resource: 'pricework', actions: ['read', 'write'], conditions: { ownDataOnly: true } },
+      { resource: 'on_hire_tracker', actions: ['read'], conditions: { ownDataOnly: true } },
+      { resource: 'signatures', actions: ['read', 'write'], conditions: { ownDataOnly: true } },
+      { resource: 'personal_data', actions: ['read', 'write'], conditions: { ownDataOnly: true } },
+      { resource: 'qualifications', actions: ['read', 'write'], conditions: { ownDataOnly: true } }
     ],
     supervisor: [
-      {
-        resource: 'timesheets',
-        actions: ['read', 'write'],
-        conditions: { teamBased: true }
-      },
-      {
-        resource: 'compliance_data',
-        actions: ['read'],
-        conditions: { teamBased: true }
-      }
+      // Team-based access
+      { resource: 'onboarding', actions: ['read'], conditions: { teamBased: true } },
+      { resource: 'my_dashboard', actions: ['read'], conditions: { teamBased: true } },
+      { resource: 'plots', actions: ['read', 'write'], conditions: { teamBased: true } },
+      { resource: 'training_matrix', actions: ['read'], conditions: { teamBased: true } },
+      { resource: 'rams_documents', actions: ['read'], conditions: { teamBased: true } },
+      { resource: 'site_notices', actions: ['read', 'write'], conditions: { teamBased: true } },
+      { resource: 'inductions', actions: ['read'], conditions: { teamBased: true } },
+      { resource: 'timesheets', actions: ['read', 'write'], conditions: { teamBased: true } },
+      { resource: 'pricework', actions: ['read'], conditions: { teamBased: true } },
+      { resource: 'on_hire_tracker', actions: ['read', 'write'], conditions: { projectBased: true } },
+      { resource: 'team_management', actions: ['read', 'write'], conditions: { teamBased: true } },
+      { resource: 'compliance_data', actions: ['read'], conditions: { teamBased: true } }
     ],
     pm: [
-      {
-        resource: 'project_data',
-        actions: ['read', 'write', 'export'],
-        conditions: { projectBased: true }
-      },
-      {
-        resource: 'team_data',
-        actions: ['read'],
-        conditions: { projectBased: true }
-      }
+      // Project-based access
+      { resource: 'onboarding', actions: ['read'], conditions: { projectBased: true } },
+      { resource: 'my_dashboard', actions: ['read'], conditions: { projectBased: true } },
+      { resource: 'plots', actions: ['read', 'write'], conditions: { projectBased: true } },
+      { resource: 'training_matrix', actions: ['read'], conditions: { projectBased: true } },
+      { resource: 'rams_documents', actions: ['read'], conditions: { projectBased: true } },
+      { resource: 'site_notices', actions: ['read', 'write'], conditions: { projectBased: true } },
+      { resource: 'inductions', actions: ['read'], conditions: { projectBased: true } },
+      { resource: 'timesheets', actions: ['read', 'write'], conditions: { projectBased: true } },
+      { resource: 'pricework', actions: ['read', 'write'], conditions: { projectBased: true } },
+      { resource: 'on_hire_tracker', actions: ['read', 'write'], conditions: { projectBased: true } },
+      { resource: 'supplier_dashboard', actions: ['read'], conditions: { projectBased: true } },
+      { resource: 'pm_dashboard', actions: ['read'], conditions: { projectBased: true } },
+      { resource: 'project_data', actions: ['read', 'write', 'export'], conditions: { projectBased: true } },
+      { resource: 'team_data', actions: ['read'], conditions: { projectBased: true } },
+      { resource: 'team_management', actions: ['read', 'write'], conditions: { projectBased: true } },
+      { resource: 'weekly_approvals', actions: ['read', 'write'], conditions: { projectBased: true } }
     ],
     admin: [
-      {
-        resource: '*',
-        actions: ['read', 'write', 'delete', 'export']
-      }
+      // Full access to everything
+      { resource: '*', actions: ['read', 'write', 'delete', 'export'] },
+      { resource: 'admin_dashboard', actions: ['read', 'write'] },
+      { resource: 'user_management', actions: ['read', 'write', 'delete'] },
+      { resource: 'role_management', actions: ['read', 'write'] },
+      { resource: 'project_management', actions: ['read', 'write', 'delete'] },
+      { resource: 'security_dashboard', actions: ['read', 'write'] }
     ],
     dpo: [
-      {
-        resource: 'audit_logs',
-        actions: ['read', 'export']
-      },
-      {
-        resource: 'retention_policies',
-        actions: ['read', 'write']
-      },
-      {
-        resource: 'gdpr_requests',
-        actions: ['read', 'write']
-      }
+      // Same as admin plus GDPR/retention powers
+      { resource: '*', actions: ['read', 'write', 'delete', 'export'] },
+      { resource: 'admin_dashboard', actions: ['read', 'write'] },
+      { resource: 'audit_logs', actions: ['read', 'export'] },
+      { resource: 'retention_policies', actions: ['read', 'write'] },
+      { resource: 'gdpr_requests', actions: ['read', 'write'] },
+      { resource: 'data_retention', actions: ['read', 'write', 'delete'] },
+      { resource: 'privacy_dashboard', actions: ['read', 'write'] },
+      { resource: 'security_dashboard', actions: ['read', 'write'] }
+    ],
+    director: [
+      // Read-only org-wide access
+      { resource: 'onboarding', actions: [], conditions: { readOnlyOrgWide: true } },
+      { resource: 'my_dashboard', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'plots', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'training_matrix', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'rams_documents', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'site_notices', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'inductions', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'timesheets', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'pricework', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'on_hire_tracker', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'supplier_dashboard', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'director_dashboard', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'project_data', actions: ['read'], conditions: { readOnlyOrgWide: true } },
+      { resource: 'compliance_reports', actions: ['read', 'export'], conditions: { readOnlyOrgWide: true } }
     ]
   };
 
@@ -140,26 +168,54 @@ export class RBACService {
     userRole: string,
     resource: string,
     action: string,
-    context?: { userId?: string; teamId?: string; projectId?: string }
+    context?: { 
+      userId?: string; 
+      teamId?: string; 
+      projectId?: string;
+      requestingUserId?: string;
+      userProjects?: string[];
+      userTeams?: string[];
+    }
   ): boolean {
     const permissions = this.rolePermissions[userRole] || [];
     
+    // Check for wildcard admin access first
+    if (userRole === 'admin' || userRole === 'dpo') {
+      return true;
+    }
+    
     for (const permission of permissions) {
       if (permission.resource === '*' || permission.resource === resource) {
-        if (permission.actions.includes(action as any)) {
-          // Check conditions
-          if (permission.conditions?.ownDataOnly && context?.userId) {
-            // Additional logic for own data validation
-            return true;
+        // Check if action is allowed for this resource
+        if (permission.actions.includes(action as any) || permission.conditions?.readOnlyOrgWide) {
+          
+          // Apply specific conditions
+          if (permission.conditions?.ownDataOnly) {
+            // User can only access their own data
+            return context?.userId === context?.requestingUserId;
           }
-          if (permission.conditions?.teamBased && context?.teamId) {
-            // Additional logic for team-based access
-            return true;
+          
+          if (permission.conditions?.teamBased) {
+            // User can access team data if they belong to the same team
+            return context?.teamId && context?.userTeams?.includes(context.teamId);
           }
-          if (permission.conditions?.projectBased && context?.projectId) {
-            // Additional logic for project-based access
-            return true;
+          
+          if (permission.conditions?.projectBased) {
+            // User can access project data if they're assigned to the project
+            return context?.projectId && context?.userProjects?.includes(context.projectId);
           }
+          
+          if (permission.conditions?.readOnlyOrgWide) {
+            // Director role: read-only access across all org data
+            return action === 'read' || action === 'export';
+          }
+          
+          if (permission.conditions?.requiresAdmin) {
+            // Only admin/dpo can perform this action
+            return userRole === 'admin' || userRole === 'dpo';
+          }
+          
+          // No conditions means permission is granted
           if (!permission.conditions) {
             return true;
           }
@@ -168,6 +224,48 @@ export class RBACService {
     }
     
     return false;
+  }
+
+  // Helper method to check if user can access a specific dashboard
+  static canAccessDashboard(userRole: string, dashboard: string): boolean {
+    const dashboardAccess = {
+      'admin': ['admin_dashboard', 'pm_dashboard', 'director_dashboard'],
+      'dpo': ['admin_dashboard', 'pm_dashboard', 'director_dashboard', 'privacy_dashboard'],
+      'director': ['director_dashboard'],
+      'pm': ['pm_dashboard'],
+      'supervisor': [],
+      'operative': []
+    };
+
+    return dashboardAccess[userRole]?.includes(dashboard) || false;
+  }
+
+  // Helper method to get user's role hierarchy level
+  static getRoleLevel(role: string): number {
+    const hierarchy = {
+      'operative': 1,
+      'supervisor': 2,
+      'pm': 3,
+      'director': 4,
+      'admin': 5,
+      'dpo': 5
+    };
+    return hierarchy[role] || 0;
+  }
+
+  // Check if a role can manage another role
+  static canManageRole(managerRole: string, targetRole: string): boolean {
+    // Only admin and dpo can manage roles
+    if (managerRole !== 'admin' && managerRole !== 'dpo') {
+      return false;
+    }
+    
+    // Admin and DPO can manage all roles except each other (requires special permission)
+    if (targetRole === 'admin' || targetRole === 'dpo') {
+      return managerRole === 'admin' || managerRole === 'dpo';
+    }
+    
+    return true;
   }
 }
 
