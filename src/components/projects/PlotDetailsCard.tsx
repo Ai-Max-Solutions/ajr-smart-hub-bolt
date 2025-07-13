@@ -25,8 +25,10 @@ import {
   Timer,
   Activity,
   Upload,
-  Download
+  Download,
+  Package
 } from 'lucide-react';
+import PriceworkTracker from './PriceworkTracker';
 
 interface Operative {
   id: string;
@@ -48,6 +50,25 @@ interface WorkEntry {
   hours?: number;
   notes?: string;
   approvedBy?: string;
+  pieceworkEntries?: PriceworkEntry[];
+}
+
+interface PriceworkEntry {
+  id: string;
+  workItemId: string;
+  unitsCompleted: number;
+  agreedRate: number;
+  subtotal: number;
+  date: string;
+  approvalStatus: 'pending' | 'approved' | 'adjusted';
+  supervisorNotes?: string;
+}
+
+interface WorkItem {
+  id: string;
+  name: string;
+  category: string;
+  agreedRate: number;
 }
 
 interface RAMSDocument {
@@ -81,6 +102,7 @@ interface PlotDetailsCardProps {
 const PlotDetailsCard = ({ plot, userRole, onClose, onUpdate }: PlotDetailsCardProps) => {
   const [activeTab, setActiveTab] = useState('details');
   const [isEditing, setIsEditing] = useState(false);
+  const [workEntryType, setWorkEntryType] = useState<'time' | 'piecework'>('time');
   const [newWorkEntry, setNewWorkEntry] = useState({
     operativeId: '',
     date: new Date().toISOString().split('T')[0],
@@ -178,6 +200,33 @@ const PlotDetailsCard = ({ plot, userRole, onClose, onUpdate }: PlotDetailsCardP
       signedCount: 1,
       totalRequired: 2,
       uploadDate: '2024-01-12'
+    }
+  ];
+
+  const mockWorkItems: WorkItem[] = [
+    {
+      id: '1',
+      name: '1st Fix Pipework',
+      category: '1st Fix',
+      agreedRate: 35
+    },
+    {
+      id: '2',
+      name: 'MVHR Install Unit',
+      category: '1st Fix',
+      agreedRate: 85
+    },
+    {
+      id: '3',
+      name: 'Socket Installation',
+      category: '2nd Fix',
+      agreedRate: 12
+    },
+    {
+      id: '4',
+      name: 'Light Fitting',
+      category: '2nd Fix',
+      agreedRate: 15
     }
   ];
 
@@ -350,12 +399,114 @@ const PlotDetailsCard = ({ plot, userRole, onClose, onUpdate }: PlotDetailsCardP
                   )}
                 </div>
 
-                {/* Add Work Entry Form */}
-                <Card className="p-4 bg-muted/30">
-                  <h4 className="font-medium mb-4">Log Work Entry</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                      <Label>Operative</Label>
+                {/* Work Entry Type Selector */}
+                <div className="flex items-center justify-center space-x-4 mb-6">
+                  <Button
+                    variant={workEntryType === 'time' ? 'default' : 'outline'}
+                    onClick={() => setWorkEntryType('time')}
+                    className="flex items-center space-x-2"
+                  >
+                    <Timer className="w-4 h-4" />
+                    <span>Time Entry</span>
+                  </Button>
+                  <Button
+                    variant={workEntryType === 'piecework' ? 'default' : 'outline'}
+                    onClick={() => setWorkEntryType('piecework')}
+                    className="flex items-center space-x-2"
+                  >
+                    <Package className="w-4 h-4" />
+                    <span>Piecework Entry</span>
+                  </Button>
+                </div>
+
+                {workEntryType === 'time' ? (
+                  // Time-based Work Entry Form
+                  <Card className="p-4 bg-muted/30">
+                    <h4 className="font-medium mb-4">Log Time Entry</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <Label>Operative</Label>
+                        <Select value={newWorkEntry.operativeId} onValueChange={(value) => 
+                          setNewWorkEntry(prev => ({ ...prev, operativeId: value }))
+                        }>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select operative" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mockOperatives.map(op => (
+                              <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label>Date</Label>
+                        <Input 
+                          type="date" 
+                          value={newWorkEntry.date}
+                          onChange={(e) => setNewWorkEntry(prev => ({ ...prev, date: e.target.value }))}
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="flex items-center space-x-2">
+                          <span>Work Type</span>
+                        </Label>
+                        <div className="flex items-center space-x-3 mt-2">
+                          <div className="flex items-center space-x-2">
+                            <Switch 
+                              checked={newWorkEntry.isFullDay}
+                              onCheckedChange={(checked) => setNewWorkEntry(prev => ({ 
+                                ...prev, 
+                                isFullDay: checked,
+                                hours: checked ? 7.5 : prev.hours
+                              }))}
+                            />
+                            <Label className="text-sm">
+                              {newWorkEntry.isFullDay ? 'Full Day (7.5h)' : 'Partial Hours'}
+                            </Label>
+                          </div>
+                        </div>
+                        {!newWorkEntry.isFullDay && (
+                          <Input 
+                            type="number" 
+                            step="0.5"
+                            placeholder="Hours worked"
+                            value={newWorkEntry.hours}
+                            onChange={(e) => setNewWorkEntry(prev => ({ 
+                              ...prev, 
+                              hours: parseFloat(e.target.value) 
+                            }))}
+                            className="mt-2"
+                          />
+                        )}
+                      </div>
+
+                      <div>
+                        <Label>Notes</Label>
+                        <Input 
+                          placeholder="Optional notes"
+                          value={newWorkEntry.notes}
+                          onChange={(e) => setNewWorkEntry(prev => ({ ...prev, notes: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      onClick={addWorkEntry} 
+                      className="mt-4 btn-accent"
+                      disabled={!newWorkEntry.operativeId}
+                    >
+                      <Timer className="w-4 h-4 mr-2" />
+                      Add Time Entry
+                    </Button>
+                  </Card>
+                ) : (
+                  // Piecework Entry Form
+                  <div className="space-y-4">
+                    <div className="mb-4">
+                      <Label>Select Operative for Piecework Entry</Label>
                       <Select value={newWorkEntry.operativeId} onValueChange={(value) => 
                         setNewWorkEntry(prev => ({ ...prev, operativeId: value }))
                       }>
@@ -363,78 +514,33 @@ const PlotDetailsCard = ({ plot, userRole, onClose, onUpdate }: PlotDetailsCardP
                           <SelectValue placeholder="Select operative" />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockOperatives.map(op => (
-                            <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
+                          {mockOperatives.filter(op => op.payType === 'price-work').map(op => (
+                            <SelectItem key={op.id} value={op.id}>
+                              {op.name} (Price Work)
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div>
-                      <Label>Date</Label>
-                      <Input 
-                        type="date" 
-                        value={newWorkEntry.date}
-                        onChange={(e) => setNewWorkEntry(prev => ({ ...prev, date: e.target.value }))}
+                    {newWorkEntry.operativeId && (
+                      <PriceworkTracker
+                        operativeId={newWorkEntry.operativeId}
+                        date={newWorkEntry.date}
+                        existingEntries={[]}
+                        availableWorkItems={mockWorkItems}
+                        userRole={userRole}
+                        onSave={(entries) => {
+                          console.log('Piecework entries saved:', entries);
+                        }}
                       />
-                    </div>
-
-                    <div>
-                      <Label className="flex items-center space-x-2">
-                        <span>Work Type</span>
-                      </Label>
-                      <div className="flex items-center space-x-3 mt-2">
-                        <div className="flex items-center space-x-2">
-                          <Switch 
-                            checked={newWorkEntry.isFullDay}
-                            onCheckedChange={(checked) => setNewWorkEntry(prev => ({ 
-                              ...prev, 
-                              isFullDay: checked,
-                              hours: checked ? 7.5 : prev.hours
-                            }))}
-                          />
-                          <Label className="text-sm">
-                            {newWorkEntry.isFullDay ? 'Full Day (7.5h)' : 'Partial Hours'}
-                          </Label>
-                        </div>
-                      </div>
-                      {!newWorkEntry.isFullDay && (
-                        <Input 
-                          type="number" 
-                          step="0.5"
-                          placeholder="Hours worked"
-                          value={newWorkEntry.hours}
-                          onChange={(e) => setNewWorkEntry(prev => ({ 
-                            ...prev, 
-                            hours: parseFloat(e.target.value) 
-                          }))}
-                          className="mt-2"
-                        />
-                      )}
-                    </div>
-
-                    <div>
-                      <Label>Notes</Label>
-                      <Input 
-                        placeholder="Optional notes"
-                        value={newWorkEntry.notes}
-                        onChange={(e) => setNewWorkEntry(prev => ({ ...prev, notes: e.target.value }))}
-                      />
-                    </div>
+                    )}
                   </div>
-                  
-                  <Button 
-                    onClick={addWorkEntry} 
-                    className="mt-4 btn-accent"
-                    disabled={!newWorkEntry.operativeId}
-                  >
-                    <Timer className="w-4 h-4 mr-2" />
-                    Add Work Entry
-                  </Button>
-                </Card>
+                )}
 
                 {/* Work Entries List */}
                 <div className="space-y-3">
+                  <h4 className="font-medium">Recent Work Entries</h4>
                   {mockWorkEntries.map((entry) => {
                     const operative = mockOperatives.find(op => op.id === entry.operativeId);
                     return (
@@ -451,6 +557,11 @@ const PlotDetailsCard = ({ plot, userRole, onClose, onUpdate }: PlotDetailsCardP
                               <p className="text-sm text-muted-foreground">
                                 {new Date(entry.date).toLocaleDateString()}
                               </p>
+                              {operative?.payType && (
+                                <Badge variant="outline" className="text-xs mt-1">
+                                  {operative.payType === 'day-rate' ? 'Day Rate' : 'Price Work'}
+                                </Badge>
+                              )}
                             </div>
                           </div>
 
@@ -466,6 +577,11 @@ const PlotDetailsCard = ({ plot, userRole, onClose, onUpdate }: PlotDetailsCardP
                                   {entry.isFullDay ? 'Full Day' : `${entry.hours}h`}
                                 </span>
                               </div>
+                              {operative?.payType === 'price-work' && (
+                                <div className="text-xs text-accent font-medium mt-1">
+                                  + Piecework
+                                </div>
+                              )}
                             </div>
 
                             {entry.notes && (
@@ -476,11 +592,27 @@ const PlotDetailsCard = ({ plot, userRole, onClose, onUpdate }: PlotDetailsCardP
 
                             {canEdit && (
                               <Button variant="ghost" size="sm">
-                                <Edit3 className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
                             )}
                           </div>
                         </div>
+
+                        {/* Show piecework entries if they exist */}
+                        {entry.pieceworkEntries && entry.pieceworkEntries.length > 0 && (
+                          <div className="mt-3 p-3 bg-muted/30 rounded-lg">
+                            <div className="text-sm font-medium mb-2">Piecework Details:</div>
+                            {entry.pieceworkEntries.map((piecework) => {
+                              const workItem = mockWorkItems.find(item => item.id === piecework.workItemId);
+                              return (
+                                <div key={piecework.id} className="flex justify-between items-center text-sm">
+                                  <span>{workItem?.name}: {piecework.unitsCompleted} units</span>
+                                  <span className="font-medium text-accent">£{piecework.subtotal}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </Card>
                     );
                   })}
