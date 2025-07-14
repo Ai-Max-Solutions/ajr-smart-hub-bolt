@@ -181,256 +181,252 @@ const MyQualifications = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
-      {/* Header */}
-      <div className="max-w-4xl mx-auto mb-6">
-        <Card className="bg-primary text-primary-foreground">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl">My Qualifications</CardTitle>
-                <p className="text-primary-foreground/80">
-                  Manage your certifications and training records
-                </p>
-              </div>
-              <Shield className="w-8 h-8 text-accent" />
-            </div>
-          </CardHeader>
-        </Card>
-      </div>
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">My Qualifications</h1>
+            <p className="text-muted-foreground">
+              Manage your certifications and training records
+            </p>
+          </div>
+          <Shield className="w-8 h-8 text-primary" />
+        </div>
 
-      {/* Expiry Warnings */}
-      {expiringQualifications.length > 0 && (
-        <div className="max-w-4xl mx-auto mb-6">
-          <Card className="border-warning bg-warning/10">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2 text-warning">
-                <AlertTriangle className="w-5 h-5" />
-                Expiry Reminders
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {expiringQualifications.map((qual) => {
-                const daysLeft = getDaysUntilExpiry(qual.expiryDate);
-                return (
-                  <div key={qual.id} className="flex items-center justify-between p-3 bg-warning/5 rounded-lg mb-2">
-                    <div>
-                      <div className="font-medium">{qual.type}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Expires in {daysLeft} days ({new Date(qual.expiryDate).toLocaleDateString()})
+        {/* Expiry Warnings */}
+        {expiringQualifications.length > 0 && (
+          <div className="mb-6">
+            <Card className="border-warning bg-warning/10">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2 text-warning">
+                  <AlertTriangle className="w-5 h-5" />
+                  Expiry Reminders
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {expiringQualifications.map((qual) => {
+                  const daysLeft = getDaysUntilExpiry(qual.expiryDate);
+                  return (
+                    <div key={qual.id} className="flex items-center justify-between p-3 bg-warning/5 rounded-lg mb-2">
+                      <div>
+                        <div className="font-medium">{qual.type}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Expires in {daysLeft} days ({new Date(qual.expiryDate).toLocaleDateString()})
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline">
+                        Renew
+                      </Button>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Upload New Qualification */}
+        <div className="mb-6">
+          <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-accent text-accent-foreground hover:bg-accent/90 w-full md:w-auto">
+                <Plus className="w-4 h-4 mr-2" />
+                Upload New Qualification
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Upload New Qualification</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleUploadSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="type">Qualification Type *</Label>
+                  <Select value={uploadForm.type} onValueChange={(value) => setUploadForm(prev => ({ ...prev, type: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select qualification type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {QUALIFICATION_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.label}>
+                          {type.label} {type.required && '(Required)'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="cardNumber">Card/Certificate Number *</Label>
+                  <Input
+                    id="cardNumber"
+                    value={uploadForm.cardNumber}
+                    onChange={(e) => setUploadForm(prev => ({ ...prev, cardNumber: e.target.value }))}
+                    placeholder="Enter card number"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="expiryDate">Expiry Date *</Label>
+                  <Input
+                    id="expiryDate"
+                    type="date"
+                    value={uploadForm.expiryDate}
+                    onChange={(e) => setUploadForm(prev => ({ ...prev, expiryDate: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="file">Upload Evidence *</Label>
+                  <Input
+                    id="file"
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleFileUpload}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload a clear photo or PDF of your certificate
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsUploadDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Qualifications List */}
+        <div className="space-y-4">
+          {mockQualifications.map((qualification) => {
+            const daysUntilExpiry = getDaysUntilExpiry(qualification.expiryDate);
+            
+            return (
+              <Card key={qualification.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <Award className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{qualification.type}</CardTitle>
+                        <p className="text-muted-foreground">
+                          Card: {qualification.cardNumber}
+                        </p>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline">
-                      Renew
-                    </Button>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Upload New Qualification */}
-      <div className="max-w-4xl mx-auto mb-6">
-        <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="btn-accent w-full md:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              Upload New Qualification
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Upload New Qualification</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleUploadSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="type">Qualification Type *</Label>
-                <Select value={uploadForm.type} onValueChange={(value) => setUploadForm(prev => ({ ...prev, type: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select qualification type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {QUALIFICATION_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.label}>
-                        {type.label} {type.required && '(Required)'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="cardNumber">Card/Certificate Number *</Label>
-                <Input
-                  id="cardNumber"
-                  value={uploadForm.cardNumber}
-                  onChange={(e) => setUploadForm(prev => ({ ...prev, cardNumber: e.target.value }))}
-                  placeholder="Enter card number"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="expiryDate">Expiry Date *</Label>
-                <Input
-                  id="expiryDate"
-                  type="date"
-                  value={uploadForm.expiryDate}
-                  onChange={(e) => setUploadForm(prev => ({ ...prev, expiryDate: e.target.value }))}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="file">Upload Evidence *</Label>
-                <Input
-                  id="file"
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={handleFileUpload}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Upload a clear photo or PDF of your certificate
-                </p>
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" className="btn-primary flex-1">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsUploadDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Qualifications List */}
-      <div className="max-w-4xl mx-auto space-y-4">
-        {mockQualifications.map((qualification) => {
-          const daysUntilExpiry = getDaysUntilExpiry(qualification.expiryDate);
-          
-          return (
-            <Card key={qualification.id} className="card-hover">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Award className="w-6 h-6 text-primary" />
+                    <div className="text-right">
+                      {getStatusIcon(qualification.approvalStatus, qualification.expiryDate)}
                     </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <CardTitle className="text-lg">{qualification.type}</CardTitle>
-                      <p className="text-muted-foreground">
-                        Card: {qualification.cardNumber}
-                      </p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Expiry Date</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(qualification.expiryDate).toLocaleDateString()}
+                        {daysUntilExpiry > 0 && (
+                          <span className="ml-2">({daysUntilExpiry} days remaining)</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Required For</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {qualification.requiredFor.join(', ')}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    {getStatusIcon(qualification.approvalStatus, qualification.expiryDate)}
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Expiry Date</span>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {getStatusBadge(qualification.approvalStatus, qualification.expiryDate)}
+                      
+                      {qualification.approvalStatus === 'approved' && qualification.approvedBy && (
+                        <span className="text-xs text-muted-foreground">
+                          Approved by {qualification.approvedBy}
+                        </span>
+                      )}
+                      
+                      {qualification.approvalStatus === 'rejected' && qualification.rejectionReason && (
+                        <span className="text-xs text-destructive">
+                          Rejected: {qualification.rejectionReason}
+                        </span>
+                      )}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(qualification.expiryDate).toLocaleDateString()}
-                      {daysUntilExpiry > 0 && (
-                        <span className="ml-2">({daysUntilExpiry} days remaining)</span>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDownload(qualification)}
+                      >
+                        <Download className="w-4 h-4 mr-1" />
+                        Download
+                      </Button>
+                      
+                      {(qualification.approvalStatus === 'expired' || daysUntilExpiry <= 0) && (
+                        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                          <Upload className="w-4 h-4 mr-1" />
+                          Renew
+                        </Button>
                       )}
                     </div>
                   </div>
 
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <FileText className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Required For</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {qualification.requiredFor.join(', ')}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {getStatusBadge(qualification.approvalStatus, qualification.expiryDate)}
-                    
-                    {qualification.approvalStatus === 'approved' && qualification.approvedBy && (
-                      <span className="text-xs text-muted-foreground">
-                        Approved by {qualification.approvedBy}
-                      </span>
-                    )}
-                    
-                    {qualification.approvalStatus === 'rejected' && qualification.rejectionReason && (
-                      <span className="text-xs text-destructive">
-                        Rejected: {qualification.rejectionReason}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleDownload(qualification)}
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      Download
-                    </Button>
-                    
-                    {(qualification.approvalStatus === 'expired' || daysUntilExpiry <= 0) && (
-                      <Button size="sm" className="btn-accent">
-                        <Upload className="w-4 h-4 mr-1" />
-                        Renew
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {qualification.approvalStatus === 'rejected' && qualification.rejectionReason && (
-                  <>
-                    <Separator className="my-3" />
-                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                      <div className="flex items-center gap-2 text-destructive font-medium text-sm">
-                        <X className="w-4 h-4" />
-                        Rejection Reason
+                  {qualification.approvalStatus === 'rejected' && qualification.rejectionReason && (
+                    <>
+                      <Separator className="my-3" />
+                      <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                        <div className="flex items-center gap-2 text-destructive font-medium text-sm">
+                          <X className="w-4 h-4" />
+                          Rejection Reason
+                        </div>
+                        <div className="text-destructive text-sm mt-1">
+                          {qualification.rejectionReason}
+                        </div>
                       </div>
-                      <div className="text-destructive text-sm mt-1">
-                        {qualification.rejectionReason}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-      {/* Footer Info */}
-      <div className="max-w-4xl mx-auto mt-8">
-        <Card className="bg-muted/50">
-          <CardContent className="pt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              <Shield className="w-4 h-4 inline mr-2" />
-              Keep your qualifications up to date to ensure uninterrupted work assignments.
-              Contact your supervisor if you need help with renewals.
-            </p>
-          </CardContent>
-        </Card>
+        {/* Footer Info */}
+        <div className="mt-8">
+          <Card className="bg-muted/50">
+            <CardContent className="pt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                <Shield className="w-4 h-4 inline mr-2" />
+                Keep your qualifications up to date to ensure uninterrupted work assignments.
+                Contact your supervisor if you need help with renewals.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
