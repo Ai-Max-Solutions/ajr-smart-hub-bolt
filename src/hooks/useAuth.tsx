@@ -34,22 +34,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        fetchUserProfile(session.user);
+        setTimeout(() => {
+          fetchUserProfile(session.user);
+        }, 0);
       } else {
         setLoading(false);
       }
     });
 
-    // Listen for auth changes
+    // Listen for auth changes - NO ASYNC to prevent deadlocks
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         if (session?.user) {
-          await fetchUserProfile(session.user);
+          // Defer profile fetching to avoid blocking auth state updates
+          setTimeout(() => {
+            fetchUserProfile(session.user);
+          }, 0);
         } else {
           setUser(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
@@ -64,7 +69,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('supabase_auth_id', authUser.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database profile fetch failed:', error);
+        // Fallback: create basic user from auth data
+        setUser({
+          user_id: authUser.id,
+          email: authUser.email || '',
+          full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+          role: 'Operative',
+          current_project: undefined
+        });
+        setLoading(false);
+        return;
+      }
 
       setUser({
         user_id: data.whalesync_postgres_id,
@@ -75,6 +92,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      // Fallback: create basic user from auth data
+      setUser({
+        user_id: authUser.id,
+        email: authUser.email || '',
+        full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+        role: 'Operative',
+        current_project: undefined
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
