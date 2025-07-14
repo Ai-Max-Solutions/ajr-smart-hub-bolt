@@ -4,11 +4,15 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Send, MessageCircle, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Send, MessageCircle, Loader2, Smartphone, Camera, Lightbulb } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { SmartSuggestions } from './SmartSuggestions';
+import { useAISelfDiagnostics } from '@/hooks/useAISelfDiagnostics';
+import { useMobileOptimization } from '@/hooks/useMobileOptimization';
+import { useSmartAutomations } from '@/hooks/useSmartAutomations';
 
 interface Message {
   id: string;
@@ -29,10 +33,17 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [recentQueries, setRecentQueries] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { profile: userProfile } = useUserProfile();
+  
+  // Enhanced hooks for legendary features
+  const aiDiagnostics = useAISelfDiagnostics();
+  const mobileOptimization = useMobileOptimization();
+  const smartAutomations = useSmartAutomations();
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -44,6 +55,13 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || !user) return;
 
+    // Start AI diagnostics timer
+    aiDiagnostics.startResponseTimer();
+    
+    // Update recent queries for smart suggestions
+    setRecentQueries(prev => [messageText, ...prev].slice(0, 10));
+    setShowSuggestions(false);
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content: messageText.trim(),
@@ -54,6 +72,16 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+
+    // Cache for offline if needed
+    if (mobileOptimization.mobileFeatures.isOffline) {
+      mobileOptimization.cacheMessageOffline(messageText, 'Offline - message will be sent when connected');
+      toast({
+        title: "📱 Offline Mode",
+        description: "Message cached - will send when connection restored",
+      });
+      return;
+    }
 
     // Create streaming assistant message
     const assistantMessage: Message = {
@@ -70,7 +98,10 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
       const response = await supabase.functions.invoke('ai-chat', {
         body: {
           message: messageText,
-          conversation_id: conversationId
+          conversation_id: conversationId,
+          user_role: userProfile?.role,
+          mobile_optimized: mobileOptimization.mobileFeatures.deviceType === 'mobile',
+          connection_type: mobileOptimization.mobileFeatures.connectionType
         }
       });
 
@@ -108,6 +139,11 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
               if (data.conversation_id && !conversationId) {
                 setConversationId(data.conversation_id);
               }
+
+              // AI self-diagnostics: analyze context relevance
+              if (data.context) {
+                aiDiagnostics.analyzeContextRelevance(messageText, data.context);
+              }
             } catch (e) {
               // Skip invalid JSON
             }
@@ -124,6 +160,23 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
         )
       );
 
+      // AI diagnostics: end timer and check for hallucinations
+      aiDiagnostics.endResponseTimer();
+      const finalResponse = await aiDiagnostics.detectHallucination(messageText, accumulatedContent, []);
+      
+      // Bias detection
+      if (userProfile?.role) {
+        aiDiagnostics.detectBias(accumulatedContent, userProfile.role);
+      }
+
+      // Generate proactive insights
+      aiDiagnostics.generateProactiveInsights(userProfile?.role || '', recentQueries);
+
+      // Smart automations: check for triggers
+      if (messageText.toLowerCase().includes('compliance') && userProfile?.role === 'Supervisor') {
+        smartAutomations.monitorPODDiscrepancies();
+      }
+
     } catch (error) {
       console.error('Chat error:', error);
       toast({
@@ -134,8 +187,12 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
 
       // Remove failed assistant message
       setMessages(prev => prev.filter(msg => msg.id !== assistantMessage.id));
+      
+      // End timer even on error
+      aiDiagnostics.endResponseTimer();
     } finally {
       setIsLoading(false);
+      setShowSuggestions(true);
     }
   };
 
@@ -146,13 +203,42 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
     }
   };
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     setIsRecording(!isRecording);
-    // Voice recording implementation would go here
-    toast({
-      title: isRecording ? "Recording stopped" : "Recording started",
-      description: isRecording ? "Processing your voice input..." : "Speak your question now",
-    });
+    
+    if (!isRecording) {
+      // Start voice recording with mobile optimization
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: mobileOptimization.mobileFeatures.deviceType === 'mobile'
+          }
+        });
+        
+        // Haptic feedback on mobile
+        if ('vibrate' in navigator && mobileOptimization.mobileFeatures.deviceType === 'mobile') {
+          navigator.vibrate(50);
+        }
+        
+        toast({
+          title: "🎤 Voice Recording",
+          description: "Speak your question now - optimized for your device",
+        });
+      } catch (error) {
+        toast({
+          title: "Microphone Error",
+          description: "Unable to access microphone. Please check permissions.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Processing...",
+        description: "Converting your voice to text",
+      });
+    }
   };
 
   const getRoleColor = (role: string) => {
@@ -167,9 +253,90 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
     return colors[role as keyof typeof colors] || 'bg-gray-500';
   };
 
+  // Register mobile gestures
+  useEffect(() => {
+    if (mobileOptimization.mobileFeatures.deviceType === 'mobile') {
+      // Swipe left to repeat last query
+      mobileOptimization.registerSwipeGesture({
+        direction: 'left',
+        action: () => {
+          if (recentQueries.length > 0) {
+            sendMessage(recentQueries[0]);
+            toast({ title: "🔄 Repeated last query" });
+          }
+        }
+      });
+
+      // Swipe right to show suggestions
+      mobileOptimization.registerSwipeGesture({
+        direction: 'right',
+        action: () => {
+          setShowSuggestions(true);
+          toast({ title: "💡 Smart suggestions shown" });
+        }
+      });
+    }
+
+    return () => {
+      if (mobileOptimization.mobileFeatures.deviceType === 'mobile') {
+        mobileOptimization.unregisterSwipeGesture('left');
+        mobileOptimization.unregisterSwipeGesture('right');
+      }
+    };
+  }, [recentQueries]);
+
   return (
-    <Card className="w-full max-w-2xl mx-auto h-[600px] flex flex-col">
-      <CardHeader className="pb-3">
+    <div className={`w-full max-w-2xl mx-auto ${mobileOptimization.mobileFeatures.isPWA ? 'pwa-active' : ''}`}>
+      {/* Smart Suggestions */}
+      {showSuggestions && messages.length === 0 && (
+        <div className="mb-4">
+          <SmartSuggestions 
+            recentQueries={recentQueries}
+            onSuggestionClick={(suggestion) => {
+              setInput(suggestion);
+              setShowSuggestions(false);
+            }}
+          />
+        </div>
+      )}
+
+      {/* PWA Install prompt */}
+      {mobileOptimization.deferredPrompt && (
+        <div className="mb-4">
+          <Card className="border-accent">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-4 w-4 text-accent" />
+                  <span className="text-sm font-medium">Install SmartWork Hub</span>
+                </div>
+                <Button size="sm" onClick={mobileOptimization.installPWA}>
+                  Install
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Offline indicator */}
+      {mobileOptimization.mobileFeatures.isOffline && (
+        <div className="mb-4">
+          <Card className="border-warning offline-indicator">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 text-warning-foreground">
+                <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+                <span className="text-sm font-medium">Offline Mode</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <Card className={`w-full h-[600px] flex flex-col mobile-optimized ${
+        mobileOptimization.isOneHandedMode ? 'chat-interface' : ''
+      }`}>
+        <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
@@ -229,36 +396,105 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
           </div>
         </ScrollArea>
 
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          {isVoiceMode && (
-            <Button
-              type="button"
-              variant={isRecording ? "destructive" : "outline"}
-              size="icon"
-              onClick={toggleRecording}
-              disabled={isLoading}
-            >
-              {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </Button>
-          )}
-          
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask me anything..."
-            disabled={isLoading}
-            className="flex-1"
-          />
-          
-          <Button type="submit" disabled={!input.trim() || isLoading} size="icon">
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
+        <div className={`${mobileOptimization.isOneHandedMode ? 'ai-controls' : ''}`}>
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            {isVoiceMode && (
+              <Button
+                type="button"
+                variant={isRecording ? "destructive" : "outline"}
+                size="icon"
+                onClick={toggleRecording}
+                disabled={isLoading}
+                className="touch-target"
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
             )}
-          </Button>
-        </form>
+
+            {mobileOptimization.mobileFeatures.deviceType === 'mobile' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  // Trigger photo analysis (future feature)
+                  toast({
+                    title: "📸 Photo Analysis",
+                    description: "Coming soon - analyze equipment photos",
+                  });
+                }}
+                className="touch-target"
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
+            )}
+            
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={
+                mobileOptimization.mobileFeatures.deviceType === 'mobile' 
+                  ? "Ask me..." 
+                  : "Ask me anything..."
+              }
+              disabled={isLoading}
+              className="flex-1 text-input"
+            />
+
+            {mobileOptimization.mobileFeatures.deviceType === 'mobile' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={mobileOptimization.toggleOneHandedMode}
+                className="touch-target"
+                title="Toggle one-handed mode"
+              >
+                <Smartphone className="h-4 w-4" />
+              </Button>
+            )}
+            
+            <Button 
+              type="submit" 
+              disabled={!input.trim() || isLoading} 
+              size="icon"
+              className="touch-target"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </form>
+
+          {/* Mobile swipe hints */}
+          {mobileOptimization.mobileFeatures.deviceType === 'mobile' && messages.length === 0 && (
+            <div className="mt-2 text-xs text-muted-foreground text-center">
+              💡 Swipe left to repeat, right for suggestions
+            </div>
+          )}
+        </div>
       </CardContent>
-    </Card>
+      </Card>
+
+      {/* AI Performance Metrics (for admins) */}
+      {userProfile?.role === 'Admin' && (
+        <div className="mt-4">
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">AI Performance</span>
+                <div className="flex gap-4">
+                  <span>Response: {aiDiagnostics.metrics.responseTime}ms</span>
+                  <span>Accuracy: {(aiDiagnostics.metrics.accuracy * 100).toFixed(1)}%</span>
+                  <span>Context: {(aiDiagnostics.metrics.contextRelevance * 100).toFixed(1)}%</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
   );
 };

@@ -157,6 +157,108 @@
   }
 }
 
+/* Mobile & PWA Optimizations */
+.mobile-optimized {
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* One-handed mode */
+.one-handed-mode {
+  --mobile-safe-area: env(safe-area-inset-bottom, 20px);
+}
+
+.one-handed-mode .fixed.bottom-0,
+.one-handed-mode .absolute.bottom-0 {
+  bottom: var(--mobile-safe-area);
+}
+
+.one-handed-mode .chat-interface {
+  max-height: 50vh;
+  transform: translateY(25vh);
+}
+
+.one-handed-mode .ai-controls {
+  position: fixed;
+  bottom: var(--mobile-safe-area);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 300px;
+}
+
+/* Touch optimizations */
+@media (max-width: 768px) {
+  .one-handed-mode .text-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Smooth scrolling for mobile */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Enhanced tap targets */
+  button, .clickable {
+    touch-action: manipulation;
+  }
+}
+
+/* PWA splash screen */
+@media (display-mode: standalone) {
+  .pwa-active {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Offline indicators */
+.offline-indicator {
+  background: linear-gradient(45deg, hsl(var(--warning)) 25%, transparent 25%),
+              linear-gradient(-45deg, hsl(var(--warning)) 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, hsl(var(--warning)) 75%),
+              linear-gradient(-45deg, transparent 75%, hsl(var(--warning)) 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+/* Audio visualizations */
+.audio-waveform {
+  @apply bg-primary/20 rounded-full transition-all duration-150;
+}
+
+.audio-active .audio-waveform {
+  @apply bg-primary animate-pulse;
+}
+
+/* Smart suggestions */
+.suggestion-card {
+  @apply transition-all duration-200 hover:scale-105 hover:shadow-md;
+}
+
+.suggestion-card:active {
+  @apply scale-95;
+}
+
+/* Loading states optimized for mobile */
+.mobile-loading {
+  @apply animate-pulse bg-gradient-to-r from-muted via-muted/50 to-muted;
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 @layer base {
   * {
     @apply border-border;
