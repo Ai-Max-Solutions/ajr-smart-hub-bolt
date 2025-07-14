@@ -3093,6 +3093,273 @@ export type Database = {
           },
         ]
       }
+      pod_approvals: {
+        Row: {
+          action: string
+          approver_id: string
+          comments: string | null
+          created_at: string | null
+          id: string
+          pod_id: string
+        }
+        Insert: {
+          action: string
+          approver_id: string
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          pod_id: string
+        }
+        Update: {
+          action?: string
+          approver_id?: string
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          pod_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pod_approvals_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_approvals_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_approvals_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "pod_approvals_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_approvals_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "pod_approvals_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pod_register"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pod_register: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          damage_notes: string | null
+          description: string
+          id: string
+          linked_hire_id: string | null
+          metadata: Json | null
+          plot_id: string | null
+          pod_photo_url: string | null
+          pod_type: string
+          project_id: string
+          signed_by: string | null
+          signed_by_name: string | null
+          status: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          damage_notes?: string | null
+          description: string
+          id?: string
+          linked_hire_id?: string | null
+          metadata?: Json | null
+          plot_id?: string | null
+          pod_photo_url?: string | null
+          pod_type: string
+          project_id: string
+          signed_by?: string | null
+          signed_by_name?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          supplier_name?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          damage_notes?: string | null
+          description?: string
+          id?: string
+          linked_hire_id?: string | null
+          metadata?: Json | null
+          plot_id?: string | null
+          pod_photo_url?: string | null
+          pod_type?: string
+          project_id?: string
+          signed_by?: string | null
+          signed_by_name?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          supplier_name?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pod_register_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_register_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_register_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "pod_register_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_register_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "pod_register_linked_hire_id_fkey"
+            columns: ["linked_hire_id"]
+            isOneToOne: false
+            referencedRelation: "on_hire"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pod_register_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "Plots"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "pod_register_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "pod_register_signed_by_fkey"
+            columns: ["signed_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_register_signed_by_fkey"
+            columns: ["signed_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_register_signed_by_fkey"
+            columns: ["signed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "pod_register_signed_by_fkey"
+            columns: ["signed_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_register_signed_by_fkey"
+            columns: ["signed_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "pod_register_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pod_register_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_register_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_register_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "pod_register_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pod_register_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           airtable_last_sync: string | null
@@ -6559,6 +6826,10 @@ export type Database = {
       }
       get_onboarding_progress: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_pod_summary: {
+        Args: { p_project_id: string }
         Returns: Json
       }
       get_qualification_statistics: {

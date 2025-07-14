@@ -45,6 +45,7 @@ import SignatureVaultExport from '@/components/signatures/SignatureVaultExport';
 import RetentionSettings from '@/components/retention/RetentionSettings';
 import DataArchiveLog from '@/components/retention/DataArchiveLog';
 import OnHireTracker from '@/components/projects/OnHireTracker';
+import PODRegister from './PODRegister';
 import ProjectManagerDashboard from './ProjectManagerDashboard';
 
 interface ProjectData {
@@ -292,12 +293,13 @@ const ProjectDetails = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-18">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-19">
           <TabsTrigger value="pm-dashboard">PM Dashboard</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="levels">Levels & Plots</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="on-hire">On-Hire Register</TabsTrigger>
+          <TabsTrigger value="pods">POD Register</TabsTrigger>
           <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
           <TabsTrigger value="payroll">Payroll Export</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
@@ -434,6 +436,10 @@ const ProjectDetails = () => {
 
         <TabsContent value="on-hire">
           <OnHireTracker projectId={project.whalesync_postgres_id} />
+        </TabsContent>
+
+        <TabsContent value="pods">
+          <PODRegister />
         </TabsContent>
 
         <TabsContent value="documents">
