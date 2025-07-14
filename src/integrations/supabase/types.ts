@@ -3390,6 +3390,106 @@ export type Database = {
           },
         ]
       }
+      pod_signatures: {
+        Row: {
+          created_at: string
+          device_info: Json | null
+          id: string
+          invalidated_at: string | null
+          invalidation_reason: string | null
+          ip_address: unknown | null
+          is_valid: boolean
+          location_lat: number | null
+          location_lng: number | null
+          pod_id: string
+          signature_context: Json | null
+          signature_data: string
+          signature_type: string
+          signed_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_info?: Json | null
+          id?: string
+          invalidated_at?: string | null
+          invalidation_reason?: string | null
+          ip_address?: unknown | null
+          is_valid?: boolean
+          location_lat?: number | null
+          location_lng?: number | null
+          pod_id: string
+          signature_context?: Json | null
+          signature_data: string
+          signature_type: string
+          signed_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_info?: Json | null
+          id?: string
+          invalidated_at?: string | null
+          invalidation_reason?: string | null
+          ip_address?: unknown | null
+          is_valid?: boolean
+          location_lat?: number | null
+          location_lng?: number | null
+          pod_id?: string
+          signature_context?: Json | null
+          signature_data?: string
+          signature_type?: string
+          signed_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_pod_signatures_pod_id"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pod_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_pod_signatures_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_pod_signatures_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_pod_signatures_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "fk_pod_signatures_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_pod_signatures_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           airtable_last_sync: string | null
@@ -4309,6 +4409,83 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      signatures: {
+        Row: {
+          created_at: string
+          document_title: string
+          document_version: string | null
+          id: string
+          operative_id: string | null
+          operative_name: string
+          plot_id: string | null
+          plot_location: string | null
+          plot_name: string | null
+          pod_id: string | null
+          project_id: string | null
+          project_name: string | null
+          signature_category: string | null
+          signature_data: string
+          signature_method: string
+          signature_type: string
+          signed_at: string
+          status: string
+          updated_at: string
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_title: string
+          document_version?: string | null
+          id?: string
+          operative_id?: string | null
+          operative_name: string
+          plot_id?: string | null
+          plot_location?: string | null
+          plot_name?: string | null
+          pod_id?: string | null
+          project_id?: string | null
+          project_name?: string | null
+          signature_category?: string | null
+          signature_data: string
+          signature_method?: string
+          signature_type: string
+          signed_at?: string
+          status?: string
+          updated_at?: string
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_title?: string
+          document_version?: string | null
+          id?: string
+          operative_id?: string | null
+          operative_name?: string
+          plot_id?: string | null
+          plot_location?: string | null
+          plot_name?: string | null
+          pod_id?: string | null
+          project_id?: string | null
+          project_name?: string | null
+          signature_category?: string | null
+          signature_data?: string
+          signature_method?: string
+          signature_type?: string
+          signed_at?: string
+          status?: string
+          updated_at?: string
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_signatures_project_id"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]

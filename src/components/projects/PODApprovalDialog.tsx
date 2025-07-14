@@ -20,9 +20,11 @@ import {
   Camera,
   Calendar,
   User,
-  Package
+  Package,
+  PenTool
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { SignatureCanvas } from '@/components/ui/signature-canvas';
 
 interface PODRecord {
   id: string;
@@ -50,12 +52,38 @@ const PODApprovalDialog = ({ open, onOpenChange, pod, onApprovalUpdate }: PODApp
   const [loading, setLoading] = useState(false);
   const [comments, setComments] = useState('');
   const [action, setAction] = useState<'approved' | 'flagged' | 'rejected' | null>(null);
+  const [showSignatureCapture, setShowSignatureCapture] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'approved' | 'flagged' | 'rejected' | null>(null);
 
-  const handleApproval = async (approvalAction: 'approved' | 'flagged' | 'rejected') => {
+  const handleApprovalClick = (approvalAction: 'approved' | 'flagged' | 'rejected') => {
+    setPendingAction(approvalAction);
+    setShowSignatureCapture(true);
+  };
+
+  const handleSignatureCapture = (signature: string) => {
+    setShowSignatureCapture(false);
+    if (pendingAction) {
+      processApprovalWithSignature(pendingAction, signature);
+    }
+  };
+
+  const processApprovalWithSignature = async (approvalAction: 'approved' | 'flagged' | 'rejected', signature: string) => {
     if (!profile?.id) return;
 
     setLoading(true);
     try {
+      // Get user's location for signature verification
+      let location = null;
+      try {
+        if (navigator.geolocation) {
+          location = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+        }
+      } catch (error) {
+        console.warn('Could not get location:', error);
+      }
+
       // Update POD status
       const { error: updateError } = await supabase
         .from('pod_register')
@@ -68,24 +96,57 @@ const PODApprovalDialog = ({ open, onOpenChange, pod, onApprovalUpdate }: PODApp
 
       if (updateError) throw updateError;
 
-      // Add approval record
-      const { error: approvalError } = await supabase
-        .from('pod_approvals')
+      // Create signature record
+      const signatureType = approvalAction === 'flagged' ? 'dispute' : 
+                           approvalAction === 'rejected' ? 'dispute' : 'approval';
+      
+      const { error: signatureError } = await supabase
+        .from('pod_signatures')
         .insert({
           pod_id: pod.id,
-          approver_id: profile.id,
-          action: approvalAction,
-          comments: comments || null
+          user_id: profile.id,
+          signature_type: signatureType,
+          signature_data: signature,
+          location_lat: location?.coords.latitude || null,
+          location_lng: location?.coords.longitude || null,
+          device_info: {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            timestamp: new Date().toISOString()
+          },
+          signature_context: {
+            approval_action: approvalAction,
+            comments: comments || null,
+            pod_type: pod.pod_type,
+            supplier_name: pod.supplier_name
+          }
         });
 
-      if (approvalError) throw approvalError;
+      if (signatureError) throw signatureError;
+
+      // Add approval record if needed (for backwards compatibility)
+      try {
+        await supabase
+          .from('pod_approvals')
+          .insert({
+            pod_id: pod.id,
+            approver_id: profile.id,
+            action: approvalAction,
+            comments: comments || null
+          });
+      } catch (approvalError) {
+        // Table might not exist, that's okay
+        console.warn('Could not create approval record:', approvalError);
+      }
 
       toast({
-        title: "POD Updated",
-        description: `POD has been ${approvalAction}`,
+        title: "POD Updated & Signed",
+        description: `POD has been ${approvalAction} with digital signature`,
       });
 
       onApprovalUpdate();
+      onOpenChange(false);
     } catch (error) {
       console.error('Error updating POD:', error);
       toast({
@@ -95,6 +156,7 @@ const PODApprovalDialog = ({ open, onOpenChange, pod, onApprovalUpdate }: PODApp
       });
     } finally {
       setLoading(false);
+      setPendingAction(null);
     }
   };
 
@@ -222,7 +284,7 @@ const PODApprovalDialog = ({ open, onOpenChange, pod, onApprovalUpdate }: PODApp
 
                 <div className="flex space-x-2">
                   <Button
-                    onClick={() => handleApproval('approved')}
+                    onClick={() => handleApprovalClick('approved')}
                     disabled={loading}
                     className="flex-1 bg-green-600 hover:bg-green-700"
                   >
@@ -231,7 +293,7 @@ const PODApprovalDialog = ({ open, onOpenChange, pod, onApprovalUpdate }: PODApp
                   </Button>
                   
                   <Button
-                    onClick={() => handleApproval('flagged')}
+                    onClick={() => handleApprovalClick('flagged')}
                     disabled={loading}
                     variant="destructive"
                     className="flex-1"
@@ -241,7 +303,7 @@ const PODApprovalDialog = ({ open, onOpenChange, pod, onApprovalUpdate }: PODApp
                   </Button>
                   
                   <Button
-                    onClick={() => handleApproval('rejected')}
+                    onClick={() => handleApprovalClick('rejected')}
                     disabled={loading}
                     variant="outline"
                     className="flex-1"
@@ -252,6 +314,29 @@ const PODApprovalDialog = ({ open, onOpenChange, pod, onApprovalUpdate }: PODApp
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Signature Capture Modal */}
+          {showSignatureCapture && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-background rounded-lg p-6 w-full max-w-md">
+                <div className="flex items-center space-x-2 mb-4">
+                  <PenTool className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Digital Signature Required</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Please sign to confirm your {pendingAction} decision
+                </p>
+                <SignatureCanvas
+                  onSignature={handleSignatureCapture}
+                  onCancel={() => {
+                    setShowSignatureCapture(false);
+                    setPendingAction(null);
+                  }}
+                  title={`POD ${pendingAction} Signature`}
+                />
+              </div>
+            </div>
           )}
 
           {/* Close Button */}

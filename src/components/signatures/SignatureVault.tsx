@@ -11,18 +11,21 @@ interface SignatureRecord {
   id: string;
   operativeName: string;
   operativeId: string;
-  signatureType: 'RAMS' | 'Induction' | 'Site Notice' | 'Toolbox Talk' | 'Onboarding';
+  signatureType: 'RAMS' | 'Induction' | 'Site Notice' | 'Toolbox Talk' | 'Onboarding' | 'POD Creation' | 'POD Approval' | 'POD Dispute' | 'POD Resolution';
   documentTitle: string;
-  documentVersion: string;
+  documentVersion?: string;
   projectId: string;
   projectName: string;
   plotId?: string;
   plotName?: string;
+  plotLocation?: string;
   signedAt: Date;
   signatureMethod: 'Digital Pad' | 'Checkbox Confirm';
   signatureData: string;
   verifiedBy?: string;
-  status: 'Valid' | 'Superseded';
+  status: 'Valid' | 'Superseded' | 'Invalid';
+  podId?: string;
+  signatureCategory?: 'general' | 'POD' | 'RAMS' | 'induction';
 }
 
 const SignatureVault = () => {
@@ -85,6 +88,43 @@ const SignatureVault = () => {
       signatureMethod: 'Digital Pad',
       signatureData: 'data:image/png;base64,signature_data_here',
       status: 'Superseded'
+    },
+    {
+      id: '5',
+      operativeName: 'Mike Davis',
+      operativeId: 'OP004',
+      signatureType: 'POD Creation',
+      documentTitle: 'POD: Concrete Delivery - Aggregate Ltd',
+      projectId: 'PROJ001',
+      projectName: 'Kidbrooke Village Block C',
+      plotId: 'PLOT003',
+      plotName: 'Level 1 - Plot 1.02',
+      plotLocation: 'Building C, Level 1',
+      signedAt: new Date('2025-01-14T10:30:00'),
+      signatureMethod: 'Digital Pad',
+      signatureData: 'data:image/png;base64,pod_signature_data_here',
+      status: 'Valid',
+      podId: 'POD001',
+      signatureCategory: 'POD'
+    },
+    {
+      id: '6',
+      operativeName: 'Sarah Wilson',
+      operativeId: 'OP002',
+      signatureType: 'POD Approval',
+      documentTitle: 'POD: Steel Beam Delivery - Steel Corp',
+      projectId: 'PROJ001',
+      projectName: 'Kidbrooke Village Block C',
+      plotId: 'PLOT002',
+      plotName: 'Level 3 - Plot 3.01',
+      plotLocation: 'Building C, Level 3',
+      signedAt: new Date('2025-01-13T15:45:00'),
+      signatureMethod: 'Digital Pad',
+      signatureData: 'data:image/png;base64,pod_approval_signature_here',
+      verifiedBy: 'Tom Brown',
+      status: 'Valid',
+      podId: 'POD002',
+      signatureCategory: 'POD'
     }
   ]);
 
@@ -132,6 +172,10 @@ const SignatureVault = () => {
       case 'Site Notice': return 'bg-yellow-100 text-yellow-800';
       case 'Toolbox Talk': return 'bg-purple-100 text-purple-800';
       case 'Onboarding': return 'bg-indigo-100 text-indigo-800';
+      case 'POD Creation': return 'bg-orange-100 text-orange-800';
+      case 'POD Approval': return 'bg-emerald-100 text-emerald-800';
+      case 'POD Dispute': return 'bg-red-100 text-red-800';
+      case 'POD Resolution': return 'bg-teal-100 text-teal-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -267,11 +311,15 @@ const SignatureVault = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="RAMS">RAMS</SelectItem>
-                    <SelectItem value="Induction">Induction</SelectItem>
-                    <SelectItem value="Site Notice">Site Notice</SelectItem>
-                    <SelectItem value="Toolbox Talk">Toolbox Talk</SelectItem>
-                    <SelectItem value="Onboarding">Onboarding</SelectItem>
+                     <SelectItem value="RAMS">RAMS</SelectItem>
+                     <SelectItem value="Induction">Induction</SelectItem>
+                     <SelectItem value="Site Notice">Site Notice</SelectItem>
+                     <SelectItem value="Toolbox Talk">Toolbox Talk</SelectItem>
+                     <SelectItem value="Onboarding">Onboarding</SelectItem>
+                     <SelectItem value="POD Creation">POD Creation</SelectItem>
+                     <SelectItem value="POD Approval">POD Approval</SelectItem>
+                     <SelectItem value="POD Dispute">POD Dispute</SelectItem>
+                     <SelectItem value="POD Resolution">POD Resolution</SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -378,7 +426,7 @@ const SignatureVault = () => {
                   <div>
                     <h4 className="font-medium mb-3">Signature Types</h4>
                     <div className="space-y-2">
-                      {['RAMS', 'Induction', 'Site Notice', 'Toolbox Talk', 'Onboarding'].map(type => {
+                      {['RAMS', 'Induction', 'Site Notice', 'Toolbox Talk', 'Onboarding', 'POD Creation', 'POD Approval', 'POD Dispute', 'POD Resolution'].map(type => {
                         const count = signatures.filter(s => s.signatureType === type).length;
                         return (
                           <div key={type} className="flex justify-between items-center">

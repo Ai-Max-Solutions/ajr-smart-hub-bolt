@@ -19,9 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Camera, Upload, X, Package, Truck } from 'lucide-react';
+import { Camera, Upload, X, Package, Truck, PenTool } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { SignatureCanvas } from '@/components/ui/signature-canvas';
 
 interface CreatePODDialogProps {
   open: boolean;
@@ -54,6 +55,8 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
   const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [showSignatureCapture, setShowSignatureCapture] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<PODFormData>({
@@ -106,6 +109,8 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
     });
     setPhotoFile(null);
     setPhotoPreview(null);
+    setSignatureData(null);
+    setShowSignatureCapture(false);
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,12 +158,38 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.pod_type || !formData.supplier_name || !formData.description) return;
+    
+    // Show signature capture as the final step
+    setShowSignatureCapture(true);
+  };
+
+  const handleSignatureCapture = (signature: string) => {
+    setSignatureData(signature);
+    setShowSignatureCapture(false);
+    // Proceed with final POD creation
+    createPODWithSignature(signature);
+  };
+
+  const createPODWithSignature = async (signature: string) => {
     if (!profile?.id) return;
 
     setLoading(true);
     try {
+      // Get user's current location for signature verification
+      let location = null;
+      try {
+        if (navigator.geolocation) {
+          location = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+        }
+      } catch (error) {
+        console.warn('Could not get location:', error);
+      }
+
       // Upload photo first if provided
       let photoUrl = null;
       if (photoFile) {
@@ -169,7 +200,7 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
       const discrepancyValue = formData.discrepancy_value ? parseFloat(formData.discrepancy_value) : 0;
 
       // Create POD record with all new fields
-      const { error } = await supabase
+      const { data: podData, error: podError } = await supabase
         .from('pod_register')
         .insert({
           project_id: projectId,
@@ -191,13 +222,42 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
           supplier_contact: formData.supplier_contact || null,
           delivery_method: formData.delivery_method || null,
           status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (podError) throw podError;
+
+      // Create signature record
+      const { error: signatureError } = await supabase
+        .from('pod_signatures')
+        .insert({
+          pod_id: podData.id,
+          user_id: profile.id,
+          signature_type: 'creation',
+          signature_data: signature,
+          location_lat: location?.coords.latitude || null,
+          location_lng: location?.coords.longitude || null,
+          device_info: {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            timestamp: new Date().toISOString()
+          },
+          signature_context: {
+            pod_type: formData.pod_type,
+            pod_category: formData.pod_category,
+            supplier_name: formData.supplier_name,
+            plot_location: formData.plot_location,
+            project_id: projectId
+          }
         });
 
-      if (error) throw error;
+      if (signatureError) throw signatureError;
 
       toast({
-        title: "POD Created",
-        description: "Proof of delivery record has been uploaded successfully",
+        title: "POD Created & Signed",
+        description: "Proof of delivery record has been uploaded and digitally signed",
       });
 
       resetForm();
@@ -235,7 +295,27 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Signature Capture Modal */}
+        {showSignatureCapture && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-background rounded-lg p-6 w-full max-w-md">
+              <div className="flex items-center space-x-2 mb-4">
+                <PenTool className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Digital Signature Required</h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Please sign to confirm the accuracy of this POD record
+              </p>
+              <SignatureCanvas
+                onSignature={handleSignatureCapture}
+                onCancel={() => setShowSignatureCapture(false)}
+                title="POD Creation Signature"
+              />
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleFormSubmit} className="space-y-6">
           {/* Photo Upload */}
           <div className="space-y-2">
             <Label>POD Photo *</Label>
