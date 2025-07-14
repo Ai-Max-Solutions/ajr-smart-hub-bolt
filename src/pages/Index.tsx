@@ -94,7 +94,7 @@ const Index = () => {
 
   // Authenticated user dashboard with navigation
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light">
       <PageHeader
         title="Dashboard"
         description="Welcome back to AJ Ryan SmartWork Hub"
@@ -117,15 +117,15 @@ const Index = () => {
         }
       />
 
-      <div className="container mx-auto px-lg py-8">
+      <div className="container mx-auto px-4 md:px-lg py-6 md:py-8">
         {/* Welcome Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-poppins font-bold text-aj-blue-accent">
-                {getPersonalizedGreeting(user.user_metadata?.first_name, user.email)}
+              <h2 className="text-xl md:text-2xl font-poppins font-bold text-white">
+                Good evening, {user.user_metadata?.first_name || user.email?.split('@')[0] || 'User'}
               </h2>
-              <p className="text-muted-foreground font-poppins mt-1">
+              <p className="text-white/80 font-poppins mt-1 text-sm md:text-base">
                 Here's what's happening with your projects today
               </p>
             </div>
