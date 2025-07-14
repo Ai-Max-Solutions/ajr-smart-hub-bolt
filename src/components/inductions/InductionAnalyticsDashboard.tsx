@@ -166,8 +166,8 @@ const InductionAnalyticsDashboard: React.FC = () => {
 
     return Object.entries(dailyData).map(([date, data]) => ({
       date: new Date(date).toLocaleDateString(),
-      starts: data.starts,
-      completions: data.completions
+      starts: (data as { starts: number; completions: number }).starts,
+      completions: (data as { starts: number; completions: number }).completions
     })).slice(-14); // Last 14 days
   };
 

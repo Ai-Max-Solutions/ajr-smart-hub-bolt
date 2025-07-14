@@ -2,40 +2,49 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useEvidenceChain } from '@/hooks/useEvidenceChain';
+import { Json } from '@/integrations/supabase/types';
 
-export interface InductionProgress {
+// Data types matching actual database schema
+interface InductionMaterial {
+  id: string;
+  material_type: string;
+  title: string;
+  content_url: string | null;
+  language: string | null;
+  is_active: boolean | null;
+  metadata: Json | null;
+  project_id: string | null;
+  version: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface InductionProgress {
   id: string;
   user_id: string;
-  project_id?: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'failed';
-  current_step: string;
-  total_steps: number;
-  completed_steps: number;
-  language_preference: string;
-  accessibility_needs?: string[];
-  offline_mode: boolean;
-  completion_score?: number;
-  started_at: string;
-  completed_at?: string;
+  induction_type: string;
+  status: string | null;
+  current_step: number | null;
+  completion_percentage: number | null;
+  language_preference: string | null;
+  device_info: Json;
+  created_at: string | null;
+  completed_at: string | null;
+  supervisor_id: string | null;
+  project_id: string | null;
 }
 
-export interface DemoCompletion {
+interface DemoCompletion {
   id: string;
   demo_type: string;
-  interaction_data: any;
+  induction_id: string;
+  completed_at?: string;
   time_taken_seconds?: number;
-  success_score?: number;
-  retries_count: number;
-}
-
-export interface InductionMaterial {
-  id: string;
-  title: string;
-  material_type: 'slide_deck' | 'demo_qr' | 'rule_card' | 'ai_prompt' | 'video' | 'audio';
-  content_data: any;
-  language: string;
-  accessibility_features: string[];
-  offline_available: boolean;
+  understanding_confirmed?: boolean;
+  assistance_needed?: boolean;
+  qr_code_scanned?: string;
+  scan_result?: Json;
+  notes?: string;
 }
 
 export const useInductionDemo = () => {
@@ -85,7 +94,6 @@ export const useInductionDemo = () => {
         p_user_id: user.id,
         p_project_id: projectId,
         p_language: language,
-        p_accessibility_needs: accessibilityNeeds,
         p_device_info: deviceInfo
       });
 
@@ -101,7 +109,7 @@ export const useInductionDemo = () => {
       if (fetchError) throw fetchError;
 
       setCurrentInduction(induction);
-      setCurrentStep(0);
+      setCurrentStep(induction.current_step || 0);
       setStepStartTime(new Date());
       await loadMaterials(language);
 
@@ -137,9 +145,8 @@ export const useInductionDemo = () => {
     try {
       const { data, error } = await supabase.rpc('complete_induction_step', {
         p_induction_id: currentInduction.id,
-        p_step_name: stepName,
-        p_interaction_data: interactionData,
-        p_time_taken_seconds: timeTaken
+        p_step_number: (currentInduction.current_step || 0) + 1,
+        p_step_data: interactionData
       });
 
       if (error) throw error;
@@ -147,9 +154,8 @@ export const useInductionDemo = () => {
       // Update local state
       setCurrentInduction(prev => prev ? {
         ...prev,
-        completed_steps: prev.completed_steps + 1,
-        current_step: stepName,
-        status: prev.completed_steps + 1 >= prev.total_steps ? 'completed' : 'in_progress'
+        current_step: (prev.current_step || 0) + 1,
+        completion_percentage: Math.min(((prev.current_step || 0) + 1) * 20, 100)
       } : null);
 
       setCurrentStep(prev => prev + 1);
@@ -190,11 +196,42 @@ export const useInductionDemo = () => {
       // Find the appropriate demo QR material
       const demoMaterial = materials.find(m => 
         m.material_type === 'demo_qr' && 
-        m.content_data?.status === qrType
+        (m.metadata as any)?.status === qrType
       );
 
       if (!demoMaterial) {
-        throw new Error('Demo QR material not found');
+        // Use fallback demo data
+        const fallbackData = {
+          status: qrType,
+          revision: qrType === 'current' ? 'Rev-04' : 'Rev-02',
+          document_type: 'Safety Method Statement',
+          superseded_by: qrType === 'superseded' ? 'Rev-04' : undefined
+        };
+        
+        const result = {
+          status: qrType === 'current' ? 'valid' : 'superseded',
+          document_id: `demo_${qrType}_${Date.now()}`,
+          revision: fallbackData.revision,
+          document_type: fallbackData.document_type,
+          message: qrType === 'current' 
+            ? `✅ Current Rev: ${fallbackData.revision} — Approved for Use`
+            : `❌ Superseded — Do Not Use — Latest: ${fallbackData.superseded_by}`,
+          branding: {
+            company: 'AJ Ryan SmartWork Hub',
+            colors: { primary: '#1d1e3d', accent: '#ffcf21' }
+          }
+        };
+
+        // Simulate validation delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        await completeStep(`qr_scan_${qrType}`, {
+          qr_type: qrType,
+          scan_result: result,
+          demo: true
+        }, qrType === 'current' ? 100 : 90);
+
+        return result;
       }
 
       // Simulate validation delay
@@ -203,18 +240,16 @@ export const useInductionDemo = () => {
       const result = {
         status: qrType === 'current' ? 'valid' : 'superseded',
         document_id: `demo_${qrType}_${Date.now()}`,
-        revision: demoMaterial.content_data.revision,
-        document_type: demoMaterial.content_data.document_type,
+        revision: (demoMaterial.metadata as any)?.revision || 'Rev-04',
+        document_type: (demoMaterial.metadata as any)?.document_type || 'Safety Method Statement',
         message: qrType === 'current' 
-          ? `✅ Current Rev: ${demoMaterial.content_data.revision} — Approved for Use`
-          : `❌ Superseded — Do Not Use — Latest: ${demoMaterial.content_data.superseded_by}`,
+          ? `✅ Current Rev: ${(demoMaterial.metadata as any)?.revision || 'Rev-04'} — Approved for Use`
+          : `❌ Superseded — Do Not Use — Latest: ${(demoMaterial.metadata as any)?.superseded_by || 'Rev-04'}`,
         branding: {
           company: 'AJ Ryan SmartWork Hub',
           colors: { primary: '#1d1e3d', accent: '#ffcf21' }
         }
       };
-
-      const timeTaken = Math.round((new Date().getTime() - stepStarted.getTime()) / 1000);
 
       await completeStep(`qr_scan_${qrType}`, {
         qr_type: qrType,
@@ -253,8 +288,8 @@ export const useInductionDemo = () => {
 
       if (data) {
         setCurrentInduction(data);
-        setCurrentStep(data.completed_steps);
-        await loadMaterials(data.language_preference);
+        setCurrentStep(data.current_step || 0);
+        await loadMaterials(data.language_preference || 'en');
       }
 
       return data;
@@ -281,3 +316,5 @@ export const useInductionDemo = () => {
     getCurrentInduction
   };
 };
+
+export type { InductionProgress, InductionMaterial, DemoCompletion };

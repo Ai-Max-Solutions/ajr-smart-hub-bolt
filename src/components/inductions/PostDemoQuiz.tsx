@@ -254,25 +254,29 @@ const PostDemoQuiz: React.FC<PostDemoQuizProps> = ({
         finalScore >= 75 ? 'good' :
         finalScore >= 60 ? 'needs_improvement' : 'requires_retry';
 
-      await supabase
-        .from('post_demo_quiz')
-        .insert({
-          induction_id: inductionId,
-          user_id: user.id,
-          question_data: { questions, language },
-          user_answers: userAnswers,
-          ai_feedback: { feedback, score: finalScore },
-          score_percentage: finalScore,
-          understanding_level,
-          time_taken_seconds: Date.now() // Simplified
-        });
+      // Insert quiz responses for each question
+      for (const [questionId, answerIndex] of Object.entries(userAnswers)) {
+        await supabase
+          .from('post_demo_quiz')
+          .insert({
+            induction_id: inductionId,
+            question_id: questionId,
+            question_text: questions[parseInt(questionId)]?.question || '',
+            user_answer: questions[parseInt(questionId)]?.options[answerIndex] || '',
+            correct_answer: questions[parseInt(questionId)]?.options[questions[parseInt(questionId)]?.correctAnswer] || '',
+            is_correct: answerIndex === questions[parseInt(questionId)]?.correctAnswer,
+            time_taken_seconds: Math.floor(Date.now() / 1000),
+            difficulty_level: questions[parseInt(questionId)]?.difficulty || 'medium',
+            ai_explanation: feedback
+          });
+      }
 
       // Complete the induction if score is good enough
       if (finalScore >= 75) {
         await supabase.rpc('complete_induction_step', {
           p_induction_id: inductionId,
-          p_step_name: 'quiz_completed',
-          p_interaction_data: { score: finalScore, understanding_level }
+          p_step_number: 5, // Assuming quiz is step 5
+          p_step_data: { score: finalScore, understanding_level: understandingLevel }
         });
       }
 
