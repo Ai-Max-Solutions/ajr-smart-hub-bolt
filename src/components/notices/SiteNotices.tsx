@@ -482,10 +482,13 @@ const SiteNotices = () => {
                 <p className="text-sm text-muted-foreground">Weekly site access briefings and important updates</p>
               </div>
             </div>
-            <Button onClick={() => setShowDABSForm(true)} className="btn-accent">
-              <Plus className="w-4 h-4 mr-2" />
-              Create DABS
-            </Button>
+            {/* Only show Create DABS button for non-operative roles */}
+            {user?.role && user.role !== 'Operative' && (
+              <Button onClick={() => setShowDABSForm(true)} className="btn-accent">
+                <Plus className="w-4 h-4 mr-2" />
+                Create DABS
+              </Button>
+            )}
           </div>
 
           {dabsNotices.length > 0 ? (
