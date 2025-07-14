@@ -165,7 +165,7 @@ export const Auth = () => {
             <img 
               src="/lovable-uploads/0b275deb-8a7d-4a00-85a3-ae746d59b6f1.png" 
               alt="A&J Ryan Logo" 
-              className="h-8 mr-2 rounded-[5px]"
+              className="w-[180px] mr-2 rounded-[5px]"
             />
             <span className="text-2xl font-bold text-primary">A&J Ryan</span>
           </div>
