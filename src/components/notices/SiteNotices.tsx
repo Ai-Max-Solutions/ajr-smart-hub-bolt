@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -10,72 +11,78 @@ import {
   FileText, 
   Download,
   Eye,
-  PenTool
+  PenTool,
+  Megaphone,
+  Plus,
+  Users,
+  Calendar,
+  Shield
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { PageHeader } from '@/components/layout/PageHeader';
+import DABSCreationForm from './DABSCreationForm';
 
 interface SiteNotice {
   id: string;
-  type: 'toolbox_talk' | 'safety_alert' | 'general';
-  project: string;
   title: string;
-  body: string;
-  attachments?: { name: string; url: string }[];
-  issuedBy: string;
-  issuedOn: Date;
-  expiryDate?: Date;
-  signatureRequired: boolean;
-  status: 'pending' | 'read' | 'signed' | 'expired';
-  readAt?: Date;
-  signedAt?: Date;
+  content: string;
+  notice_type: string;
+  notice_category?: string;
+  priority?: string;
+  requires_signature?: boolean;
+  status?: string;
+  expires_at?: string;
+  auto_archive?: boolean;
+  created_at: string;
+  created_by?: string;
+  attachments?: any;
+  project_id?: string;
+  valid_from?: string;
+  valid_until?: string;
 }
 
 const SiteNotices = () => {
-  const [notices, setNotices] = useState<SiteNotice[]>([
-    {
-      id: '1',
-      type: 'safety_alert',
-      project: 'Woodberry Down Phase 2',
-      title: 'Scaffold Zone Closed - Do Not Enter',
-      body: 'The scaffold area on the south side of Block D is temporarily closed due to structural concerns. New access route via north entrance only. See attached plan for details.',
-      attachments: [{ name: 'New Access Plan.pdf', url: '#' }],
-      issuedBy: 'Jane Doe - Site Supervisor',
-      issuedOn: new Date('2025-07-13T08:00:00'),
-      signatureRequired: true,
-      status: 'pending'
-    },
-    {
-      id: '2',
-      type: 'toolbox_talk',
-      project: 'Woodberry Down Phase 2',
-      title: 'Ladder Safety - Updated Procedures',
-      body: 'Updated ladder safety procedures following new HSE guidelines. All operatives must review before using any ladder equipment.',
-      attachments: [{ name: 'Ladder Safety v2.1.pdf', url: '#' }],
-      issuedBy: 'Mark Wilson - H&S Manager',
-      issuedOn: new Date('2025-07-12T14:30:00'),
-      signatureRequired: true,
-      status: 'read',
-      readAt: new Date('2025-07-13T09:15:00')
-    },
-    {
-      id: '3',
-      type: 'general',
-      project: 'Woodberry Down Phase 2',
-      title: 'Welfare Facilities Update',
-      body: 'New welfare facilities are now available in the main compound. Updated site map attached.',
-      attachments: [{ name: 'Site Map v1.3.pdf', url: '#' }],
-      issuedBy: 'Sarah Johnson - Project Manager',
-      issuedOn: new Date('2025-07-11T16:00:00'),
-      signatureRequired: false,
-      status: 'signed',
-      readAt: new Date('2025-07-12T07:30:00'),
-      signedAt: new Date('2025-07-12T07:32:00')
-    }
-  ]);
-
+  const [notices, setNotices] = useState<SiteNotice[]>([]);
+  const [dabsNotices, setDabsNotices] = useState<SiteNotice[]>([]);
   const [expandedNotice, setExpandedNotice] = useState<string | null>(null);
+  const [showDABSForm, setShowDABSForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const pendingNotices = notices.filter(n => n.status === 'pending').length;
-  const requiresSignature = notices.filter(n => n.signatureRequired && n.status !== 'signed').length;
+  const fetchNotices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_notices')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const allNotices = (data || []) as SiteNotice[];
+      const dabs = allNotices.filter(notice => notice.notice_category === 'dabs');
+      const regular = allNotices.filter(notice => notice.notice_category !== 'dabs');
+      
+      setDabsNotices(dabs);
+      setNotices(regular);
+    } catch (error) {
+      console.error('Error fetching notices:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load site notices",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotices();
+  }, []);
+
+  const pendingNotices = [...notices, ...dabsNotices].filter(n => n.status === 'active').length;
+  const requiresSignature = [...notices, ...dabsNotices].filter(n => n.requires_signature && n.status !== 'signed').length;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -83,7 +90,7 @@ const SiteNotices = () => {
         return <CheckCircle className="w-4 h-4 text-success" />;
       case 'read':
         return <Eye className="w-4 h-4 text-warning" />;
-      case 'pending':
+      case 'active':
         return <Clock className="w-4 h-4 text-destructive" />;
       default:
         return <AlertTriangle className="w-4 h-4 text-muted-foreground" />;
@@ -96,19 +103,36 @@ const SiteNotices = () => {
         return 'Signed';
       case 'read':
         return 'Read';
-      case 'pending':
+      case 'active':
         return 'Pending';
       default:
         return 'Unknown';
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'Critical':
+        return 'destructive';
+      case 'High':
+        return 'destructive';
+      case 'Medium':
+        return 'accent';
+      case 'Low':
+        return 'secondary';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
       case 'safety_alert':
         return 'destructive';
       case 'toolbox_talk':
         return 'accent';
+      case 'dabs':
+        return 'default';
       case 'general':
         return 'secondary';
       default:
@@ -116,12 +140,14 @@ const SiteNotices = () => {
     }
   };
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
       case 'safety_alert':
         return 'Safety Alert';
       case 'toolbox_talk':
         return 'Toolbox Talk';
+      case 'dabs':
+        return 'DABS';
       case 'general':
         return 'Site Notice';
       default:
@@ -129,34 +155,223 @@ const SiteNotices = () => {
     }
   };
 
-  const handleMarkAsRead = (noticeId: string) => {
-    setNotices(prev => prev.map(notice => 
-      notice.id === noticeId 
-        ? { ...notice, status: 'read', readAt: new Date() }
-        : notice
-    ));
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'safety_alert':
+        return <Shield className="w-4 h-4" />;
+      case 'toolbox_talk':
+        return <Users className="w-4 h-4" />;
+      case 'dabs':
+        return <Megaphone className="w-4 h-4" />;
+      case 'general':
+        return <FileText className="w-4 h-4" />;
+      default:
+        return <FileText className="w-4 h-4" />;
+    }
   };
 
-  const handleSignNotice = (noticeId: string) => {
-    setNotices(prev => prev.map(notice => 
-      notice.id === noticeId 
-        ? { ...notice, status: 'signed', signedAt: new Date() }
-        : notice
-    ));
+  const handleMarkAsRead = async (noticeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('site_notices')
+        .update({ status: 'read' })
+        .eq('id', noticeId);
+
+      if (error) throw error;
+      
+      fetchNotices();
+      toast({
+        title: "Success",
+        description: "Notice marked as read",
+      });
+    } catch (error) {
+      console.error('Error updating notice:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update notice",
+        variant: "destructive",
+      });
+    }
   };
+
+  const handleSignNotice = async (noticeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('site_notices')
+        .update({ status: 'signed' })
+        .eq('id', noticeId);
+
+      if (error) throw error;
+      
+      fetchNotices();
+      toast({
+        title: "Success",
+        description: "Notice signed successfully",
+      });
+    } catch (error) {
+      console.error('Error signing notice:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign notice",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatTimeRemaining = (expiresAt: string) => {
+    const now = new Date();
+    const expiry = new Date(expiresAt);
+    const diff = expiry.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0) return `${days}d ${hours}h remaining`;
+    if (hours > 0) return `${hours}h remaining`;
+    return 'Expires soon';
+  };
+
+  const renderNoticeCard = (notice: SiteNotice) => (
+    <Card key={notice.id} className={`card-hover border-l-4 ${
+      notice.priority === 'Critical' ? 'border-l-destructive' :
+      notice.priority === 'High' ? 'border-l-warning' :
+      notice.priority === 'Medium' ? 'border-l-accent' :
+      'border-l-secondary'
+    }`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Badge variant={getCategoryColor(notice.notice_category) as any} className="flex items-center gap-1">
+              {getCategoryIcon(notice.notice_category)}
+              {getCategoryLabel(notice.notice_category)}
+            </Badge>
+            <Badge variant={getPriorityColor(notice.priority) as any} className="text-xs">
+              {notice.priority}
+            </Badge>
+            <div className="flex items-center gap-2">
+              {getStatusIcon(notice.status)}
+              <span className="text-sm font-medium">
+                {getStatusText(notice.status)}
+              </span>
+            </div>
+          </div>
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            {new Date(notice.created_at).toLocaleDateString()}
+          </div>
+        </div>
+        
+        <CardTitle className="text-lg cursor-pointer hover:text-primary flex items-center justify-between" 
+                  onClick={() => setExpandedNotice(expandedNotice === notice.id ? null : notice.id)}>
+          <span>{notice.title}</span>
+          {notice.expires_at && (
+            <span className="text-sm text-warning font-normal">
+              {formatTimeRemaining(notice.expires_at)}
+            </span>
+          )}
+        </CardTitle>
+        
+          <div className="text-sm text-muted-foreground">
+            <div>Type: {notice.notice_type}</div>
+            {notice.expires_at && notice.notice_category === 'dabs' && (
+              <div className="text-accent">Auto-archives in {formatTimeRemaining(notice.expires_at)}</div>
+            )}
+          </div>
+      </CardHeader>
+
+      {expandedNotice === notice.id && (
+        <CardContent className="pt-0 border-t">
+          <div className="space-y-4">
+            <div className="prose prose-sm max-w-none">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{notice.content}</p>
+            </div>
+
+            {notice.attachments && Array.isArray(notice.attachments) && notice.attachments.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Attachments
+                </h4>
+                <div className="space-y-2">
+                  {notice.attachments.map((attachment: any, index: number) => (
+                    <Button 
+                      key={index}
+                      variant="outline" 
+                      size="sm" 
+                      className="justify-start"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      {attachment.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-3 border-t">
+              {notice.status === 'active' && (
+                <Button 
+                  onClick={() => handleMarkAsRead(notice.id)}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Mark as Read
+                </Button>
+              )}
+              
+              {notice.requires_signature && notice.status !== 'signed' && (
+                <Button 
+                  onClick={() => handleSignNotice(notice.id)}
+                  className="btn-accent"
+                  size="sm"
+                >
+                  <PenTool className="w-4 h-4 mr-2" />
+                  Sign & Confirm
+                </Button>
+              )}
+              
+              {notice.status === 'signed' && (
+                <div className="flex items-center gap-2 text-sm text-success">
+                  <CheckCircle className="w-4 h-4" />
+                  Signed
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-muted rounded w-1/3"></div>
+            <div className="h-4 bg-muted rounded w-2/3"></div>
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-32 bg-muted rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-primary mb-2">Site Notices</h1>
-          <p className="text-muted-foreground">Stay updated with important site communications and safety alerts</p>
-        </div>
+    <div className="min-h-screen bg-gradient-subtle p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <PageHeader
+          title="Site Notices"
+          description="Stay updated with important site communications, DABS briefings, and safety alerts"
+        />
 
         {/* Alert Banner */}
         {(pendingNotices > 0 || requiresSignature > 0) && (
-          <Alert className="mb-6 border-warning bg-warning/10">
+          <Alert className="border-warning bg-warning/10">
             <AlertTriangle className="w-4 h-4 text-warning" />
             <AlertDescription className="text-warning">
               {pendingNotices > 0 && `You have ${pendingNotices} new notice${pendingNotices > 1 ? 's' : ''}`}
@@ -166,119 +381,74 @@ const SiteNotices = () => {
           </Alert>
         )}
 
-        {/* Notices List */}
+        {/* DABS Section */}
         <div className="space-y-4">
-          {notices.map((notice) => (
-            <Card key={notice.id} className="card-hover">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Badge variant={getTypeColor(notice.type) as any}>
-                      {getTypeLabel(notice.type)}
-                    </Badge>
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(notice.status)}
-                      <span className="text-sm font-medium">
-                        {getStatusText(notice.status)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {notice.issuedOn.toLocaleDateString()}
-                  </div>
-                </div>
-                
-                <CardTitle className="text-lg cursor-pointer hover:text-primary" 
-                          onClick={() => setExpandedNotice(expandedNotice === notice.id ? null : notice.id)}>
-                  {notice.title}
-                </CardTitle>
-                
-                <div className="text-sm text-muted-foreground">
-                  <div>Project: {notice.project}</div>
-                  <div>Issued by: {notice.issuedBy}</div>
-                  {notice.expiryDate && (
-                    <div>Expires: {notice.expiryDate.toLocaleDateString()}</div>
-                  )}
-                </div>
-              </CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Megaphone className="w-6 h-6 text-accent" />
+              <div>
+                <h2 className="text-2xl font-bold text-primary">DABS Briefings</h2>
+                <p className="text-sm text-muted-foreground">Weekly site access briefings and important updates</p>
+              </div>
+            </div>
+            <Button onClick={() => setShowDABSForm(true)} className="btn-accent">
+              <Plus className="w-4 h-4 mr-2" />
+              Create DABS
+            </Button>
+          </div>
 
-              {expandedNotice === notice.id && (
-                <CardContent className="pt-0 border-t">
-                  <div className="space-y-4">
-                    {/* Notice Body */}
-                    <div className="prose prose-sm max-w-none">
-                      <p className="text-sm leading-relaxed">{notice.body}</p>
-                    </div>
-
-                    {/* Attachments */}
-                    {notice.attachments && notice.attachments.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          Attachments
-                        </h4>
-                        <div className="space-y-2">
-                          {notice.attachments.map((attachment, index) => (
-                            <Button 
-                              key={index}
-                              variant="outline" 
-                              size="sm" 
-                              className="justify-start"
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              {attachment.name}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex gap-3 pt-3 border-t">
-                      {notice.status === 'pending' && (
-                        <Button 
-                          onClick={() => handleMarkAsRead(notice.id)}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Mark as Read
-                        </Button>
-                      )}
-                      
-                      {notice.signatureRequired && notice.status !== 'signed' && (
-                        <Button 
-                          onClick={() => handleSignNotice(notice.id)}
-                          className="btn-accent"
-                          size="sm"
-                        >
-                          <PenTool className="w-4 h-4 mr-2" />
-                          Sign & Confirm
-                        </Button>
-                      )}
-                      
-                      {notice.status === 'signed' && (
-                        <div className="flex items-center gap-2 text-sm text-success">
-                          <CheckCircle className="w-4 h-4" />
-                          Signed on {notice.signedAt?.toLocaleDateString()}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              )}
+          {dabsNotices.length > 0 ? (
+            <div className="space-y-4">
+              {dabsNotices.map(renderNoticeCard)}
+            </div>
+          ) : (
+            <Card className="text-center py-8">
+              <CardContent>
+                <Megaphone className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No DABS briefings this week</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Check back after the weekly DABS meeting
+                </p>
+              </CardContent>
             </Card>
-          ))}
+          )}
         </div>
 
-        {notices.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-12">
-              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No site notices at this time</p>
-            </CardContent>
-          </Card>
-        )}
+        <Separator className="my-8" />
+
+        {/* Regular Notices Section */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <FileText className="w-6 h-6 text-primary" />
+            <div>
+              <h2 className="text-2xl font-bold text-primary">Site Notices</h2>
+              <p className="text-sm text-muted-foreground">General site communications and updates</p>
+            </div>
+          </div>
+
+          {notices.length > 0 ? (
+            <div className="space-y-4">
+              {notices.map(renderNoticeCard)}
+            </div>
+          ) : (
+            <Card className="text-center py-8">
+              <CardContent>
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No site notices at this time</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* DABS Creation Form */}
+        <DABSCreationForm 
+          open={showDABSForm}
+          onClose={() => setShowDABSForm(false)}
+          onSuccess={() => {
+            setShowDABSForm(false);
+            fetchNotices();
+          }}
+        />
       </div>
     </div>
   );

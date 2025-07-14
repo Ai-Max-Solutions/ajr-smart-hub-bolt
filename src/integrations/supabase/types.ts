@@ -6998,40 +6998,55 @@ export type Database = {
       }
       site_notices: {
         Row: {
+          attachments: Json | null
+          auto_archive: boolean | null
           content: string
           created_at: string | null
           created_by: string | null
+          expires_at: string | null
           id: string
+          notice_category: string | null
           notice_type: string
           priority: string | null
           project_id: string | null
           requires_signature: boolean | null
+          status: string | null
           title: string
           valid_from: string | null
           valid_until: string | null
         }
         Insert: {
+          attachments?: Json | null
+          auto_archive?: boolean | null
           content: string
           created_at?: string | null
           created_by?: string | null
+          expires_at?: string | null
           id?: string
+          notice_category?: string | null
           notice_type: string
           priority?: string | null
           project_id?: string | null
           requires_signature?: boolean | null
+          status?: string | null
           title: string
           valid_from?: string | null
           valid_until?: string | null
         }
         Update: {
+          attachments?: Json | null
+          auto_archive?: boolean | null
           content?: string
           created_at?: string | null
           created_by?: string | null
+          expires_at?: string | null
           id?: string
+          notice_category?: string | null
           notice_type?: string
           priority?: string | null
           project_id?: string | null
           requires_signature?: boolean | null
+          status?: string | null
           title?: string
           valid_from?: string | null
           valid_until?: string | null
@@ -10452,6 +10467,10 @@ export type Database = {
       authenticate_user: {
         Args: { p_email: string; p_auth_provider: string; p_auth_id: string }
         Returns: Json
+      }
+      auto_archive_expired_dabs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       auto_refresh_materialized_views: {
         Args: Record<PropertyKey, never>
