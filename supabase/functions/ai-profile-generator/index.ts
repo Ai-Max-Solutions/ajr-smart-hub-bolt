@@ -50,8 +50,10 @@ serve(async (req) => {
 
   try {
     const { userName, userRole, customStyle } = await req.json();
-
+    console.log('Received request:', { userName, userRole, customStyle });
+    
     if (!openAIApiKey) {
+      console.error('OpenAI API key not found in environment variables');
       return new Response(
         JSON.stringify({ error: 'OpenAI API key not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -82,12 +84,11 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-image-1',
+        model: 'dall-e-3',
         prompt: finalPrompt,
         n: 1,
         size: '1024x1024',
-        quality: 'high',
-        output_format: 'png'
+        quality: 'hd'
       }),
     });
 
@@ -101,6 +102,15 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    
+    // Check if we have the expected response structure
+    if (!data.data || !data.data[0] || !data.data[0].url) {
+      console.error('Unexpected OpenAI response structure:', data);
+      return new Response(
+        JSON.stringify({ error: 'Invalid response from image generation service' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
     
     return new Response(
       JSON.stringify({ 
