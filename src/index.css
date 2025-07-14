@@ -304,12 +304,25 @@
   100% { background-position: 200% 0; }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+/* Focus ring improvements */
+.focus-ring-brand {
+  @apply focus-visible:ring-2 focus-visible:ring-aj-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
 
-  body {
-    @apply bg-background text-foreground;
-  }
+/* Interactive state improvements */
+.interactive-hover {
+  @apply transition-aj duration-aj-smooth hover:scale-[1.02] hover:brightness-105;
+}
+
+/* Text hierarchy improvements */
+.text-hierarchy-1 {
+  @apply text-header font-semibold text-foreground tracking-tight;
+}
+
+.text-hierarchy-2 {
+  @apply text-lg font-medium text-foreground;
+}
+
+.text-hierarchy-3 {
+  @apply text-body font-medium text-muted-foreground;
 }
