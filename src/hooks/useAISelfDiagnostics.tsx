@@ -247,11 +247,8 @@ Context provided: ${context.length} documents`;
         improvement_areas: insights.filter(i => i.actionRequired).map(i => i.message)
       };
 
-      // Store report for admin dashboard
-      await supabase.from('ai_performance_reports').insert({
-        report_date: new Date().toISOString().split('T')[0],
-        metrics: report
-      });
+      // TODO: Store report in ai_performance_reports table once migration is complete
+      console.log('Weekly AI Performance Report:', report);
 
       addInsight({
         type: 'performance',
