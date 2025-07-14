@@ -1194,6 +1194,88 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          document_type: string
+          file_url: string | null
+          id: string
+          project_id: string | null
+          read_required: boolean | null
+          status: string | null
+          title: string
+          version: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          document_type: string
+          file_url?: string | null
+          id?: string
+          project_id?: string | null
+          read_required?: boolean | null
+          status?: string | null
+          title: string
+          version?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          document_type?: string
+          file_url?: string | null
+          id?: string
+          project_id?: string | null
+          read_required?: boolean | null
+          status?: string | null
+          title?: string
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       Drawing_Categories: {
         Row: {
           airtable_created_time: string | null
@@ -2403,6 +2485,94 @@ export type Database = {
           {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      on_hire: {
+        Row: {
+          actual_end_date: string | null
+          created_at: string | null
+          expected_end_date: string | null
+          hire_start_date: string
+          id: string
+          item_name: string
+          notes: string | null
+          project_id: string | null
+          requested_by: string | null
+          status: string | null
+          supplier_name: string
+          weekly_cost: number | null
+        }
+        Insert: {
+          actual_end_date?: string | null
+          created_at?: string | null
+          expected_end_date?: string | null
+          hire_start_date: string
+          id?: string
+          item_name: string
+          notes?: string | null
+          project_id?: string | null
+          requested_by?: string | null
+          status?: string | null
+          supplier_name: string
+          weekly_cost?: number | null
+        }
+        Update: {
+          actual_end_date?: string | null
+          created_at?: string | null
+          expected_end_date?: string | null
+          hire_start_date?: string
+          id?: string
+          item_name?: string
+          notes?: string | null
+          project_id?: string | null
+          requested_by?: string | null
+          status?: string | null
+          supplier_name?: string
+          weekly_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "on_hire_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "on_hire_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "on_hire_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "on_hire_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "on_hire_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "on_hire_requested_by_fkey"
+            columns: ["requested_by"]
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
@@ -3846,6 +4016,91 @@ export type Database = {
           },
         ]
       }
+      site_notices: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notice_type: string
+          priority: string | null
+          project_id: string | null
+          requires_signature: boolean | null
+          title: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notice_type: string
+          priority?: string | null
+          project_id?: string | null
+          requires_signature?: boolean | null
+          title: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notice_type?: string
+          priority?: string | null
+          project_id?: string | null
+          requires_signature?: boolean | null
+          title?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_notices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "site_notices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "site_notices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "site_notices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "site_notices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "site_notices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       smart_notifications: {
         Row: {
           action_url: string | null
@@ -4063,6 +4318,42 @@ export type Database = {
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
+      }
+      suppliers: {
+        Row: {
+          average_overdue_days: number | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          name: string
+          on_time_percentage: number | null
+          performance_rating: number | null
+          total_orders: number | null
+        }
+        Insert: {
+          average_overdue_days?: number | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          on_time_percentage?: number | null
+          performance_rating?: number | null
+          total_orders?: number | null
+        }
+        Update: {
+          average_overdue_days?: number | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          on_time_percentage?: number | null
+          performance_rating?: number | null
+          total_orders?: number | null
+        }
+        Relationships: []
       }
       task_plan_sections: {
         Row: {
