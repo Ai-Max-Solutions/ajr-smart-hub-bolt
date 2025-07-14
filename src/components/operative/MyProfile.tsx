@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { CSCSCardUploader } from '@/components/ui/cscs-card-uploader';
 import { 
   User, 
   Mail, 
@@ -32,7 +33,8 @@ const MyProfile = () => {
     emergencyContact: '',
     emergencyPhone: '',
     cscsNumber: '',
-    cscsExpiry: ''
+    cscsExpiry: '',
+    cscsType: ''
   });
 
   const handleSave = async () => {
@@ -98,7 +100,8 @@ const MyProfile = () => {
       emergencyContact: '',
       emergencyPhone: '',
       cscsNumber: '',
-      cscsExpiry: ''
+      cscsExpiry: '',
+      cscsType: ''
     });
     setIsEditing(false);
   };
@@ -256,46 +259,66 @@ const MyProfile = () => {
 
           {/* CSCS Information */}
           <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CreditCard className="w-5 h-5" />
-                <span>CSCS Card Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="cscsNumber">CSCS Card Number</Label>
-                  <Input
-                    id="cscsNumber"
-                    value={formData.cscsNumber}
-                    onChange={(e) => setFormData({ ...formData, cscsNumber: e.target.value })}
-                    disabled={!isEditing}
-                    placeholder="Enter CSCS card number"
-                  />
+            <CardContent className="p-0">
+              {isEditing ? (
+                <CSCSCardUploader
+                  data={{
+                    number: formData.cscsNumber,
+                    expiryDate: formData.cscsExpiry,
+                    cardType: formData.cscsType || '',
+                  }}
+                  updateData={(cscsData) => setFormData({
+                    ...formData,
+                    cscsNumber: cscsData.number || formData.cscsNumber,
+                    cscsExpiry: cscsData.expiryDate || formData.cscsExpiry,
+                    cscsType: cscsData.cardType || formData.cscsType,
+                  })}
+                  onAnalysisComplete={(analysis) => {
+                    toast({
+                      title: "CSCS Card Analyzed",
+                      description: `Successfully detected ${analysis.card_color} ${analysis.card_type} card`,
+                    });
+                  }}
+                  required={false}
+                />
+              ) : (
+                <div className="p-6">
+                  <CardHeader className="px-0 pt-0">
+                    <CardTitle className="flex items-center space-x-2">
+                      <CreditCard className="w-5 h-5" />
+                      <span>CSCS Card Information</span>
+                    </CardTitle>
+                  </CardHeader>
+                  
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>CSCS Card Number</Label>
+                        <div className="p-2 bg-muted rounded text-sm">
+                          {formData.cscsNumber || 'Not provided'}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label>CSCS Expiry Date</Label>
+                        <div className="p-2 bg-muted rounded text-sm">
+                          {formData.cscsExpiry || 'Not provided'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                      <div className="flex items-center space-x-2 text-blue-700 dark:text-blue-300">
+                        <CreditCard className="w-5 h-5" />
+                        <span className="font-medium">CSCS Status</span>
+                      </div>
+                      <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                        Keep your CSCS card information up to date. This is required for site access.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                
-                <div>
-                  <Label htmlFor="cscsExpiry">CSCS Expiry Date</Label>
-                  <Input
-                    id="cscsExpiry"
-                    type="date"
-                    value={formData.cscsExpiry}
-                    onChange={(e) => setFormData({ ...formData, cscsExpiry: e.target.value })}
-                    disabled={!isEditing}
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                <div className="flex items-center space-x-2 text-blue-700 dark:text-blue-300">
-                  <Shield className="w-5 h-5" />
-                  <span className="font-medium">CSCS Status</span>
-                </div>
-                <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
-                  Keep your CSCS card information up to date. This is required for site access.
-                </p>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

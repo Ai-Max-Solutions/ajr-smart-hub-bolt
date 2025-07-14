@@ -66,7 +66,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               toast.success('Successfully signed in!');
             } catch (error) {
               console.error('Error handling sign in:', error);
-              toast.success('Successfully signed in!');
+              // If user doesn't exist in Users table, they're new - redirect to onboarding
+              window.location.href = '/onboarding/signup';
             }
           }, 0);
         } else if (event === 'SIGNED_OUT') {

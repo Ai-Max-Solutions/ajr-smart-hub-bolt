@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, AlertCircle, CreditCard, Phone } from 'lucide-react';
+import { Phone, AlertCircle } from 'lucide-react';
 import { OnboardingData } from '@/pages/OnboardingFlow';
+import { CSCSCardUploader } from '@/components/ui/cscs-card-uploader';
 
 interface PersonalDetailsProps {
   data: OnboardingData;
@@ -18,15 +19,6 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const cardTypes = [
-    'Green - Labourer',
-    'Blue - Skilled Worker',
-    'Yellow - Supervisor',
-    'White - Trainee',
-    'Black - Manager',
-    'Gold - Academically Qualified'
-  ];
 
   const relationships = [
     'Partner', 'Spouse', 'Parent', 'Child', 'Sibling', 'Friend', 'Other'
@@ -43,13 +35,13 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
     
     if (!data.cscsCard.expiryDate) newErrors.cscsExpiry = 'Expiry date is required';
     else {
-      const [day, month, year] = data.cscsCard.expiryDate.split('/');
-      const expiryDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const expiryDate = new Date(data.cscsCard.expiryDate);
       const today = new Date();
       if (expiryDate <= today) newErrors.cscsExpiry = 'Card must not be expired';
     }
     
     if (!data.cscsCard.cardType) newErrors.cscsType = 'Card type is required';
+    if (!data.cscsCard.frontImage) newErrors.cscsFrontImage = 'Front image of CSCS card is required';
 
     // Emergency contact validation
     if (!data.emergencyContact.name.trim()) newErrors.emergencyName = 'Emergency contact name is required';
@@ -79,155 +71,28 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
     }
   };
 
-  const handleFileUpload = (type: 'front' | 'back') => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      updateData({
-        cscsCard: {
-          ...data.cscsCard,
-          [`${type}Image`]: file
-        }
-      });
-      toast({
-        title: `CSCS Card ${type} uploaded`,
-        description: "Image uploaded successfully",
-      });
-    }
+  const handleAnalysisComplete = (analysis: any) => {
+    toast({
+      title: "CSCS Card Analyzed",
+      description: `Successfully detected ${analysis.card_color} ${analysis.card_type} card`,
+    });
   };
 
   return (
     <div className="space-y-6">
-      {/* CSCS Card Section */}
-      <Card className="card-hover">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <CreditCard className="w-5 h-5" />
-            CSCS Card Details
-          </CardTitle>
-          <CardDescription>
-            Required for UK construction sites
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="space-y-4">
-          <div className="form-field space-y-2">
-            <Label htmlFor="cardType">Card Type *</Label>
-            <Select 
-              value={data.cscsCard.cardType} 
-              onValueChange={(value) => updateData({ 
-                cscsCard: { ...data.cscsCard, cardType: value } 
-              })}
-            >
-              <SelectTrigger className={errors.cscsType ? 'border-destructive' : ''}>
-                <SelectValue placeholder="Select your card type" />
-              </SelectTrigger>
-              <SelectContent>
-                {cardTypes.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.cscsType && (
-              <p className="text-destructive text-sm flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.cscsType}
-              </p>
-            )}
-          </div>
-
-          <div className="form-field space-y-2">
-            <Label htmlFor="cardNumber">CSCS Card Number *</Label>
-            <Input
-              id="cardNumber"
-              value={data.cscsCard.number}
-              onChange={(e) => {
-                const formatted = e.target.value.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ');
-                if (formatted.replace(/\s/g, '').length <= 16) {
-                  updateData({ 
-                    cscsCard: { ...data.cscsCard, number: formatted } 
-                  });
-                }
-              }}
-              placeholder="1234 5678 9012 3456"
-              maxLength={19}
-              className={errors.cscsNumber ? 'border-destructive' : ''}
-            />
-            {errors.cscsNumber && (
-              <p className="text-destructive text-sm flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.cscsNumber}
-              </p>
-            )}
-          </div>
-
-          <div className="form-field space-y-2">
-            <Label htmlFor="expiryDate">Card Expiry Date *</Label>
-            <Input
-              id="expiryDate"
-              value={data.cscsCard.expiryDate}
-              onChange={(e) => {
-                let value = e.target.value.replace(/\D/g, '');
-                if (value.length >= 2) value = value.substring(0,2) + '/' + value.substring(2);
-                if (value.length >= 5) value = value.substring(0,5) + '/' + value.substring(5,9);
-                updateData({ 
-                  cscsCard: { ...data.cscsCard, expiryDate: value } 
-                });
-              }}
-              placeholder="DD/MM/YYYY"
-              maxLength={10}
-              className={errors.cscsExpiry ? 'border-destructive' : ''}
-            />
-            {errors.cscsExpiry && (
-              <p className="text-destructive text-sm flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.cscsExpiry}
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="form-field space-y-2">
-              <Label>Front of Card</Label>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload('front')}
-                  className="hidden"
-                  id="front-upload"
-                />
-                <label htmlFor="front-upload" className="cursor-pointer">
-                  <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Upload front image</p>
-                </label>
-                {data.cscsCard.frontImage && (
-                  <p className="text-xs text-success mt-2">{data.cscsCard.frontImage.name}</p>
-                )}
-              </div>
-            </div>
-            
-            <div className="form-field space-y-2">
-              <Label>Back of Card</Label>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload('back')}
-                  className="hidden"
-                  id="back-upload"
-                />
-                <label htmlFor="back-upload" className="cursor-pointer">
-                  <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Upload back image</p>
-                </label>
-                {data.cscsCard.backImage && (
-                  <p className="text-xs text-success mt-2">{data.cscsCard.backImage.name}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <CSCSCardUploader
+        data={data.cscsCard}
+        updateData={(cscsData) => updateData({ cscsCard: { ...data.cscsCard, ...cscsData } })}
+        onAnalysisComplete={handleAnalysisComplete}
+        required={true}
+      />
+      
+      {Object.entries(errors).filter(([key]) => key.startsWith('cscs')).map(([key, error]) => (
+        <p key={key} className="text-sm text-destructive flex items-center gap-1">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </p>
+      ))}
 
       {/* Emergency Contact Section */}
       <Card className="card-hover">

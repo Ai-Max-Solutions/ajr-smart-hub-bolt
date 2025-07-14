@@ -1422,6 +1422,54 @@ export type Database = {
           },
         ]
       }
+      cscs_card_analysis: {
+        Row: {
+          card_color: string | null
+          card_number: string | null
+          card_type: string | null
+          confidence_score: number | null
+          created_at: string | null
+          expiry_date: string | null
+          id: string
+          image_url: string
+          qualifications: Json | null
+          raw_ai_response: Json | null
+          updated_at: string | null
+          user_id: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          card_color?: string | null
+          card_number?: string | null
+          card_type?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          image_url: string
+          qualifications?: Json | null
+          raw_ai_response?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          card_color?: string | null
+          card_number?: string | null
+          card_type?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          image_url?: string
+          qualifications?: Json | null
+          raw_ai_response?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       delivery_bookings: {
         Row: {
           block_id: string | null
