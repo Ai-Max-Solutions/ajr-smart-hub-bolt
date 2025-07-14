@@ -436,7 +436,7 @@ const SiteNotices = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-subtle p-6">
+      <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light p-6">
         <div className="max-w-4xl mx-auto">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-muted rounded w-1/3"></div>
@@ -453,7 +453,7 @@ const SiteNotices = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-6">
+    <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <PageHeader
           title="Site Notices"
