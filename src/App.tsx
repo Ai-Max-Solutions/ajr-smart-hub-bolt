@@ -12,6 +12,7 @@ import OperativePortal from "./pages/OperativePortal";
 import ProjectsManagement from "./pages/ProjectsManagement";
 import AdminDashboard from "./pages/AdminDashboard";
 import DirectorDashboard from "./pages/DirectorDashboard";
+import AIAssistant from "./pages/AIAssistant";
 import { Auth } from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 

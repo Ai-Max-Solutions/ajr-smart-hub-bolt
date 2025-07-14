@@ -16,7 +16,8 @@ import {
   ClipboardList,
   TrendingUp,
   Database,
-  Lock
+  Lock,
+  MessageCircle
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -37,6 +38,14 @@ export const RoleBasedNavigation = () => {
   const { user, userRole, hasPermission, canAccessDashboard } = usePermissions();
 
   const navigationItems: NavigationItem[] = [
+    // AI Assistant - Available to all roles
+    {
+      title: 'AI Assistant',
+      description: 'Chat with your intelligent role-based AI assistant',
+      path: '/ai-assistant',
+      icon: MessageCircle,
+      variant: 'default'
+    },
     // Core operational dashboards
     {
       title: 'Operative Portal',
