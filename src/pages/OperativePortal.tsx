@@ -107,26 +107,26 @@ const OperativeDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
+    <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light">
       {/* Premium Hero Header */}
-      <div className="bg-gradient-subtle border-b">
-        <div className="max-w-6xl mx-auto p-6">
-          <Card className="shadow-elevated border-0 bg-white">
-            <CardHeader className="pb-8">
-              <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+      <div className="bg-gradient-to-r from-aj-navy-deep/50 to-aj-navy-light/50 border-b border-white/10">
+        <div className="max-w-6xl mx-auto p-4">
+          <Card className="shadow-elevated border-0 bg-aj-navy-deep/60 backdrop-blur-sm border border-white/20">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                 <div className="text-center lg:text-left">
-                  <CardTitle className="text-4xl font-bold text-primary mb-2">
-                    {getPersonalizedGreeting(user?.full_name?.split(' ')[0], user?.email)}
+                  <CardTitle className="text-2xl lg:text-3xl font-bold text-aj-yellow mb-2">
+                    {getGreeting()}, {(user as any)?.user_metadata?.first_name || user?.email?.split('@')[0] || 'User'}
                   </CardTitle>
-                  <p className="text-lg text-muted-foreground">
+                  <p className="text-base text-white/80">
                     Welcome to your AJ Ryan workspace
                   </p>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center">
-                    <User className="w-10 h-10 text-accent" />
+                  <div className="w-16 h-16 rounded-full bg-aj-yellow/20 flex items-center justify-center">
+                    <User className="w-8 h-8 text-aj-yellow" />
                   </div>
-                  <Badge className="bg-accent text-accent-foreground text-sm px-3 py-1">
+                  <Badge className="bg-aj-yellow text-aj-navy-deep text-sm px-3 py-1">
                     Site Operative
                   </Badge>
                 </div>
