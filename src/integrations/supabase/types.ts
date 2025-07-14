@@ -231,6 +231,33 @@ export type Database = {
           },
         ]
       }
+      ai_rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          request_count: number | null
+          user_id: string
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          request_count?: number | null
+          user_id: string
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          request_count?: number | null
+          user_id?: string
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       analytics_predictions: {
         Row: {
           confidence: number | null
@@ -6809,6 +6836,15 @@ export type Database = {
         }
         Returns: Json
       }
+      check_ai_rate_limit: {
+        Args: {
+          p_user_id: string
+          p_endpoint: string
+          p_max_requests?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
       check_can_skip_onboarding: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -7223,6 +7259,10 @@ export type Database = {
         Args: { p_requested_role: string; p_justification: string }
         Returns: string
       }
+      sanitize_ai_input: {
+        Args: { input_text: string }
+        Returns: string
+      }
       search_documents: {
         Args: {
           query_embedding: string
@@ -7232,6 +7272,19 @@ export type Database = {
         Returns: {
           id: string
           document_id: string
+          content: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
+      secure_document_search: {
+        Args: {
+          query_text: string
+          match_threshold?: number
+          match_count?: number
+        }
+        Returns: {
+          id: string
           content: string
           metadata: Json
           similarity: number

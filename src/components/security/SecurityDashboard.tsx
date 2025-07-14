@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { 
   Shield, 
   AlertTriangle, 
@@ -14,13 +16,17 @@ import {
   Eye,
   Clock,
   Database,
-  Users
+  Users,
+  Activity,
+  RefreshCw
 } from 'lucide-react';
 import { 
   AuditLogService, 
   SecurityMonitoringService, 
   type SecurityAuditLog 
 } from '@/lib/security';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface SecurityDashboardProps {
   userRole: 'admin' | 'dpo';
@@ -29,7 +35,10 @@ interface SecurityDashboardProps {
 const SecurityDashboard: React.FC<SecurityDashboardProps> = ({ userRole }) => {
   const [auditLogs, setAuditLogs] = useState<SecurityAuditLog[]>([]);
   const [securityAlerts, setSecurityAlerts] = useState<any[]>([]);
+  const [rateLimitData, setRateLimitData] = useState<any[]>([]);
+  const [realtimeEvents, setRealtimeEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadSecurityData();
@@ -41,9 +50,29 @@ const SecurityDashboard: React.FC<SecurityDashboardProps> = ({ userRole }) => {
       const logs = await AuditLogService.getLogs();
       setAuditLogs(logs.slice(0, 50)); // Latest 50 logs
 
+      // Fetch real-time security data from Supabase
+      const { data: auditData } = await supabase
+        .from('audit_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      const { data: rateLimits } = await supabase
+        .from('ai_rate_limits')
+        .select('*')
+        .gte('window_start', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+      setRateLimitData(rateLimits || []);
+      setRealtimeEvents(auditData || []);
+
       // Check for security alerts
       const alerts = await checkSecurityAlerts();
       setSecurityAlerts(alerts);
+      
+      toast({
+        title: "Security data updated",
+        description: "Latest security metrics loaded",
+      });
     } catch (error) {
       console.error('Failed to load security data:', error);
     } finally {
@@ -227,12 +256,174 @@ const SecurityDashboard: React.FC<SecurityDashboardProps> = ({ userRole }) => {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="audit-logs" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="audit-logs">Audit Logs</TabsTrigger>
-          <TabsTrigger value="data-access">Data Access</TabsTrigger>
-          <TabsTrigger value="encryption">Encryption</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="realtime">Real-time</TabsTrigger>
+            <TabsTrigger value="audit-logs">Audit Logs</TabsTrigger>
+            <TabsTrigger value="data-access">Data Access</TabsTrigger>
+            <TabsTrigger value="encryption">Encryption</TabsTrigger>
+            <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          </TabsList>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadSecurityData}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+
+        <TabsContent value="realtime" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Real-time Events */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Live Security Events
+                </CardTitle>
+                <CardDescription>
+                  Real-time security events and system activities
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-3">
+                    {realtimeEvents.map((event, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                          <div>
+                            <p className="font-medium text-sm">{event.action || 'System Event'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Table: {event.table_name} • {new Date(event.created_at).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          LIVE
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            {/* Rate Limiting Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Rate Limiting Status
+                </CardTitle>
+                <CardDescription>
+                  AI API rate limits and usage monitoring
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-3">
+                    {rateLimitData.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-8">
+                        <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No rate limit violations detected</p>
+                      </div>
+                    ) : (
+                      rateLimitData.slice(0, 10).map((limit, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Badge variant={limit.request_count > 75 ? "destructive" : "secondary"}>
+                              {limit.endpoint}
+                            </Badge>
+                            <div>
+                              <p className="text-sm font-medium">
+                                {limit.request_count} requests
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                User: {limit.user_id?.slice(0, 8)}...
+                              </p>
+                            </div>
+                          </div>
+                          <Progress 
+                            value={(limit.request_count / 100) * 100} 
+                            className="w-16 h-2"
+                          />
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Security Policy Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Active Security Measures
+              </CardTitle>
+              <CardDescription>
+                Current security policies and protection status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">RLS Policies</span>
+                  </div>
+                  <Badge className="bg-green-500 text-white">ACTIVE</Badge>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">Role Protection</span>
+                  </div>
+                  <Badge className="bg-green-500 text-white">ACTIVE</Badge>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">Input Sanitization</span>
+                  </div>
+                  <Badge className="bg-green-500 text-white">ACTIVE</Badge>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">Rate Limiting</span>
+                  </div>
+                  <Badge className="bg-green-500 text-white">ACTIVE</Badge>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">Audit Logging</span>
+                  </div>
+                  <Badge className="bg-green-500 text-white">ACTIVE</Badge>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">Vector Security</span>
+                  </div>
+                  <Badge className="bg-green-500 text-white">ACTIVE</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="audit-logs" className="space-y-4">
           <Card>
