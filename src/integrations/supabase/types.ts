@@ -1110,6 +1110,59 @@ export type Database = {
           },
         ]
       }
+      compliance_snapshots: {
+        Row: {
+          auto_generated: boolean | null
+          compliance_data: Json
+          compliance_percentage: number | null
+          created_at: string
+          id: string
+          missing_signatures: number | null
+          notes: string | null
+          project_id: string | null
+          signed_documents: number | null
+          snapshot_date: string
+          superseded_unsigned: number | null
+          total_documents: number | null
+        }
+        Insert: {
+          auto_generated?: boolean | null
+          compliance_data: Json
+          compliance_percentage?: number | null
+          created_at?: string
+          id?: string
+          missing_signatures?: number | null
+          notes?: string | null
+          project_id?: string | null
+          signed_documents?: number | null
+          snapshot_date: string
+          superseded_unsigned?: number | null
+          total_documents?: number | null
+        }
+        Update: {
+          auto_generated?: boolean | null
+          compliance_data?: Json
+          compliance_percentage?: number | null
+          created_at?: string
+          id?: string
+          missing_signatures?: number | null
+          notes?: string | null
+          project_id?: string | null
+          signed_documents?: number | null
+          snapshot_date?: string
+          superseded_unsigned?: number | null
+          total_documents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       cost_tracking: {
         Row: {
           amount: number
@@ -1472,6 +1525,181 @@ export type Database = {
             columns: ["drawing_id"]
             isOneToOne: false
             referencedRelation: "Drawings"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          ai_suggested_tags: string[] | null
+          approval_date: string | null
+          approved_by: string | null
+          created_at: string
+          document_id: string
+          document_type: string
+          file_size: number | null
+          file_url: string | null
+          id: string
+          linked_drawings: string[] | null
+          linked_rams: string[] | null
+          mime_type: string | null
+          project_id: string | null
+          qr_code_url: string | null
+          read_required: boolean | null
+          revision_code: string | null
+          scope_levels: string[] | null
+          scope_plots: string[] | null
+          status: string
+          superseded_by: string | null
+          superseded_date: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+          version_number: number
+          watermark_applied: boolean | null
+        }
+        Insert: {
+          ai_suggested_tags?: string[] | null
+          approval_date?: string | null
+          approved_by?: string | null
+          created_at?: string
+          document_id: string
+          document_type: string
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          linked_drawings?: string[] | null
+          linked_rams?: string[] | null
+          mime_type?: string | null
+          project_id?: string | null
+          qr_code_url?: string | null
+          read_required?: boolean | null
+          revision_code?: string | null
+          scope_levels?: string[] | null
+          scope_plots?: string[] | null
+          status?: string
+          superseded_by?: string | null
+          superseded_date?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+          version_number: number
+          watermark_applied?: boolean | null
+        }
+        Update: {
+          ai_suggested_tags?: string[] | null
+          approval_date?: string | null
+          approved_by?: string | null
+          created_at?: string
+          document_id?: string
+          document_type?: string
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          linked_drawings?: string[] | null
+          linked_rams?: string[] | null
+          mime_type?: string | null
+          project_id?: string | null
+          qr_code_url?: string | null
+          read_required?: boolean | null
+          revision_code?: string | null
+          scope_levels?: string[] | null
+          scope_plots?: string[] | null
+          status?: string
+          superseded_by?: string | null
+          superseded_date?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          version_number?: number
+          watermark_applied?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "document_versions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "document_versions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "document_versions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "document_versions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "document_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "document_versions_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "document_versions_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "document_versions_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "document_versions_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "document_versions_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
@@ -1998,6 +2226,235 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      evidence_chain_records: {
+        Row: {
+          action_type: string
+          chain_sequence: number
+          created_at: string
+          created_by: string | null
+          device_info: Json | null
+          document_id: string | null
+          document_revision: string | null
+          document_type: string
+          document_version: string
+          evidence_hash: string
+          gps_location: unknown | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          operative_id: string | null
+          plot_id: string | null
+          project_id: string | null
+          signature_id: string | null
+        }
+        Insert: {
+          action_type: string
+          chain_sequence?: number
+          created_at?: string
+          created_by?: string | null
+          device_info?: Json | null
+          document_id?: string | null
+          document_revision?: string | null
+          document_type: string
+          document_version: string
+          evidence_hash: string
+          gps_location?: unknown | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          operative_id?: string | null
+          plot_id?: string | null
+          project_id?: string | null
+          signature_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          chain_sequence?: number
+          created_at?: string
+          created_by?: string | null
+          device_info?: Json | null
+          document_id?: string | null
+          document_revision?: string | null
+          document_type?: string
+          document_version?: string
+          evidence_hash?: string
+          gps_location?: unknown | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          operative_id?: string | null
+          plot_id?: string | null
+          project_id?: string | null
+          signature_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_chain_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_operative_id_fkey"
+            columns: ["operative_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_operative_id_fkey"
+            columns: ["operative_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_operative_id_fkey"
+            columns: ["operative_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_operative_id_fkey"
+            columns: ["operative_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_operative_id_fkey"
+            columns: ["operative_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "Plots"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      evidence_exports: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          export_format: string
+          export_status: string | null
+          export_type: string
+          exported_by: string | null
+          file_size: number | null
+          file_url: string | null
+          filters_applied: Json | null
+          id: string
+          record_count: number | null
+          scope_data: Json
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          export_format: string
+          export_status?: string | null
+          export_type: string
+          exported_by?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          filters_applied?: Json | null
+          id?: string
+          record_count?: number | null
+          scope_data: Json
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          export_format?: string
+          export_status?: string | null
+          export_type?: string
+          exported_by?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          filters_applied?: Json | null
+          id?: string
+          record_count?: number | null
+          scope_data?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_exports_exported_by_fkey"
+            columns: ["exported_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "evidence_exports_exported_by_fkey"
+            columns: ["exported_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "evidence_exports_exported_by_fkey"
+            columns: ["exported_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "evidence_exports_exported_by_fkey"
+            columns: ["exported_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "evidence_exports_exported_by_fkey"
+            columns: ["exported_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
@@ -4507,6 +4964,189 @@ export type Database = {
           },
         ]
       }
+      qr_posters: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_versions: string[]
+          id: string
+          last_scan_at: string | null
+          last_updated: string
+          location_name: string
+          needs_reprint: boolean | null
+          poster_type: string
+          poster_url: string | null
+          project_id: string | null
+          qr_data: Json
+          scan_count: number | null
+          scope_description: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_versions: string[]
+          id?: string
+          last_scan_at?: string | null
+          last_updated?: string
+          location_name: string
+          needs_reprint?: boolean | null
+          poster_type: string
+          poster_url?: string | null
+          project_id?: string | null
+          qr_data: Json
+          scan_count?: number | null
+          scope_description?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_versions?: string[]
+          id?: string
+          last_scan_at?: string | null
+          last_updated?: string
+          location_name?: string
+          needs_reprint?: boolean | null
+          poster_type?: string
+          poster_url?: string | null
+          project_id?: string | null
+          qr_data?: Json
+          scan_count?: number | null
+          scope_description?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_posters_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "qr_posters_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "qr_posters_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "qr_posters_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "qr_posters_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "qr_posters_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      qr_scan_logs: {
+        Row: {
+          created_at: string
+          document_version_id: string | null
+          id: string
+          poster_location: string | null
+          redirect_to_version: string | null
+          scan_device_info: Json | null
+          scan_location: unknown | null
+          scan_result: string
+          scanned_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_version_id?: string | null
+          id?: string
+          poster_location?: string | null
+          redirect_to_version?: string | null
+          scan_device_info?: Json | null
+          scan_location?: unknown | null
+          scan_result: string
+          scanned_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_version_id?: string | null
+          id?: string
+          poster_location?: string | null
+          redirect_to_version?: string | null
+          scan_device_info?: Json | null
+          scan_location?: unknown | null
+          scan_result?: string
+          scanned_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_scan_logs_document_version_id_fkey"
+            columns: ["document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_scan_logs_redirect_to_version_fkey"
+            columns: ["redirect_to_version"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_scan_logs_scanned_by_fkey"
+            columns: ["scanned_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "qr_scan_logs_scanned_by_fkey"
+            columns: ["scanned_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "qr_scan_logs_scanned_by_fkey"
+            columns: ["scanned_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "qr_scan_logs_scanned_by_fkey"
+            columns: ["scanned_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "qr_scan_logs_scanned_by_fkey"
+            columns: ["scanned_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       qualification_categories: {
         Row: {
           color: string | null
@@ -5644,6 +6284,91 @@ export type Database = {
           },
         ]
       }
+      smart_revision_alerts: {
+        Row: {
+          ai_generated: boolean | null
+          alert_message: string | null
+          alert_type: string
+          created_at: string
+          document_version_id: string | null
+          id: string
+          notification_sent: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          target_users: string[] | null
+          urgency_level: string | null
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          alert_message?: string | null
+          alert_type: string
+          created_at?: string
+          document_version_id?: string | null
+          id?: string
+          notification_sent?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          target_users?: string[] | null
+          urgency_level?: string | null
+        }
+        Update: {
+          ai_generated?: boolean | null
+          alert_message?: string | null
+          alert_type?: string
+          created_at?: string
+          document_version_id?: string | null
+          id?: string
+          notification_sent?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          target_users?: string[] | null
+          urgency_level?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_revision_alerts_document_version_id_fkey"
+            columns: ["document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_revision_alerts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_revision_alerts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_revision_alerts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "smart_revision_alerts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_revision_alerts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       smart_schedules: {
         Row: {
           auto_scheduled: boolean | null
@@ -5999,6 +6724,93 @@ export type Database = {
           {
             foreignKeyName: "task_plan_signatures_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      task_plan_templates: {
+        Row: {
+          ai_risk_factors: string[] | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          linked_qualifications: string[] | null
+          required_signatures: string[] | null
+          risk_level: string | null
+          template_content: Json | null
+          template_name: string
+          template_type: string
+          trade_category: string | null
+          updated_at: string
+          usage_count: number | null
+        }
+        Insert: {
+          ai_risk_factors?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          linked_qualifications?: string[] | null
+          required_signatures?: string[] | null
+          risk_level?: string | null
+          template_content?: Json | null
+          template_name: string
+          template_type: string
+          trade_category?: string | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Update: {
+          ai_risk_factors?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          linked_qualifications?: string[] | null
+          required_signatures?: string[] | null
+          risk_level?: string | null
+          template_content?: Json | null
+          template_name?: string
+          template_type?: string
+          trade_category?: string | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_plan_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "task_plan_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "task_plan_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "task_plan_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "task_plan_templates_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
