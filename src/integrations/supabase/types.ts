@@ -2195,6 +2195,96 @@ export type Database = {
           },
         ]
       }
+      enhanced_audit_log: {
+        Row: {
+          action: string
+          anonymized_at: string | null
+          created_at: string | null
+          evidence_chain_hash: string | null
+          gdpr_retention_category: string | null
+          id: string
+          ip_address: unknown | null
+          legal_hold: boolean | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          session_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          anonymized_at?: string | null
+          created_at?: string | null
+          evidence_chain_hash?: string | null
+          gdpr_retention_category?: string | null
+          id?: string
+          ip_address?: unknown | null
+          legal_hold?: boolean | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          session_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          anonymized_at?: string | null
+          created_at?: string | null
+          evidence_chain_hash?: string | null
+          gdpr_retention_category?: string | null
+          id?: string
+          ip_address?: unknown | null
+          legal_hold?: boolean | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          session_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enhanced_audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "enhanced_audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "enhanced_audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "enhanced_audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "enhanced_audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       equipment_tracking: {
         Row: {
           assigned_to: string | null
@@ -2505,6 +2595,51 @@ export type Database = {
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
+      }
+      gdpr_compliance: {
+        Row: {
+          affected_tables: string[] | null
+          completed_at: string | null
+          data_subject_id: string | null
+          dpo_notes: string | null
+          id: string
+          legal_basis: string | null
+          request_type: string
+          requested_at: string | null
+          requester_email: string | null
+          response_data: Json | null
+          retention_override_reason: string | null
+          status: string | null
+        }
+        Insert: {
+          affected_tables?: string[] | null
+          completed_at?: string | null
+          data_subject_id?: string | null
+          dpo_notes?: string | null
+          id?: string
+          legal_basis?: string | null
+          request_type: string
+          requested_at?: string | null
+          requester_email?: string | null
+          response_data?: Json | null
+          retention_override_reason?: string | null
+          status?: string | null
+        }
+        Update: {
+          affected_tables?: string[] | null
+          completed_at?: string | null
+          data_subject_id?: string | null
+          dpo_notes?: string | null
+          id?: string
+          legal_basis?: string | null
+          request_type?: string
+          requested_at?: string | null
+          requester_email?: string | null
+          response_data?: Json | null
+          retention_override_reason?: string | null
+          status?: string | null
+        }
+        Relationships: []
       }
       Hire: {
         Row: {
@@ -7133,6 +7268,84 @@ export type Database = {
           },
         ]
       }
+      soft_delete_registry: {
+        Row: {
+          archived_data: Json
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          evidence_chain_reference: string | null
+          gdpr_deletion_eligible: boolean | null
+          id: string
+          legal_hold: boolean | null
+          record_id: string
+          retention_period: unknown | null
+          table_name: string
+        }
+        Insert: {
+          archived_data: Json
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          evidence_chain_reference?: string | null
+          gdpr_deletion_eligible?: boolean | null
+          id?: string
+          legal_hold?: boolean | null
+          record_id: string
+          retention_period?: unknown | null
+          table_name: string
+        }
+        Update: {
+          archived_data?: Json
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          evidence_chain_reference?: string | null
+          gdpr_deletion_eligible?: boolean | null
+          id?: string
+          legal_hold?: boolean | null
+          record_id?: string
+          retention_period?: unknown | null
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "soft_delete_registry_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "soft_delete_registry_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "soft_delete_registry_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "soft_delete_registry_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "soft_delete_registry_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           average_overdue_days: number | null
@@ -10176,19 +10389,27 @@ export type Database = {
         Returns: boolean
       }
       log_evidence_chain_event: {
-        Args: {
-          p_project_id: string
-          p_operative_id: string
-          p_document_id: string
-          p_document_type: string
-          p_document_version: string
-          p_action_type: string
-          p_plot_id?: string
-          p_document_revision?: string
-          p_signature_id?: string
-          p_device_info?: Json
-          p_metadata?: Json
-        }
+        Args:
+          | {
+              p_project_id: string
+              p_operative_id: string
+              p_document_id: string
+              p_document_type: string
+              p_document_version: string
+              p_action_type: string
+              p_plot_id?: string
+              p_document_revision?: string
+              p_signature_id?: string
+              p_device_info?: Json
+              p_metadata?: Json
+            }
+          | {
+              p_table_name: string
+              p_record_id: string
+              p_action: string
+              p_data: Json
+              p_user_id?: string
+            }
         Returns: string
       }
       make_user_permanent: {

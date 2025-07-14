@@ -1,446 +1,296 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { 
-  FileText, 
-  Search, 
-  Download, 
-  Filter,
-  ChevronDown,
-  Eye,
-  User,
-  Settings,
-  Shield,
-  AlertTriangle,
-  CalendarIcon
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar, Download, Filter, Search, Shield, Eye } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 interface AuditLog {
   id: string;
-  timestamp: string;
-  userId: string;
-  userName: string;
   action: string;
-  resource: string;
-  details: string;
-  ipAddress: string;
-  userAgent: string;
-  severity: "low" | "medium" | "high";
-  status: "success" | "failed" | "warning";
+  table_name: string;
+  record_id: string | null;
+  created_at: string;
+  user_id: string | null;
+  ip_address: string | null;
+  evidence_chain_hash: string | null;
+  gdpr_retention_category: string;
+  legal_hold: boolean;
+  Users?: {
+    fullname: string;
+    email: string;
+  };
 }
 
-// Mock audit data
-const mockAuditLogs: AuditLog[] = [
-  {
-    id: "1",
-    timestamp: "2025-01-13 09:15:23",
-    userId: "admin-1",
-    userName: "John Smith",
-    action: "user_suspended",
-    resource: "user_management",
-    details: "Suspended user: Mike Johnson (mike.johnson@ajryan.co.uk)",
-    ipAddress: "192.168.1.100",
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    severity: "high",
-    status: "success"
-  },
-  {
-    id: "2",
-    timestamp: "2025-01-13 08:45:12",
-    userId: "pm-1",
-    userName: "Emma Wilson",
-    action: "project_access_granted",
-    resource: "project_management",
-    details: "Granted project access: Sarah Connor to Kidbrooke Village",
-    ipAddress: "192.168.1.150",
-    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-    severity: "medium",
-    status: "success"
-  },
-  {
-    id: "3",
-    timestamp: "2025-01-13 08:30:45",
-    userId: "unknown",
-    userName: "Unknown User",
-    action: "login_failed",
-    resource: "authentication",
-    details: "Failed login attempt for: mike.johnson@ajryan.co.uk",
-    ipAddress: "203.0.113.42",
-    userAgent: "curl/7.68.0",
-    severity: "high",
-    status: "failed"
-  },
-  {
-    id: "4",
-    timestamp: "2025-01-13 07:20:15",
-    userId: "admin-1",
-    userName: "John Smith",
-    action: "bulk_user_export",
-    resource: "data_export",
-    details: "Exported user list (247 users) to CSV",
-    ipAddress: "192.168.1.100",
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    severity: "medium",
-    status: "success"
-  },
-  {
-    id: "5",
-    timestamp: "2025-01-12 16:45:30",
-    userId: "supervisor-1",
-    userName: "Sarah Connor",
-    action: "document_downloaded",
-    resource: "document_management",
-    details: "Downloaded RAMS document: Health & Safety Protocol v2.1",
-    ipAddress: "192.168.1.75",
-    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)",
-    severity: "low",
-    status: "success"
-  }
-];
-
-const actionTypes = [
-  "all",
-  "user_created",
-  "user_suspended",
-  "user_deleted",
-  "login_failed",
-  "project_access_granted",
-  "project_access_revoked",
-  "document_downloaded",
-  "bulk_user_export",
-  "password_reset"
-];
-
-const severityLevels = ["all", "low", "medium", "high"];
-const statusTypes = ["all", "success", "failed", "warning"];
-
 export const AuditLogsViewer = () => {
-  const [auditLogs] = useState<AuditLog[]>(mockAuditLogs);
-  const [filteredLogs, setFilteredLogs] = useState<AuditLog[]>(mockAuditLogs);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterAction, setFilterAction] = useState("all");
-  const [filterSeverity, setFilterSeverity] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [dateFrom, setDateFrom] = useState<Date | undefined>();
-  const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [actionFilter, setActionFilter] = useState<string>('all');
+  const [tableFilter, setTableFilter] = useState<string>('all');
 
-  // Apply filters
   useEffect(() => {
-    let filtered = auditLogs;
+    fetchAuditLogs();
+  }, [actionFilter, tableFilter]);
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(log =>
-        log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.resource.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+  const fetchAuditLogs = async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from('enhanced_audit_log')
+        .select(`
+          *,
+          Users!inner(fullname, email)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(500);
 
-    // Action filter
-    if (filterAction !== "all") {
-      filtered = filtered.filter(log => log.action === filterAction);
-    }
+      if (actionFilter !== 'all') {
+        query = query.eq('action', actionFilter);
+      }
 
-    // Severity filter
-    if (filterSeverity !== "all") {
-      filtered = filtered.filter(log => log.severity === filterSeverity);
-    }
+      if (tableFilter !== 'all') {
+        query = query.eq('table_name', tableFilter);
+      }
 
-    // Status filter
-    if (filterStatus !== "all") {
-      filtered = filtered.filter(log => log.status === filterStatus);
-    }
+      const { data, error } = await query;
 
-    // Date filters
-    if (dateFrom) {
-      filtered = filtered.filter(log => new Date(log.timestamp) >= dateFrom);
-    }
-    if (dateTo) {
-      filtered = filtered.filter(log => new Date(log.timestamp) <= dateTo);
-    }
-
-    setFilteredLogs(filtered);
-  }, [auditLogs, searchTerm, filterAction, filterSeverity, filterStatus, dateFrom, dateTo]);
-
-  const getSeverityBadge = (severity: AuditLog["severity"]) => {
-    switch (severity) {
-      case "high":
-        return <Badge variant="destructive" className="bg-red-100 text-red-800">🔴 High</Badge>;
-      case "medium":
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">🟡 Medium</Badge>;
-      case "low":
-        return <Badge variant="outline" className="bg-green-100 text-green-800">🟢 Low</Badge>;
-      default:
-        return <Badge variant="outline">{severity}</Badge>;
+      if (error) throw error;
+      setLogs((data || []) as AuditLog[]);
+    } catch (error) {
+      console.error('Failed to fetch audit logs:', error);
+      toast.error('Failed to load audit logs');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusBadge = (status: AuditLog["status"]) => {
-    switch (status) {
-      case "success":
-        return <Badge className="bg-green-100 text-green-800">✅ Success</Badge>;
-      case "failed":
-        return <Badge variant="destructive" className="bg-red-100 text-red-800">❌ Failed</Badge>;
-      case "warning":
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">⚠️ Warning</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  const filteredLogs = logs.filter(log => {
+    if (!searchQuery) return true;
+    const searchTerm = searchQuery.toLowerCase();
+    return (
+      log.action.toLowerCase().includes(searchTerm) ||
+      log.table_name.toLowerCase().includes(searchTerm) ||
+      log.record_id?.toLowerCase().includes(searchTerm) ||
+      log.ip_address?.toLowerCase().includes(searchTerm)
+    );
+  });
+
+  const exportLogs = async () => {
+    try {
+      const csvHeaders = [
+        'Timestamp',
+        'User',
+        'Action',
+        'Table',
+        'Record ID',
+        'IP Address',
+        'Evidence Hash',
+        'GDPR Category',
+        'Legal Hold'
+      ];
+
+      const csvData = filteredLogs.map(log => [
+        format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss'),
+        log.Users?.fullname || 'System',
+        log.action,
+        log.table_name,
+        log.record_id || 'N/A',
+        log.ip_address || 'N/A',
+        log.evidence_chain_hash?.substring(0, 16) + '...' || 'N/A',
+        log.gdpr_retention_category,
+        log.legal_hold ? 'Yes' : 'No'
+      ]);
+
+      const csvContent = [csvHeaders, ...csvData]
+        .map(row => row.map(cell => `"${cell}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit_logs_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success('Audit logs exported successfully');
+    } catch (error) {
+      console.error('Failed to export logs:', error);
+      toast.error('Failed to export audit logs');
     }
   };
 
-  const getActionIcon = (action: string) => {
-    if (action.includes("user")) return <User className="h-4 w-4" />;
-    if (action.includes("login")) return <Shield className="h-4 w-4" />;
-    if (action.includes("project")) return <Settings className="h-4 w-4" />;
-    if (action.includes("document")) return <FileText className="h-4 w-4" />;
-    return <Eye className="h-4 w-4" />;
+  const getActionBadge = (action: string) => {
+    const variants: Record<string, 'default' | 'destructive' | 'secondary'> = {
+      'INSERT': 'default',
+      'UPDATE': 'secondary',
+      'DELETE': 'destructive',
+      'LOGIN': 'secondary',
+      'LOGOUT': 'secondary'
+    };
+
+    return (
+      <Badge variant={variants[action] || 'default'} className="text-xs">
+        {action}
+      </Badge>
+    );
   };
 
-  const handleExportLogs = () => {
-    toast.success(`Exporting ${filteredLogs.length} audit logs to CSV`);
-  };
-
-  const clearFilters = () => {
-    setSearchTerm("");
-    setFilterAction("all");
-    setFilterSeverity("all");
-    setFilterStatus("all");
-    setDateFrom(undefined);
-    setDateTo(undefined);
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Events</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{filteredLogs.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Filtered from {auditLogs.length} total
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Severity</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {filteredLogs.filter(log => log.severity === "high").length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Critical security events
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Failed Actions</CardTitle>
-            <Shield className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {filteredLogs.filter(log => log.status === "failed").length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Unsuccessful attempts
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unique Users</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {new Set(filteredLogs.map(log => log.userId)).size}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Active in selected period
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Audit Logs Table */}
-      <Card>
+  if (loading) {
+    return (
+      <Card className="w-full">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Security Audit Logs
-            </div>
-            <Button onClick={handleExportLogs}>
-              <Download className="h-4 w-4 mr-2" />
-              Export Logs
-            </Button>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Audit Logs
           </CardTitle>
-          <CardDescription>
-            Complete audit trail of all user actions and system events - immutable and GDPR compliant
-          </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
-          <div className="space-y-4 mb-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search logs by user, action, or details..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button variant="outline" onClick={clearFilters}>
-                <Filter className="h-4 w-4 mr-2" />
-                Clear Filters
-              </Button>
-            </div>
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <Select value={filterAction} onValueChange={setFilterAction}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Action type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {actionTypes.map(action => (
-                    <SelectItem key={action} value={action}>
-                      {action === "all" ? "All Actions" : action.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Shield className="h-5 w-5" />
+              Audit Logs
+            </CardTitle>
+            <CardDescription>
+              Complete audit trail of all system operations ({filteredLogs.length} entries)
+            </CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportLogs} className="h-10">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
+        </div>
 
-              <Select value={filterSeverity} onValueChange={setFilterSeverity}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Severity" />
-                </SelectTrigger>
-                <SelectContent>
-                  {severityLevels.map(severity => (
-                    <SelectItem key={severity} value={severity}>
-                      {severity === "all" ? "All Severity" : severity.charAt(0).toUpperCase() + severity.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusTypes.map(status => (
-                    <SelectItem key={status} value={status}>
-                      {status === "all" ? "All Status" : status.charAt(0).toUpperCase() + status.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFrom ? format(dateFrom, "PPP") : "From date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus />
-                </PopoverContent>
-              </Popover>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateTo ? format(dateTo, "PPP") : "To date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus />
-                </PopoverContent>
-              </Popover>
-            </div>
+        {/* Filters */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search logs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
 
-          {/* Logs Table */}
-          <div className="rounded-md border">
+          <Select value={actionFilter} onValueChange={setActionFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Action" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Actions</SelectItem>
+              <SelectItem value="INSERT">Insert</SelectItem>
+              <SelectItem value="UPDATE">Update</SelectItem>
+              <SelectItem value="DELETE">Delete</SelectItem>
+              <SelectItem value="LOGIN">Login</SelectItem>
+              <SelectItem value="LOGOUT">Logout</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={tableFilter} onValueChange={setTableFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Table" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tables</SelectItem>
+              <SelectItem value="Projects">Projects</SelectItem>
+              <SelectItem value="Levels">Levels</SelectItem>
+              <SelectItem value="Plots">Plots</SelectItem>
+              <SelectItem value="work_packages">Work Packages</SelectItem>
+              <SelectItem value="document_versions">Documents</SelectItem>
+              <SelectItem value="Users">Users</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        <div className="rounded-md border">
+          <div className="max-h-[600px] overflow-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   <TableHead>Timestamp</TableHead>
                   <TableHead>User</TableHead>
                   <TableHead>Action</TableHead>
-                  <TableHead>Details</TableHead>
-                  <TableHead>Severity</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Table</TableHead>
+                  <TableHead>Record ID</TableHead>
                   <TableHead>IP Address</TableHead>
+                  <TableHead>Evidence</TableHead>
+                  <TableHead>GDPR</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredLogs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="text-sm">{log.timestamp}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <div>
-                          <div className="font-medium">{log.userName}</div>
-                          <div className="text-xs text-muted-foreground">{log.userId}</div>
-                        </div>
-                      </div>
+                    <TableCell className="text-xs">
+                      {format(new Date(log.created_at), 'MMM dd, HH:mm:ss')}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {log.Users?.fullname || 'System'}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getActionIcon(log.action)}
-                        <span className="text-sm">{log.action.replace(/_/g, " ")}</span>
+                      {getActionBadge(log.action)}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono">
+                      {log.table_name}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono">
+                      {log.record_id?.substring(0, 8) + '...' || 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {log.ip_address || 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      {log.evidence_chain_hash && (
+                        <Badge variant="outline" className="text-xs">
+                          <Eye className="h-3 w-3 mr-1" />
+                          Evidence
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Badge 
+                          variant={log.legal_hold ? "destructive" : "secondary"} 
+                          className="text-xs"
+                        >
+                          {log.gdpr_retention_category}
+                        </Badge>
+                        {log.legal_hold && (
+                          <Badge variant="destructive" className="text-xs">
+                            Hold
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-md">
-                      <div className="text-sm truncate" title={log.details}>
-                        {log.details}
-                      </div>
-                    </TableCell>
-                    <TableCell>{getSeverityBadge(log.severity)}</TableCell>
-                    <TableCell>{getStatusBadge(log.status)}</TableCell>
-                    <TableCell className="text-sm">{log.ipAddress}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-
-          {filteredLogs.length === 0 && (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No audit logs found</h3>
-              <p className="text-muted-foreground">Try adjusting your search criteria or date range</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
