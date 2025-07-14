@@ -67,18 +67,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .from('Users')
         .select('whalesync_postgres_id, email, fullname, role, currentproject')
         .eq('supabase_auth_id', authUser.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Database profile fetch failed:', error);
-        // Fallback: create basic user from auth data
-        setUser({
-          user_id: authUser.id,
-          email: authUser.email || '',
-          full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
-          role: 'Operative',
-          current_project: undefined
-        });
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      if (!data) {
+        console.error('User profile not found in database');
+        setUser(null);
         setLoading(false);
         return;
       }
@@ -92,14 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      // Fallback: create basic user from auth data
-      setUser({
-        user_id: authUser.id,
-        email: authUser.email || '',
-        full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
-        role: 'Operative',
-        current_project: undefined
-      });
+      setUser(null);
     } finally {
       setLoading(false);
     }
