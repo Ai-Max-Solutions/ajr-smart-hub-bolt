@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Filter, Download, Upload, Brain, Sparkles, Zap, Shield, Activity, BarChart3 } from "lucide-react";
+import { Search, Plus, Filter, Download, Upload, Brain, Sparkles, Zap, Shield, Activity, BarChart3, Building2, Users, Layers, MapPin, Package, FileText } from "lucide-react";
+import { AJIcon } from "@/components/ui/aj-icon";
 import { ProjectsCRUD } from "./crud/ProjectsCRUD";
 import { LevelsCRUD } from "./crud/LevelsCRUD";
 import { PlotsCRUD } from "./crud/PlotsCRUD";
@@ -102,28 +103,28 @@ const AdminCRUDModule = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-subtle mobile-optimized">
-      {/* Enhanced mobile-first header with AJ Ryan branding */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen bg-background mobile-optimized">
+      {/* AJ Ryan Header with Enhanced Branding */}
+      <div className="sticky top-0 z-50 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-b border-border shadow-card">
+        <div className="container mx-auto px-lg py-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-lg bg-gradient-brand flex items-center justify-center shadow-brand">
-                <span className="text-2xl">⚙️</span>
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-gradient-brand flex items-center justify-center shadow-elevated">
+                <Building2 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Admin CRUD</h1>
-                <p className="text-sm text-muted-foreground">SmartWork Hub Management</p>
+                <h1 className="text-header font-poppins font-bold text-foreground">AJ Ryan SmartWork Hub</h1>
+                <p className="text-label text-muted-foreground font-poppins">Admin Control Panel</p>
               </div>
-              <div className="flex items-center gap-2 ml-auto md:ml-0">
+              <div className="flex items-center gap-3 ml-auto md:ml-0">
                 <Badge 
                   variant={!isOnline ? "destructive" : isSyncing ? "secondary" : "default"}
-                  className="text-xs touch-target"
+                  className="text-label touch-target font-poppins px-3 py-1"
                 >
                   {!isOnline ? "Offline" : isSyncing ? "Syncing..." : "Online"}
                 </Badge>
                 {pendingCount > 0 && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-label font-poppins px-3 py-1">
                     {pendingCount} Pending
                   </Badge>
                 )}
@@ -131,63 +132,63 @@ const AdminCRUDModule = () => {
               </div>
             </div>
             
-            {/* Enhanced search and controls - glove-friendly */}
+            {/* AJ Ryan Enhanced Search Controls */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-4">
               <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <AJIcon icon={Search} variant="yellow" size="sm" hover={false} className="absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
                   placeholder="Search across all entities..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-12 text-base touch-target"
+                  className="pl-10 h-12 text-body touch-target font-poppins bg-card border-border focus:ring-accent"
                 />
               </div>
               
-              {/* AI & Performance Controls */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center space-x-2">
+              {/* AJ Ryan AI & Performance Controls */}
+              <div className="flex items-center gap-6">
+                <div className="flex items-center space-x-3">
                   <Switch
                     id="ai-mode"
                     checked={aiEnabled}
                     onCheckedChange={setAiEnabled}
                   />
-                  <Label htmlFor="ai-mode" className="text-sm font-medium flex items-center gap-1">
-                    <Brain className="h-3 w-3" />
-                    AI
+                  <Label htmlFor="ai-mode" className="text-label font-poppins font-medium flex items-center gap-2">
+                    <AJIcon icon={Brain} variant="yellow" size="sm" hover={false} />
+                    AI Features
                   </Label>
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   <Switch
                     id="performance-mode"
                     checked={performanceMode}
                     onCheckedChange={setPerformanceMode}
                   />
-                  <Label htmlFor="performance-mode" className="text-sm font-medium flex items-center gap-1">
-                    <Zap className="h-3 w-3" />
-                    Fast
+                  <Label htmlFor="performance-mode" className="text-label font-poppins font-medium flex items-center gap-2">
+                    <AJIcon icon={Zap} variant="yellow" size="sm" hover={false} />
+                    Performance
                   </Label>
                 </div>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="h-12 px-4 touch-target"
+                  variant="accent" 
+                  size="touch" 
+                  className="font-poppins"
                   onClick={() => setShowUnifiedSearch(!showUnifiedSearch)}
                 >
-                  <Search className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Unified Search</span>
-                  <span className="sm:hidden">Search</span>
+                  <AJIcon icon={Search} variant="navy" size="sm" hover={false} />
+                  <span className="hidden sm:inline ml-2">Unified Search</span>
+                  <span className="sm:hidden ml-2">Search</span>
                 </Button>
-                <Button variant="outline" size="lg" className="h-12 px-4 touch-target">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Filter</span>
+                <Button variant="outline" size="touch" className="font-poppins">
+                  <AJIcon icon={Filter} variant="yellow" size="sm" hover={false} />
+                  <span className="hidden sm:inline ml-2">Filter</span>
                 </Button>
-                <Button variant="outline" size="lg" className="h-12 px-4 touch-target">
-                  <Download className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Export</span>
+                <Button variant="outline" size="touch" className="font-poppins">
+                  <AJIcon icon={Download} variant="yellow" size="sm" hover={false} />
+                  <span className="hidden sm:inline ml-2">Export</span>
                 </Button>
               </div>
             </div>

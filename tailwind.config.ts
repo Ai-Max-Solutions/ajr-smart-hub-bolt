@@ -60,9 +60,10 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				'aj-navy': 'hsl(var(--aj-navy))',
+				'aj-navy-deep': 'hsl(var(--aj-navy-deep))',
+				'aj-navy-light': 'hsl(var(--aj-navy-light))',
 				'aj-yellow': 'hsl(var(--aj-yellow))',
-				'aj-yellow-dark': 'hsl(var(--aj-yellow-dark))',
+				'aj-yellow-bright': 'hsl(var(--aj-yellow-bright))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -81,9 +82,33 @@ export default {
 			boxShadow: {
 				'brand': 'var(--shadow-brand)',
 				'card': 'var(--shadow-card)',
+				'elevated': 'var(--shadow-elevated)',
+			},
+			transitionProperty: {
+				'aj': 'all',
+			},
+			transitionDuration: {
+				'aj-base': '200ms',
+				'aj-smooth': '300ms',
+			},
+			transitionTimingFunction: {
+				'aj-ease': 'ease',
 			},
 			fontFamily: {
-				'sans': ['Inter', 'system-ui', 'sans-serif'],
+				'sans': ['Poppins', 'system-ui', 'sans-serif'],
+				'poppins': ['Poppins', 'sans-serif'],
+			},
+			fontSize: {
+				'header': 'var(--font-size-header)',
+				'body': 'var(--font-size-body)',
+				'label': 'var(--font-size-label)',
+			},
+			spacing: {
+				'xs': 'var(--spacing-xs)',
+				'sm': 'var(--spacing-sm)',
+				'md': 'var(--spacing-md)',
+				'lg': 'var(--spacing-lg)',
+				'xl': 'var(--spacing-xl)',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

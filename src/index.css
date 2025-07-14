@@ -4,36 +4,37 @@
 
 /* AJ Ryan SmartWork Hub - Design System */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    /* AJ Ryan Brand Colors */
-    --aj-navy: 229 47% 17%; /* #1d1e3d */
-    --aj-yellow: 48 100% 56%; /* #ffcf21 */
-    --aj-yellow-dark: 45 95% 50%;
+    /* AJ Ryan Brand Colors - New Deep Navy & Yellow Theme */
+    --aj-navy-deep: 222 47% 16%; /* #0A1F44 - Deep navy primary */
+    --aj-navy-light: 219 41% 28%; /* #1A365D - Lighter navy for panels */
+    --aj-yellow: 48 100% 50%; /* #FFC700 - Deep yellow for accents */
+    --aj-yellow-bright: 48 100% 56%; /* #FFCF21 - Brighter yellow variant */
     
-    /* Semantic colors built on brand */
-    --background: 0 0% 100%;
-    --foreground: 229 47% 17%;
+    /* AJ Ryan Design System - Light Mode */
+    --background: 222 47% 16%; /* Deep navy background */
+    --foreground: 0 0% 100%; /* Pure white text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 229 47% 17%;
+    --card: 219 41% 28%; /* Lighter navy for cards */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 229 47% 17%;
+    --popover: 219 41% 28%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 229 47% 17%; /* AJ Ryan Navy */
+    --primary: 222 47% 16%; /* Deep navy primary */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 96%;
-    --secondary-foreground: 229 47% 17%;
+    --secondary: 219 35% 32%; /* Navy secondary */
+    --secondary-foreground: 0 0% 100%;
 
-    --accent: 48 100% 56%; /* AJ Ryan Yellow */
-    --accent-foreground: 229 47% 17%;
+    --accent: 48 100% 50%; /* Deep yellow accent */
+    --accent-foreground: 222 47% 16%; /* Navy text on yellow */
 
-    --muted: 220 15% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 219 35% 20%;
+    --muted-foreground: 215 20% 70%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -42,52 +43,69 @@
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 229 47% 17%;
+    --warning-foreground: 222 47% 16%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 229 47% 17%;
+    --border: 219 35% 32%;
+    --input: 219 35% 32%;
+    --ring: 48 100% 50%; /* Yellow focus rings */
 
-    --radius: 0.75rem;
+    --radius: 0.5rem; /* 8px border radius as specified */
 
-    /* Brand gradients */
-    --gradient-brand: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    /* AJ Ryan Brand Gradients */
+    --gradient-brand: linear-gradient(135deg, hsl(var(--aj-navy-deep)), hsl(var(--accent)));
     --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+    --gradient-navy: linear-gradient(135deg, hsl(var(--aj-navy-deep)), hsl(var(--aj-navy-light)));
     
-    /* Shadows */
-    --shadow-brand: 0 4px 20px hsl(var(--primary) / 0.15);
-    --shadow-card: 0 2px 10px hsl(var(--primary) / 0.1);
+    /* AJ Ryan Shadows - Inspired by your reference designs */
+    --shadow-brand: 0 0 10px rgba(0,0,0,0.4);
+    --shadow-card: 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-elevated: 0 4px 16px rgba(0,0,0,0.5);
     
-    /* Animations */
+    /* AJ Ryan Animations - 0.3s ease as specified */
     --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.3s ease;
+    --transition-hover: all 0.3s ease;
+    
+    /* AJ Ryan Typography Scale */
+    --font-size-header: 24px;
+    --font-size-body: 16px;
+    --font-size-label: 12px;
+    --line-height-base: 1.5;
+    
+    /* AJ Ryan Spacing System */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
   }
 
   .dark {
-    --background: 229 47% 8%;
-    --foreground: 0 0% 95%;
+    /* Dark mode maintains the same navy theme but with adjusted contrasts */
+    --background: 222 47% 12%; /* Slightly lighter navy for dark mode */
+    --foreground: 0 0% 100%;
 
-    --card: 229 47% 12%;
-    --card-foreground: 0 0% 95%;
+    --card: 219 41% 20%; /* Darker navy cards */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 229 47% 12%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 219 41% 20%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 48 100% 56%;
-    --primary-foreground: 229 47% 17%;
+    --primary: 222 47% 16%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 229 47% 15%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 219 35% 24%;
+    --secondary-foreground: 0 0% 100%;
 
-    --accent: 48 100% 56%;
-    --accent-foreground: 229 47% 17%;
+    --accent: 48 100% 50%; /* Keep yellow consistent */
+    --accent-foreground: 222 47% 16%;
 
-    --muted: 229 47% 15%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 219 35% 16%;
+    --muted-foreground: 215 20% 75%;
 
-    --border: 229 47% 20%;
-    --input: 229 47% 20%;
-    --ring: 48 100% 56%;
+    --border: 219 35% 24%;
+    --input: 219 35% 24%;
+    --ring: 48 100% 50%;
   }
 }
 
@@ -98,11 +116,38 @@
 
   body {
     @apply bg-background text-foreground font-sans;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-base);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+    @apply font-semibold tracking-tight text-foreground;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  h1 { font-size: var(--font-size-header); }
+  h2 { font-size: calc(var(--font-size-header) * 0.875); }
+  h3 { font-size: var(--font-size-body); }
+  
+  /* AJ Ryan Interactive Elements */
+  .aj-icon {
+    width: 24px;
+    height: 24px;
+    transition: var(--transition-hover);
+  }
+  
+  .aj-icon:hover {
+    transform: scale(1.1);
+    filter: brightness(1.1);
+  }
+  
+  .aj-icon-yellow {
+    color: hsl(var(--accent));
+  }
+  
+  .aj-icon-white {
+    color: hsl(var(--foreground));
   }
 
   /* Form enhancements */
