@@ -120,19 +120,21 @@ const Index = () => {
       <div className="container mx-auto px-4 md:px-lg py-6 md:py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl md:text-2xl font-poppins font-bold text-white">
-                Good evening, {user.user_metadata?.first_name || user.email?.split('@')[0] || 'User'}
-              </h2>
-              <p className="text-white/80 font-poppins mt-1 text-sm md:text-base">
-                Here's what's happening with your projects today
-              </p>
+          <div className="bg-aj-navy-deep/80 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl md:text-2xl font-poppins font-bold text-white">
+                  Good evening, {user.user_metadata?.first_name || user.email?.split('@')[0] || 'User'}
+                </h2>
+                <p className="text-white/80 font-poppins mt-1 text-sm md:text-base">
+                  Here's what's happening with your projects today
+                </p>
+              </div>
+              <Badge variant="secondary" className="font-poppins">
+                <Clock className="w-4 h-4 mr-2" />
+                Last updated: Just now
+              </Badge>
             </div>
-            <Badge variant="secondary" className="font-poppins">
-              <Clock className="w-4 h-4 mr-2" />
-              Last updated: Just now
-            </Badge>
           </div>
         </div>
 
