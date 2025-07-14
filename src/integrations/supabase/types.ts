@@ -9165,6 +9165,27 @@ export type Database = {
           action_required: boolean
         }[]
       }
+      get_evidence_chain_report: {
+        Args: {
+          p_project_id?: string
+          p_operative_id?: string
+          p_plot_id?: string
+          p_date_from?: string
+          p_date_to?: string
+        }
+        Returns: {
+          record_id: string
+          project_name: string
+          operative_name: string
+          plot_number: string
+          document_type: string
+          document_version: string
+          action_type: string
+          created_at: string
+          evidence_hash: string
+          device_info: Json
+        }[]
+      }
       get_expiring_users: {
         Args: { p_days_ahead?: number }
         Returns: {
@@ -9313,6 +9334,22 @@ export type Database = {
         Args: Record<PropertyKey, never> | { user_id: string }
         Returns: boolean
       }
+      log_evidence_chain_event: {
+        Args: {
+          p_project_id: string
+          p_operative_id: string
+          p_document_id: string
+          p_document_type: string
+          p_document_version: string
+          p_action_type: string
+          p_plot_id?: string
+          p_document_revision?: string
+          p_signature_id?: string
+          p_device_info?: Json
+          p_metadata?: Json
+        }
+        Returns: string
+      }
       make_user_permanent: {
         Args: { p_user_id: string; p_new_role?: string; p_notes?: string }
         Returns: Json
@@ -9452,6 +9489,14 @@ export type Database = {
         }
         Returns: Json
       }
+      supersede_document_version: {
+        Args: {
+          p_old_version_id: string
+          p_new_version_id: string
+          p_superseded_by: string
+        }
+        Returns: boolean
+      }
       update_user_names: {
         Args: { p_first_name?: string; p_last_name?: string }
         Returns: Json
@@ -9493,6 +9538,14 @@ export type Database = {
         Args:
           | Record<PropertyKey, never>
           | { p_card_number: string; p_expiry_date: string }
+        Returns: Json
+      }
+      validate_qr_document: {
+        Args: {
+          p_document_id: string
+          p_scanned_by: string
+          p_device_info?: Json
+        }
         Returns: Json
       }
       warm_cache_for_user: {
