@@ -180,7 +180,7 @@ const MyPayslips = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
+    <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light p-4">
       {/* Header */}
       <div className="max-w-4xl mx-auto mb-6">
         <Card className="bg-primary text-primary-foreground">
