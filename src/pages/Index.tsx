@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/auth/AuthContext";
 import { Building, Users, FileText, Shield, Calendar, TrendingUp, LogIn, LayoutDashboard, Activity, Clock, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -123,7 +123,7 @@ const Index = () => {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-poppins font-bold text-foreground">
-                {getWelcomeMessage(user.full_name?.split(' ')[0] || user.email)}
+                {getWelcomeMessage(user.user_metadata?.full_name?.split(' ')[0] || user.user_metadata?.first_name || user.email?.split('@')[0] || 'User')}
               </h2>
               <p className="text-muted-foreground font-poppins mt-1">
                 Here's what's happening with your projects today
