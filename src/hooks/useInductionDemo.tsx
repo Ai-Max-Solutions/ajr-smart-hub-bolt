@@ -1,0 +1,283 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useEvidenceChain } from '@/hooks/useEvidenceChain';
+
+export interface InductionProgress {
+  id: string;
+  user_id: string;
+  project_id?: string;
+  status: 'not_started' | 'in_progress' | 'completed' | 'failed';
+  current_step: string;
+  total_steps: number;
+  completed_steps: number;
+  language_preference: string;
+  accessibility_needs?: string[];
+  offline_mode: boolean;
+  completion_score?: number;
+  started_at: string;
+  completed_at?: string;
+}
+
+export interface DemoCompletion {
+  id: string;
+  demo_type: string;
+  interaction_data: any;
+  time_taken_seconds?: number;
+  success_score?: number;
+  retries_count: number;
+}
+
+export interface InductionMaterial {
+  id: string;
+  title: string;
+  material_type: 'slide_deck' | 'demo_qr' | 'rule_card' | 'ai_prompt' | 'video' | 'audio';
+  content_data: any;
+  language: string;
+  accessibility_features: string[];
+  offline_available: boolean;
+}
+
+export const useInductionDemo = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentInduction, setCurrentInduction] = useState<InductionProgress | null>(null);
+  const [materials, setMaterials] = useState<InductionMaterial[]>([]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [stepStartTime, setStepStartTime] = useState<Date | null>(null);
+  const { toast } = useToast();
+  const { validateQRCode } = useEvidenceChain();
+
+  // Load induction materials
+  const loadMaterials = useCallback(async (language = 'en') => {
+    try {
+      const { data, error } = await supabase
+        .from('induction_materials')
+        .select('*')
+        .eq('language', language)
+        .eq('is_active', true)
+        .order('material_type');
+
+      if (error) throw error;
+      setMaterials(data || []);
+    } catch (error) {
+      console.error('Error loading induction materials:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load induction materials",
+        variant: "destructive"
+      });
+    }
+  }, [toast]);
+
+  // Start new induction
+  const startInduction = useCallback(async (
+    projectId?: string,
+    language = 'en',
+    accessibilityNeeds: string[] = [],
+    deviceInfo: any = {}
+  ) => {
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+
+      const { data, error } = await supabase.rpc('start_induction', {
+        p_user_id: user.id,
+        p_project_id: projectId,
+        p_language: language,
+        p_accessibility_needs: accessibilityNeeds,
+        p_device_info: deviceInfo
+      });
+
+      if (error) throw error;
+
+      // Fetch the created induction
+      const { data: induction, error: fetchError } = await supabase
+        .from('induction_progress')
+        .select('*')
+        .eq('id', data)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      setCurrentInduction(induction);
+      setCurrentStep(0);
+      setStepStartTime(new Date());
+      await loadMaterials(language);
+
+      toast({
+        title: "Induction Started",
+        description: "Welcome to the QR Scan Demo!",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error starting induction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start induction",
+        variant: "destructive"
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast, loadMaterials]);
+
+  // Complete a step
+  const completeStep = useCallback(async (
+    stepName: string,
+    interactionData: any = {},
+    successScore?: number
+  ) => {
+    if (!currentInduction || !stepStartTime) return false;
+
+    const timeTaken = Math.round((new Date().getTime() - stepStartTime.getTime()) / 1000);
+
+    try {
+      const { data, error } = await supabase.rpc('complete_induction_step', {
+        p_induction_id: currentInduction.id,
+        p_step_name: stepName,
+        p_interaction_data: interactionData,
+        p_time_taken_seconds: timeTaken
+      });
+
+      if (error) throw error;
+
+      // Update local state
+      setCurrentInduction(prev => prev ? {
+        ...prev,
+        completed_steps: prev.completed_steps + 1,
+        current_step: stepName,
+        status: prev.completed_steps + 1 >= prev.total_steps ? 'completed' : 'in_progress'
+      } : null);
+
+      setCurrentStep(prev => prev + 1);
+      setStepStartTime(new Date());
+
+      // Log analytics
+      await supabase
+        .from('learning_analytics')
+        .insert({
+          user_id: currentInduction.user_id,
+          induction_id: currentInduction.id,
+          metric_type: 'completion_time',
+          metric_value: timeTaken,
+          metric_data: {
+            step: stepName,
+            success_score: successScore,
+            interaction_data: interactionData
+          }
+        });
+
+      return true;
+    } catch (error) {
+      console.error('Error completing step:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record step completion",
+        variant: "destructive"
+      });
+      return false;
+    }
+  }, [currentInduction, stepStartTime, toast]);
+
+  // Simulate QR scan
+  const simulateQRScan = useCallback(async (qrType: 'current' | 'superseded') => {
+    const stepStarted = new Date();
+    
+    try {
+      // Find the appropriate demo QR material
+      const demoMaterial = materials.find(m => 
+        m.material_type === 'demo_qr' && 
+        m.content_data?.status === qrType
+      );
+
+      if (!demoMaterial) {
+        throw new Error('Demo QR material not found');
+      }
+
+      // Simulate validation delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const result = {
+        status: qrType === 'current' ? 'valid' : 'superseded',
+        document_id: `demo_${qrType}_${Date.now()}`,
+        revision: demoMaterial.content_data.revision,
+        document_type: demoMaterial.content_data.document_type,
+        message: qrType === 'current' 
+          ? `✅ Current Rev: ${demoMaterial.content_data.revision} — Approved for Use`
+          : `❌ Superseded — Do Not Use — Latest: ${demoMaterial.content_data.superseded_by}`,
+        branding: {
+          company: 'AJ Ryan SmartWork Hub',
+          colors: { primary: '#1d1e3d', accent: '#ffcf21' }
+        }
+      };
+
+      const timeTaken = Math.round((new Date().getTime() - stepStarted.getTime()) / 1000);
+
+      await completeStep(`qr_scan_${qrType}`, {
+        qr_type: qrType,
+        scan_result: result,
+        demo: true
+      }, qrType === 'current' ? 100 : 90);
+
+      return result;
+    } catch (error) {
+      console.error('Error simulating QR scan:', error);
+      toast({
+        title: "Scan Error",
+        description: "Failed to simulate QR scan",
+        variant: "destructive"
+      });
+      return null;
+    }
+  }, [materials, completeStep, toast]);
+
+  // Get user's induction progress
+  const getCurrentInduction = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('induction_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('status', ['not_started', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setCurrentInduction(data);
+        setCurrentStep(data.completed_steps);
+        await loadMaterials(data.language_preference);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting current induction:', error);
+      return null;
+    }
+  }, [loadMaterials]);
+
+  // Load current induction on mount
+  useEffect(() => {
+    getCurrentInduction();
+  }, [getCurrentInduction]);
+
+  return {
+    isLoading,
+    currentInduction,
+    materials,
+    currentStep,
+    startInduction,
+    completeStep,
+    simulateQRScan,
+    loadMaterials,
+    getCurrentInduction
+  };
+};
