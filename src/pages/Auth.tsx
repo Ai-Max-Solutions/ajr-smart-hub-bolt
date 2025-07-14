@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Shield, Building, AlertCircle } from 'lucide-react';
+import { Loader2, Shield, AlertCircle } from 'lucide-react';
 
 export const Auth = () => {
   const { user, loading, signIn, signUp, resetPassword } = useAuth();
@@ -162,7 +162,11 @@ export const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
-            <Building className="h-8 w-8 text-primary mr-2" />
+            <img 
+              src="/lovable-uploads/0b275deb-8a7d-4a00-85a3-ae746d59b6f1.png" 
+              alt="A&J Ryan Logo" 
+              className="h-8 mr-2 rounded-[5px]"
+            />
             <span className="text-2xl font-bold text-primary">A&J Ryan</span>
           </div>
           <CardTitle>SmartWork Hub</CardTitle>
