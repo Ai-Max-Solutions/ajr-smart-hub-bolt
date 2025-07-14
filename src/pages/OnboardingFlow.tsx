@@ -63,7 +63,10 @@ const OnboardingFlow = () => {
   });
 
   const updateOnboardingData = (data: Partial<OnboardingData>) => {
-    setOnboardingData(prev => ({ ...prev, ...data }));
+    const newData = { ...onboardingData, ...data };
+    setOnboardingData(newData);
+    // Store in localStorage so it persists across routes
+    localStorage.setItem('onboardingData', JSON.stringify(newData));
   };
 
   return (
@@ -84,7 +87,12 @@ const OnboardingFlow = () => {
           />
            <Route 
              path="/personal-details" 
-             element={<PersonalDetailsStep />} 
+             element={
+               <PersonalDetails 
+                 data={onboardingData} 
+                 updateData={updateOnboardingData} 
+               />
+             } 
            />
           <Route 
             path="/work-types" 

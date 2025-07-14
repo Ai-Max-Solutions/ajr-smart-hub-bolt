@@ -71,6 +71,30 @@ const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = ({ onComplete })
 
       if (error) throw error;
 
+      // Get CSCS card data from the onboarding flow if it exists (stored in localStorage)
+      const onboardingData = localStorage.getItem('onboardingData');
+      if (onboardingData) {
+        const data = JSON.parse(onboardingData);
+        if (data.cscsCard && data.cscsCard.number && data.cscsCard.expiryDate) {
+          // Parse the expiry date from DD/MM/YYYY format
+          const [day, month, year] = data.cscsCard.expiryDate.split('/');
+          const expiryDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          
+          // Save CSCS card to qualifications table
+          const { error: cscsError } = await supabase.rpc('save_cscs_card_from_onboarding', {
+            p_user_id: user?.user_id,
+            p_card_number: data.cscsCard.number.replace(/\s/g, ''),
+            p_expiry_date: expiryDate,
+            p_card_type: data.cscsCard.cardType || 'Not specified'
+          });
+
+          if (cscsError) {
+            console.error('Error saving CSCS card:', cscsError);
+            // Don't fail the whole process for CSCS card save error
+          }
+        }
+      }
+
       toast({
         title: "Profile Updated",
         description: "Your personal details have been saved successfully.",

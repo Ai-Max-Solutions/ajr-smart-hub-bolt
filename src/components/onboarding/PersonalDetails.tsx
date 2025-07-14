@@ -35,7 +35,7 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // CSCS Card validation
+    // CSCS Card validation - ALL FIELDS MANDATORY
     if (!data.cscsCard.number.trim()) newErrors.cscsNumber = 'CSCS card number is required';
     else if (!/^\d{16}$/.test(data.cscsCard.number.replace(/\s/g, ''))) {
       newErrors.cscsNumber = 'CSCS card number must be 16 digits';

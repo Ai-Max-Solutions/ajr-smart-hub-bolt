@@ -11061,6 +11061,17 @@ export type Database = {
         Args: { input_text: string }
         Returns: string
       }
+      save_cscs_card_from_onboarding: {
+        Args: {
+          p_user_id: string
+          p_card_number: string
+          p_expiry_date: string
+          p_card_type: string
+          p_front_image_url?: string
+          p_back_image_url?: string
+        }
+        Returns: string
+      }
       search_documents: {
         Args: {
           query_embedding: string
