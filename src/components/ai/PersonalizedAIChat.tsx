@@ -293,7 +293,7 @@ export const PersonalizedAIChat: React.FC<PersonalizedAIChatProps> = ({
     try {
       await submitFeedback(
         messageId,
-        conversationId,
+        feedbackType,
         feedbackType === 'positive' ? 'thumbs_up' : 'thumbs_down'
       );
 

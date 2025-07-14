@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,9 +13,41 @@ interface PersonalizedAIOptions {
   includeComplianceData?: boolean;
 }
 
+interface AIPreferences {
+  communicationStyle: string;
+  voiceEnabled: boolean;
+  voice_enabled: boolean;
+  proactiveEnabled: boolean;
+  proactive_suggestions: boolean;
+  learningEnabled: boolean;
+  greeting_style: string;
+  preferred_tone: string;
+  response_length: string;
+  trade_terminology_level: string;
+  morning_summary: boolean;
+  notification_frequency: string;
+}
+
 export const usePersonalizedAI = () => {
   const [loading, setLoading] = useState(false);
   const [lastResponse, setLastResponse] = useState<AIResponse | null>(null);
+  const [preferences, setPreferences] = useState<AIPreferences>({
+    communicationStyle: 'professional',
+    voiceEnabled: true,
+    voice_enabled: true,
+    proactiveEnabled: true,
+    proactive_suggestions: true,
+    learningEnabled: true,
+    greeting_style: 'friendly',
+    preferred_tone: 'professional',
+    response_length: 'medium',
+    trade_terminology_level: 'standard',
+    morning_summary: true,
+    notification_frequency: 'standard',
+  });
+  const [personalizedGreeting, setPersonalizedGreeting] = useState<string>('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [patterns, setPatterns] = useState<any[]>([]);
   const { toast } = useToast();
 
   const askAI = useCallback(async (
@@ -120,11 +152,85 @@ export const usePersonalizedAI = () => {
     return askAI(message, {});
   }, [askAI]);
 
+  const updatePreferences = useCallback(async (newPreferences: Partial<AIPreferences>) => {
+    setPreferences(prev => ({ ...prev, ...newPreferences }));
+    toast({
+      title: "Preferences Updated",
+      description: "Your AI preferences have been saved",
+    });
+  }, [toast]);
+
+  const submitFeedback = useCallback(async (messageId: string, feedbackType: 'positive' | 'negative', feedbackText?: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.from('ai_feedback').insert({
+        message_id: messageId,
+        user_id: user.id,
+        feedback_type: feedbackType,
+        feedback_value: feedbackText,
+      });
+
+      toast({
+        title: "Feedback Submitted",
+        description: "Thank you for your feedback!",
+      });
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+    }
+  }, [toast]);
+
+  const getPersonalizedContext = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return '';
+
+      const { data: activity } = await supabase
+        .from('activity_metrics')
+        .select('action_type, table_name, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      return activity?.map(a => `${a.action_type} on ${a.table_name}`).join(', ') || '';
+    } catch (error) {
+      console.error('Failed to get personalized context:', error);
+      return '';
+    }
+  }, []);
+
+  const markSuggestionShown = useCallback((suggestionId: string) => {
+    setSuggestions(prev => prev.map(s => 
+      s.id === suggestionId ? { ...s, shown: true } : s
+    ));
+  }, []);
+
+  // Initialize personalized greeting
+  useEffect(() => {
+    const generateGreeting = () => {
+      const hour = new Date().getHours();
+      const timeGreeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+      setPersonalizedGreeting(`${timeGreeting}! How can I assist you today?`);
+    };
+
+    generateGreeting();
+  }, []);
+
   return {
     askAI,
     askWithFullContext,
     askBasic,
     loading,
+    isLoading: loading,
     lastResponse,
+    preferences,
+    updatePreferences,
+    personalizedGreeting,
+    submitFeedback,
+    getPersonalizedContext,
+    suggestions,
+    patterns,
+    markSuggestionShown,
   };
 };
