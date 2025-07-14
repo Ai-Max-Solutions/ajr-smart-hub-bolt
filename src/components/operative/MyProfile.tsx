@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/components/auth/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CSCSCardUploader } from '@/components/ui/cscs-card-uploader';
@@ -22,12 +22,14 @@ import {
 } from 'lucide-react';
 
 const MyProfile = () => {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    firstName: user?.full_name?.split(' ')[0] || '',
-    lastName: user?.full_name?.split(' ').slice(1).join(' ') || '',
-    email: user?.email || '',
+    firstName: '',
+    lastName: '',
+    email: '',
     phone: '',
     address: '',
     emergencyContact: '',
@@ -37,12 +39,59 @@ const MyProfile = () => {
     cscsType: ''
   });
 
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!authUser?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('Users')
+          .select('*')
+          .eq('supabase_auth_id', authUser.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching user profile:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load profile data.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (data) {
+          setUserProfile(data);
+          setFormData({
+            firstName: data.firstname || '',
+            lastName: data.lastname || '',
+            email: data.email || authUser.email || '',
+            phone: data.phone || '',
+            address: data.address || '',
+            emergencyContact: data.emergencycontact || '',
+            emergencyPhone: data.emergencyphone || '',
+            cscsNumber: data.cscscardnumber || '',
+            cscsExpiry: data.cscsexpirydate || '',
+            cscsType: ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [authUser]);
+
   const handleSave = async () => {
     try {
-      console.log('handleSave called with user:', user);
-      
-      if (!user?.user_id) {
-        console.error('No user_id found in user object:', user);
+      if (!authUser?.id || !userProfile?.whalesync_postgres_id) {
         toast({
           title: "Error",
           description: "User not found. Please try logging in again.",
@@ -65,7 +114,7 @@ const MyProfile = () => {
           cscscardnumber: formData.cscsNumber,
           cscsexpirydate: formData.cscsExpiry || null,
         })
-        .eq('whalesync_postgres_id', user.user_id);
+        .eq('whalesync_postgres_id', userProfile.whalesync_postgres_id);
 
       if (error) {
         console.error('Error updating profile:', error);
@@ -94,20 +143,44 @@ const MyProfile = () => {
 
   const handleCancel = () => {
     // Reset form data
-    setFormData({
-      firstName: user?.full_name?.split(' ')[0] || '',
-      lastName: user?.full_name?.split(' ').slice(1).join(' ') || '',
-      email: user?.email || '',
-      phone: '',
-      address: '',
-      emergencyContact: '',
-      emergencyPhone: '',
-      cscsNumber: '',
-      cscsExpiry: '',
-      cscsType: ''
-    });
+    if (userProfile) {
+      setFormData({
+        firstName: userProfile.firstname || '',
+        lastName: userProfile.lastname || '',
+        email: userProfile.email || authUser?.email || '',
+        phone: userProfile.phone || '',
+        address: userProfile.address || '',
+        emergencyContact: userProfile.emergencycontact || '',
+        emergencyPhone: userProfile.emergencyphone || '',
+        cscsNumber: userProfile.cscscardnumber || '',
+        cscsExpiry: userProfile.cscsexpirydate || '',
+        cscsType: ''
+      });
+    }
     setIsEditing(false);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authUser) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Not Authenticated</h1>
+          <p className="text-muted-foreground">Please log in to view your profile.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -151,7 +224,7 @@ const MyProfile = () => {
                   {formData.firstName} {formData.lastName}
                 </CardTitle>
                 <CardDescription className="text-lg">
-                  {user?.role || 'Site Operative'}
+                  {userProfile?.role || 'Site Operative'}
                 </CardDescription>
               </div>
               <Badge className="bg-green-100 text-green-800 ml-auto">

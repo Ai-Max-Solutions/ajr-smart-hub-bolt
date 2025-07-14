@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Fetching profile for auth user:', authUser.id);
       
+      // Query with specific user ID we know exists
       const { data, error } = await supabase
         .from('Users')
         .select('whalesync_postgres_id, email, fullname, role, currentproject')
@@ -72,9 +73,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .maybeSingle();
 
       console.log('Profile fetch result:', { data, error });
+      console.log('Query executed with auth ID:', authUser.id);
 
       if (error) {
         console.error('Database profile fetch failed:', error);
+        // Don't set user to null immediately, try once more with direct query
+        console.log('Attempting direct query...');
+        const { data: directData, error: directError } = await supabase
+          .from('Users')
+          .select('*')
+          .eq('supabase_auth_id', authUser.id);
+        
+        console.log('Direct query result:', { directData, directError });
         setUser(null);
         setLoading(false);
         return;
@@ -82,19 +92,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!data) {
         console.error('User profile not found in database for auth ID:', authUser.id);
+        console.log('Checking if any users exist with this email:', authUser.email);
+        
+        const { data: emailCheck } = await supabase
+          .from('Users')
+          .select('*')
+          .eq('email', authUser.email);
+        
+        console.log('Email check result:', emailCheck);
         setUser(null);
         setLoading(false);
         return;
       }
 
       console.log('Setting user with data:', data);
-      setUser({
+      const userData = {
         user_id: data.whalesync_postgres_id,
         email: data.email || authUser.email || '',
         full_name: data.fullname || '',
         role: data.role || 'Operative',
         current_project: data.currentproject
-      });
+      };
+      console.log('Final user data being set:', userData);
+      setUser(userData);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       setUser(null);
