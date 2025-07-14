@@ -83,31 +83,40 @@
   }
 
   .dark {
-    /* Dark mode with navy theme */
-    --background: 223 45% 8%; /* Very dark navy */
-    --foreground: 0 0% 95%;
+    /* AJ Ryan Premium Dark Theme - Enhanced Contrast */
+    --background: 223 45% 6%; /* Very dark navy background */
+    --foreground: 0 0% 95%; /* Near-white text for better readability */
 
-    --card: 223 35% 12%; /* Dark navy cards */
-    --card-foreground: 0 0% 95%;
+    --card: 223 35% 8%; /* Slightly lighter navy for cards */
+    --card-foreground: 0 0% 95%; /* Near-white text on dark cards */
 
-    --popover: 223 35% 12%;
+    --popover: 223 35% 8%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 223 45% 11%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 48 100% 56%; /* Yellow primary in dark mode */
+    --primary-foreground: 223 45% 11%; /* Navy text on yellow */
 
-    --secondary: 223 25% 15%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 223 35% 12%; /* Dark navy secondary */
+    --secondary-foreground: 0 0% 95%; /* Near-white text for better contrast */
 
-    --accent: 48 100% 56%; /* Keep strong yellow */
-    --accent-foreground: 223 45% 11%;
+    --accent: 48 100% 65%; /* Bright yellow accent */
+    --accent-foreground: 223 45% 11%; /* Navy text on yellow */
 
-    --muted: 223 25% 15%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 223 35% 12%; /* Dark muted background */
+    --muted-foreground: 0 0% 70%; /* Light grey for muted text */
 
-    --border: 223 25% 18%;
-    --input: 223 25% 15%;
-    --ring: 48 100% 56%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 223 45% 11%;
+
+    --border: 223 35% 15%; /* Dark navy borders */
+    --input: 223 35% 12%; /* Dark input backgrounds */
+    --ring: 48 100% 65%; /* Yellow focus rings */
     
     /* Dark mode shadows */
     --shadow-card: 0 2px 12px hsla(0 0% 0%, 0.3);

@@ -41,11 +41,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoading(false);
 
         if (event === 'SIGNED_IN' && session?.user) {
+          // Check if user exists in Users table, if not redirect to onboarding
+          const { data: userData } = await supabase
+            .from('Users')
+            .select('whalesync_postgres_id, firstname, lastname')
+            .eq('supabase_auth_id', session.user.id)
+            .single();
+          
           // Update last sign in for the user
           await supabase
             .from('Users')
             .update({ last_sign_in: new Date().toISOString() })
             .eq('supabase_auth_id', session.user.id);
+          
+          // If user profile is incomplete (no names), redirect to onboarding
+          if (userData && (!userData.firstname || !userData.lastname)) {
+            window.location.href = '/onboarding/personal-details';
+            return;
+          }
           
           toast.success('Successfully signed in!');
         } else if (event === 'SIGNED_OUT') {

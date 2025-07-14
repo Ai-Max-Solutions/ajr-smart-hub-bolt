@@ -1,10 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
+import ProgressHeader from '@/components/onboarding/ProgressHeader';
 import SignUp from '@/components/onboarding/SignUp';
 import PersonalDetails from '@/components/onboarding/PersonalDetails';
 import WorkTypeSelection from '@/components/onboarding/WorkTypeSelection';
 import OnboardingComplete from '@/components/onboarding/OnboardingComplete';
-import ProgressHeader from '@/components/onboarding/ProgressHeader';
+import PersonalDetailsStep from '@/components/onboarding/PersonalDetailsStep';
 
 export interface OnboardingData {
   // Sign up data
@@ -81,15 +82,10 @@ const OnboardingFlow = () => {
               />
             } 
           />
-          <Route 
-            path="/personal-details" 
-            element={
-              <PersonalDetails 
-                data={onboardingData} 
-                updateData={updateOnboardingData} 
-              />
-            } 
-          />
+           <Route 
+             path="/personal-details" 
+             element={<PersonalDetailsStep />} 
+           />
           <Route 
             path="/work-types" 
             element={

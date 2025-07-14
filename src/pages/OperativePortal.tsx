@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { getPersonalizedGreeting } from '@/utils/greetings';
 import { 
   DollarSign, 
   Clock, 
@@ -24,9 +26,12 @@ import MyInductions from '@/components/inductions/MyInductions';
 import MySignatures from '@/components/signatures/MySignatures';
 import MyDataRetention from '@/components/retention/MyDataRetention';
 import PrivacyDashboard from '@/components/security/PrivacyDashboard';
+import MyTimesheets from '@/components/operative/MyTimesheets';
+import MyProfile from '@/components/operative/MyProfile';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const quickActions = [
     {
@@ -111,7 +116,7 @@ const OperativeDashboard = () => {
               <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                 <div className="text-center lg:text-left">
                   <CardTitle className="text-4xl font-bold text-primary mb-2">
-                    {getGreeting()}, John Smith
+                    {getPersonalizedGreeting(user?.full_name?.split(' ')[0], user?.email)}
                   </CardTitle>
                   <p className="text-lg text-muted-foreground">
                     Welcome to your AJ Ryan workspace
@@ -238,9 +243,9 @@ const OperativePortal = () => {
       <Route path="/signatures" element={<MySignatures />} />
       <Route path="/data-retention" element={<MyDataRetention />} />
       <Route path="/my-data" element={<PrivacyDashboard userId="current-user" />} />
+      <Route path="/timesheets" element={<MyTimesheets />} />
+      <Route path="/profile" element={<MyProfile />} />
       {/* Placeholder routes for future components */}
-      <Route path="/timesheets" element={<div className="p-8 text-center text-muted-foreground">Timesheets coming soon...</div>} />
-      <Route path="/profile" element={<div className="p-8 text-center text-muted-foreground">Profile coming soon...</div>} />
       <Route path="/documents" element={<div className="p-8 text-center text-muted-foreground">Documents coming soon...</div>} />
     </Routes>
   );
