@@ -8,33 +8,35 @@
 
 @layer base {
   :root {
-    /* AJ Ryan Brand Colors - New Deep Navy & Yellow Theme */
-    --aj-navy-deep: 222 47% 16%; /* #0A1F44 - Deep navy primary */
-    --aj-navy-light: 219 41% 28%; /* #1A365D - Lighter navy for panels */
-    --aj-yellow: 48 100% 50%; /* #FFC700 - Deep yellow for accents */
-    --aj-yellow-bright: 48 100% 56%; /* #FFCF21 - Brighter yellow variant */
+    /* AJ Ryan Brand Colors - New Premium Design */
+    --aj-navy-deep: 223 45% 11%; /* #1d1e3d - Dark Blue Primary */
+    --aj-navy-light: 223 35% 20%; /* Lighter navy for panels */
+    --aj-yellow: 48 100% 56%; /* #ffcf21 - Strong Yellow */
+    --aj-yellow-bright: 48 100% 65%; /* Brighter yellow variant */
+    --aj-blue-calm: 215 25% 70%; /* #acb7d1 - Calming Blue */
+    --aj-blue-accent: 203 100% 30%; /* #006198 - Blue Accent */
     
-    /* AJ Ryan Design System - Light Mode */
-    --background: 222 47% 16%; /* Deep navy background */
-    --foreground: 0 0% 100%; /* Pure white text */
+    /* AJ Ryan Premium Light Theme */
+    --background: 0 0% 100%; /* Pure white background */
+    --foreground: 223 45% 11%; /* Dark navy text */
 
-    --card: 219 41% 28%; /* Lighter navy for cards */
-    --card-foreground: 0 0% 100%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 223 45% 11%;
 
-    --popover: 219 41% 28%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 223 45% 11%;
 
-    --primary: 222 47% 16%; /* Deep navy primary */
+    --primary: 223 45% 11%; /* Dark navy primary */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 219 35% 32%; /* Navy secondary */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 210 20% 95%; /* Very light grey */
+    --secondary-foreground: 223 45% 11%;
 
-    --accent: 48 100% 50%; /* Deep yellow accent */
-    --accent-foreground: 222 47% 16%; /* Navy text on yellow */
+    --accent: 48 100% 56%; /* Strong yellow accent */
+    --accent-foreground: 223 45% 11%; /* Navy text on yellow */
 
-    --muted: 219 35% 20%;
-    --muted-foreground: 215 20% 70%;
+    --muted: 210 20% 95%; /* Light grey for muted elements */
+    --muted-foreground: 215 25% 50%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -43,23 +45,23 @@
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 222 47% 16%;
+    --warning-foreground: 223 45% 11%;
 
-    --border: 219 35% 32%;
-    --input: 219 35% 32%;
-    --ring: 48 100% 50%; /* Yellow focus rings */
+    --border: 210 20% 90%; /* Light borders */
+    --input: 210 20% 95%;
+    --ring: 48 100% 56%; /* Yellow focus rings */
 
-    --radius: 0.5rem; /* 8px border radius as specified */
+    --radius: 0.75rem; /* 12px border radius for modern look */
 
-    /* AJ Ryan Brand Gradients */
+    /* AJ Ryan Premium Gradients */
     --gradient-brand: linear-gradient(135deg, hsl(var(--aj-navy-deep)), hsl(var(--accent)));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
-    --gradient-navy: linear-gradient(135deg, hsl(var(--aj-navy-deep)), hsl(var(--aj-navy-light)));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 98%), hsl(210 20% 96%));
+    --gradient-hero: linear-gradient(135deg, hsl(48 100% 96%), hsl(210 25% 96%));
     
-    /* AJ Ryan Shadows - Inspired by your reference designs */
-    --shadow-brand: 0 0 10px rgba(0,0,0,0.4);
-    --shadow-card: 0 2px 8px rgba(0,0,0,0.3);
-    --shadow-elevated: 0 4px 16px rgba(0,0,0,0.5);
+    /* AJ Ryan Premium Shadows */
+    --shadow-brand: 0 4px 20px hsla(var(--accent), 0.15);
+    --shadow-card: 0 2px 12px hsla(223 45% 11%, 0.08);
+    --shadow-elevated: 0 8px 32px hsla(223 45% 11%, 0.12);
     
     /* AJ Ryan Animations - 0.3s ease as specified */
     --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -81,31 +83,35 @@
   }
 
   .dark {
-    /* Dark mode maintains the same navy theme but with adjusted contrasts */
-    --background: 222 47% 12%; /* Slightly lighter navy for dark mode */
-    --foreground: 0 0% 100%;
+    /* Dark mode with navy theme */
+    --background: 223 45% 8%; /* Very dark navy */
+    --foreground: 0 0% 95%;
 
-    --card: 219 41% 20%; /* Darker navy cards */
-    --card-foreground: 0 0% 100%;
+    --card: 223 35% 12%; /* Dark navy cards */
+    --card-foreground: 0 0% 95%;
 
-    --popover: 219 41% 20%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 223 35% 12%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 222 47% 16%;
+    --primary: 223 45% 11%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 219 35% 24%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 223 25% 15%;
+    --secondary-foreground: 0 0% 95%;
 
-    --accent: 48 100% 50%; /* Keep yellow consistent */
-    --accent-foreground: 222 47% 16%;
+    --accent: 48 100% 56%; /* Keep strong yellow */
+    --accent-foreground: 223 45% 11%;
 
-    --muted: 219 35% 16%;
-    --muted-foreground: 215 20% 75%;
+    --muted: 223 25% 15%;
+    --muted-foreground: 215 20% 65%;
 
-    --border: 219 35% 24%;
-    --input: 219 35% 24%;
-    --ring: 48 100% 50%;
+    --border: 223 25% 18%;
+    --input: 223 25% 15%;
+    --ring: 48 100% 56%;
+    
+    /* Dark mode shadows */
+    --shadow-card: 0 2px 12px hsla(0 0% 0%, 0.3);
+    --shadow-elevated: 0 8px 32px hsla(0 0% 0%, 0.4);
   }
 }
 

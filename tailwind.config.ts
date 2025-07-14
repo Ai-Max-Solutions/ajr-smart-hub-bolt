@@ -64,6 +64,8 @@ export default {
 				'aj-navy-light': 'hsl(var(--aj-navy-light))',
 				'aj-yellow': 'hsl(var(--aj-yellow))',
 				'aj-yellow-bright': 'hsl(var(--aj-yellow-bright))',
+				'aj-blue-calm': 'hsl(var(--aj-blue-calm))',
+				'aj-blue-accent': 'hsl(var(--aj-blue-accent))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',

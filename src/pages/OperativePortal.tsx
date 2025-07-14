@@ -94,23 +94,41 @@ const OperativeDashboard = () => {
     { label: 'Qualification Status', value: '3 Valid, 1 Expiring', color: 'warning' }
   ];
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
-      {/* Header */}
-      <div className="max-w-6xl mx-auto mb-6">
-        <Card className="bg-primary text-primary-foreground">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl">Operative Portal</CardTitle>
-                <p className="text-primary-foreground/80">
-                  Welcome back, John Smith
-                </p>
+    <div className="min-h-screen bg-gradient-hero">
+      {/* Premium Hero Header */}
+      <div className="bg-gradient-subtle border-b">
+        <div className="max-w-6xl mx-auto p-6">
+          <Card className="shadow-elevated border-0 bg-white">
+            <CardHeader className="pb-8">
+              <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                <div className="text-center lg:text-left">
+                  <CardTitle className="text-4xl font-bold text-primary mb-2">
+                    {getGreeting()}, John Smith
+                  </CardTitle>
+                  <p className="text-lg text-muted-foreground">
+                    Welcome to your AJ Ryan workspace
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center">
+                    <User className="w-10 h-10 text-accent" />
+                  </div>
+                  <Badge className="bg-accent text-accent-foreground text-sm px-3 py-1">
+                    Site Operative
+                  </Badge>
+                </div>
               </div>
-              <Shield className="w-8 h-8 text-accent" />
-            </div>
-          </CardHeader>
-        </Card>
+            </CardHeader>
+          </Card>
+        </div>
       </div>
 
       {/* Stats */}
