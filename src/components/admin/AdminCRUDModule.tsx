@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Filter, Download, Upload } from "lucide-react";
+import { Search, Plus, Filter, Download, Upload, Brain, Sparkles, Zap } from "lucide-react";
 import { ProjectsCRUD } from "./crud/ProjectsCRUD";
 import { LevelsCRUD } from "./crud/LevelsCRUD";
 import { PlotsCRUD } from "./crud/PlotsCRUD";
@@ -12,6 +12,7 @@ import { WorkPackagesCRUD } from "./crud/WorkPackagesCRUD";
 import { RAMSDocumentsCRUD } from "./crud/RAMSDocumentsCRUD";
 import { BulkOperations } from "./crud/BulkOperations";
 import { OfflineSync } from "./crud/OfflineSync";
+import { UnifiedSearch } from "./UnifiedSearch";
 import { toast } from "sonner";
 
 const AdminCRUDModule = () => {
@@ -19,6 +20,8 @@ const AdminCRUDModule = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [syncStatus, setSyncStatus] = useState<"synced" | "syncing" | "offline">("synced");
+  const [aiEnabled, setAiEnabled] = useState(true);
+  const [showUnifiedSearch, setShowUnifiedSearch] = useState(false);
 
   // Monitor offline status
   useEffect(() => {
@@ -186,7 +189,10 @@ const AdminCRUDModule = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <tab.component searchQuery={searchQuery} isOffline={isOffline} />
+                  <tab.component 
+                    searchQuery={searchQuery} 
+                    isOffline={isOffline}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
