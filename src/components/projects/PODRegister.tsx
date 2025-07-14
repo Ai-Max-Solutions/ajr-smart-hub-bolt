@@ -25,6 +25,7 @@ import { format } from 'date-fns';
 interface PODRecord {
   id: string;
   pod_type: string;
+  pod_category: 'DELIVERY' | 'HIRE_RETURN';
   supplier_name: string;
   description: string;
   status: string;
@@ -33,8 +34,15 @@ interface PODRecord {
   signed_by_name?: string;
   damage_notes?: string;
   approved_at?: string;
-  plot_id?: string;
-  linked_hire_id?: string;
+  plot_location?: string;
+  order_reference?: string;
+  hire_item_id?: string;
+  quantity_expected?: number;
+  quantity_received?: number;
+  condition_on_arrival?: 'good' | 'damaged' | 'incomplete';
+  discrepancy_value?: number;
+  supplier_contact?: string;
+  delivery_method?: string;
 }
 
 interface PODSummary {
@@ -42,6 +50,9 @@ interface PODSummary {
   pending: number;
   approved: number;
   flagged: number;
+  delivery_pods: number;
+  hire_pods: number;
+  discrepancy_value: number;
   recent_pods: PODRecord[];
 }
 
@@ -79,7 +90,7 @@ const PODRegister = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPods(data || []);
+      setPods((data || []) as PODRecord[]);
     } catch (error) {
       console.error('Error fetching PODs:', error);
       toast({
@@ -130,13 +141,22 @@ const PODRegister = () => {
     );
   };
 
-  const getPodTypeIcon = (type: string) => {
+  const getPodTypeIcon = (type: string, category?: string) => {
+    if (category === 'DELIVERY') {
+      return <Package className="h-4 w-4" />;
+    } else if (category === 'HIRE_RETURN') {
+      return <Truck className="h-4 w-4" />;
+    }
+    
+    // Fallback for legacy records
     switch (type) {
-      case 'delivery': return <Package className="h-4 w-4" />;
-      case 'collection': return <Truck className="h-4 w-4" />;
-      case 'off_hire': return <ArrowUpDown className="h-4 w-4" />;
-      case 'return': return <ArrowUpDown className="h-4 w-4" />;
-      case 'site_delivery': return <FileText className="h-4 w-4" />;
+      case 'material_delivery':
+      case 'site_delivery': 
+      case 'welfare_delivery':
+      case 'tool_delivery': return <Package className="h-4 w-4" />;
+      case 'collection': 
+      case 'off_hire': 
+      case 'equipment_return': return <Truck className="h-4 w-4" />;
       default: return <Package className="h-4 w-4" />;
     }
   };
@@ -191,7 +211,7 @@ const PODRegister = () => {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
@@ -199,6 +219,30 @@ const PODRegister = () => {
                 <div>
                   <p className="text-sm font-medium">Total PODs</p>
                   <p className="text-2xl font-bold">{summary.total_pods}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <Package className="h-4 w-4 text-blue-600" />
+                <div>
+                  <p className="text-sm font-medium">Deliveries</p>
+                  <p className="text-2xl font-bold">{summary.delivery_pods}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <Truck className="h-4 w-4 text-purple-600" />
+                <div>
+                  <p className="text-sm font-medium">Collections</p>
+                  <p className="text-2xl font-bold">{summary.hire_pods}</p>
                 </div>
               </div>
             </CardContent>
@@ -233,7 +277,7 @@ const PODRegister = () => {
               <div className="flex items-center space-x-2">
                 <AlertTriangle className="h-4 w-4 text-red-600" />
                 <div>
-                  <p className="text-sm font-medium">Flagged</p>
+                  <p className="text-sm font-medium">Issues (£{summary.discrepancy_value.toFixed(0)})</p>
                   <p className="text-2xl font-bold">{summary.flagged}</p>
                 </div>
               </div>
@@ -279,37 +323,72 @@ const PODRegister = () => {
               {filteredPods.map((pod) => (
                 <Card key={pod.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-3 flex-1">
-                        <div className="p-2 bg-muted rounded-lg">
-                          {getPodTypeIcon(pod.pod_type)}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-medium text-foreground">
-                              {pod.pod_type.replace('_', ' ').toUpperCase()}
-                            </h4>
-                            {getStatusBadge(pod.status)}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3 flex-1">
+                          <div className="p-2 bg-muted rounded-lg">
+                            {getPodTypeIcon(pod.pod_type, pod.pod_category)}
                           </div>
                           
-                          <p className="text-sm text-muted-foreground mb-1">
-                            {pod.supplier_name && `${pod.supplier_name} • `}
-                            {format(new Date(pod.created_at), 'MMM dd, yyyy HH:mm')}
-                          </p>
-                          
-                          <p className="text-sm text-foreground mb-2">
-                            {pod.description}
-                          </p>
-                          
-                          {pod.signed_by_name && (
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Users className="h-3 w-3 mr-1" />
-                              Signed by: {pod.signed_by_name}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h4 className="font-medium text-foreground">
+                                {pod.pod_type.replace('_', ' ').toUpperCase()}
+                              </h4>
+                              {getStatusBadge(pod.status)}
+                              {pod.pod_category && (
+                                <Badge variant="outline" className="text-xs">
+                                  {pod.pod_category === 'DELIVERY' ? 'Delivery' : 'Collection'}
+                                </Badge>
+                              )}
                             </div>
-                          )}
+                            
+                            <p className="text-sm text-muted-foreground mb-1">
+                              {pod.supplier_name && `${pod.supplier_name} • `}
+                              {pod.plot_location && `${pod.plot_location} • `}
+                              {format(new Date(pod.created_at), 'MMM dd, yyyy HH:mm')}
+                            </p>
+                            
+                            <p className="text-sm text-foreground mb-2">
+                              {pod.description}
+                            </p>
+
+                            {/* Quantity Info for Deliveries */}
+                            {pod.pod_category === 'DELIVERY' && pod.quantity_expected && pod.quantity_received && (
+                              <div className="flex items-center text-xs text-muted-foreground mb-1">
+                                <Package className="h-3 w-3 mr-1" />
+                                Expected: {pod.quantity_expected} | Received: {pod.quantity_received}
+                                {pod.quantity_expected !== pod.quantity_received && (
+                                  <span className="ml-1 text-orange-600 font-medium">
+                                    ({pod.quantity_received > pod.quantity_expected ? '+' : ''}
+                                    {(pod.quantity_received - pod.quantity_expected).toFixed(1)})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Condition Badge */}
+                            {pod.condition_on_arrival && pod.condition_on_arrival !== 'good' && (
+                              <div className="flex items-center text-xs mb-1">
+                                <AlertTriangle className="h-3 w-3 mr-1 text-orange-600" />
+                                <span className="text-orange-600 font-medium">
+                                  {pod.condition_on_arrival === 'damaged' ? 'Damaged' : 'Incomplete'}
+                                </span>
+                                {pod.discrepancy_value && pod.discrepancy_value > 0 && (
+                                  <span className="ml-1 text-red-600 font-medium">
+                                    (£{pod.discrepancy_value.toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            
+                            {pod.signed_by_name && (
+                              <div className="flex items-center text-xs text-muted-foreground">
+                                <Users className="h-3 w-3 mr-1" />
+                                Signed by: {pod.signed_by_name}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
 
                       <div className="flex items-center space-x-2 ml-4">
                         {pod.pod_photo_url && (

@@ -3167,19 +3167,29 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          condition_on_arrival: string | null
           created_at: string | null
           damage_notes: string | null
+          delivery_method: string | null
           description: string
+          discrepancy_value: number | null
+          hire_item_id: string | null
           id: string
           linked_hire_id: string | null
           metadata: Json | null
+          order_reference: string | null
           plot_id: string | null
+          plot_location: string | null
+          pod_category: string
           pod_photo_url: string | null
           pod_type: string
           project_id: string
+          quantity_expected: number | null
+          quantity_received: number | null
           signed_by: string | null
           signed_by_name: string | null
           status: string | null
+          supplier_contact: string | null
           supplier_id: string | null
           supplier_name: string | null
           uploaded_by: string
@@ -3187,19 +3197,29 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          condition_on_arrival?: string | null
           created_at?: string | null
           damage_notes?: string | null
+          delivery_method?: string | null
           description: string
+          discrepancy_value?: number | null
+          hire_item_id?: string | null
           id?: string
           linked_hire_id?: string | null
           metadata?: Json | null
+          order_reference?: string | null
           plot_id?: string | null
+          plot_location?: string | null
+          pod_category: string
           pod_photo_url?: string | null
           pod_type: string
           project_id: string
+          quantity_expected?: number | null
+          quantity_received?: number | null
           signed_by?: string | null
           signed_by_name?: string | null
           status?: string | null
+          supplier_contact?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           uploaded_by: string
@@ -3207,19 +3227,29 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          condition_on_arrival?: string | null
           created_at?: string | null
           damage_notes?: string | null
+          delivery_method?: string | null
           description?: string
+          discrepancy_value?: number | null
+          hire_item_id?: string | null
           id?: string
           linked_hire_id?: string | null
           metadata?: Json | null
+          order_reference?: string | null
           plot_id?: string | null
+          plot_location?: string | null
+          pod_category?: string
           pod_photo_url?: string | null
           pod_type?: string
           project_id?: string
+          quantity_expected?: number | null
+          quantity_received?: number | null
           signed_by?: string | null
           signed_by_name?: string | null
           status?: string | null
+          supplier_contact?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           uploaded_by?: string

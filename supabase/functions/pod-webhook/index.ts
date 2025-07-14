@@ -10,9 +10,17 @@ interface PODWebhookPayload {
   pod_id: string;
   project_id: string;
   pod_type: string;
+  pod_category: 'DELIVERY' | 'HIRE_RETURN';
   supplier_name: string;
   description: string;
-  photo_url?: string;
+  status: string;
+  plot_location?: string;
+  order_reference?: string;
+  hire_item_id?: string;
+  quantity_expected?: number;
+  quantity_received?: number;
+  condition_on_arrival?: string;
+  discrepancy_value?: number;
   created_at: string;
   uploaded_by: string;
 }
@@ -35,14 +43,13 @@ serve(async (req) => {
       
       console.log('Received POD webhook:', payload)
 
-      // Get additional POD details from database
-      const { data: podData, error: podError } = await supabase
+      // Fetch additional POD details from Supabase
+      const { data: podDetails, error: podError } = await supabase
         .from('pod_register')
         .select(`
           *,
           Users!pod_register_uploaded_by_fkey(fullname, email),
-          Projects(projectname, clientname),
-          suppliers(name, contact_email)
+          Projects(projectname, siteaddress)
         `)
         .eq('id', payload.pod_id)
         .single()
@@ -52,45 +59,72 @@ serve(async (req) => {
         throw podError
       }
 
-      // Prepare webhook data for n8n
-      const webhookData = {
-        pod_id: payload.pod_id,
-        project_name: podData.Projects?.projectname,
-        client_name: podData.Projects?.clientname,
-        pod_type: payload.pod_type,
-        supplier_name: payload.supplier_name,
-        description: payload.description,
-        photo_url: payload.photo_url,
-        uploaded_by: podData.Users?.fullname,
-        uploaded_by_email: podData.Users?.email,
-        created_at: payload.created_at,
-        timestamp: new Date().toISOString(),
-        // Additional metadata for n8n workflow
-        metadata: {
-          project_id: payload.project_id,
-          upload_source: 'ajryan_smartwork_hub',
-          pod_status: 'pending',
-          requires_approval: true
-        }
+      // Prepare data for n8n webhook with enhanced structure
+      const n8nPayload = {
+        // Core POD info
+        pod_id: podDetails.id,
+        pod_type: podDetails.pod_type,
+        pod_category: podDetails.pod_category,
+        supplier_name: podDetails.supplier_name,
+        description: podDetails.description,
+        status: podDetails.status,
+        created_at: podDetails.created_at,
+        
+        // Enhanced delivery/collection details
+        plot_location: podDetails.plot_location || null,
+        order_reference: podDetails.order_reference || null,
+        hire_item_id: podDetails.hire_item_id || null,
+        quantity_expected: podDetails.quantity_expected || null,
+        quantity_received: podDetails.quantity_received || null,
+        condition_on_arrival: podDetails.condition_on_arrival || 'good',
+        discrepancy_value: podDetails.discrepancy_value || 0,
+        supplier_contact: podDetails.supplier_contact || null,
+        delivery_method: podDetails.delivery_method || null,
+        
+        // Project context
+        project_id: podDetails.project_id,
+        project_name: podDetails.Projects?.projectname || 'Unknown Project',
+        site_address: podDetails.Projects?.siteaddress || 'Unknown Address',
+        
+        // User context
+        uploaded_by: podDetails.Users?.fullname || 'Unknown User',
+        uploaded_by_email: podDetails.Users?.email || '',
+        
+        // Media
+        pod_photo_url: podDetails.pod_photo_url || null,
+        signed_by_name: podDetails.signed_by_name || null,
+        damage_notes: podDetails.damage_notes || null,
+        
+        // Calculated fields for business logic
+        has_discrepancy: (podDetails.condition_on_arrival !== 'good' || podDetails.discrepancy_value > 0),
+        quantity_variance: podDetails.quantity_expected && podDetails.quantity_received 
+          ? podDetails.quantity_received - podDetails.quantity_expected 
+          : 0,
+        
+        // Workflow routing metadata
+        webhook_type: 'pod_created',
+        workflow_category: podDetails.pod_category?.toLowerCase() || 'delivery',
+        priority: podDetails.condition_on_arrival !== 'good' ? 'high' : 'normal',
+        timestamp: new Date().toISOString()
       }
 
-      // Send to n8n webhook (you'll need to configure this URL)
+      // Send to n8n webhook (differentiate by category for separate workflows)
       const n8nWebhookUrl = Deno.env.get('N8N_POD_WEBHOOK_URL')
       
       if (n8nWebhookUrl) {
         try {
-          const n8nResponse = await fetch(n8nWebhookUrl, {
+          const response = await fetch(n8nWebhookUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(webhookData)
+            body: JSON.stringify(n8nPayload)
           })
 
-          if (!n8nResponse.ok) {
-            console.error('n8n webhook failed:', await n8nResponse.text())
+          if (!response.ok) {
+            console.error('n8n webhook failed:', await response.text())
           } else {
-            console.log('Successfully sent POD data to n8n')
+            console.log(`Successfully sent ${payload.pod_category} POD data to n8n`)
           }
         } catch (error) {
           console.error('Error sending to n8n:', error)
@@ -99,7 +133,7 @@ serve(async (req) => {
         console.log('N8N_POD_WEBHOOK_URL not configured, skipping n8n integration')
       }
 
-      // Log the activity
+      // Log the activity with enhanced metadata
       await supabase
         .from('activity_metrics')
         .insert({
@@ -107,14 +141,23 @@ serve(async (req) => {
           action_type: 'pod_created',
           table_name: 'pod_register',
           record_id: payload.pod_id,
-          metadata: webhookData
+          metadata: {
+            pod_category: payload.pod_category,
+            pod_type: payload.pod_type,
+            has_discrepancy: n8nPayload.has_discrepancy,
+            discrepancy_value: payload.discrepancy_value || 0,
+            quantity_variance: n8nPayload.quantity_variance,
+            workflow_priority: n8nPayload.priority
+          }
         })
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'POD webhook processed successfully',
-          pod_id: payload.pod_id 
+          message: `${payload.pod_category} POD webhook processed successfully`,
+          pod_id: payload.pod_id,
+          category: payload.pod_category,
+          has_discrepancy: n8nPayload.has_discrepancy
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -127,7 +170,8 @@ serve(async (req) => {
     if (req.method === 'GET') {
       return new Response(
         JSON.stringify({ 
-          message: 'POD Webhook endpoint is active',
+          message: 'Enhanced POD Webhook endpoint is active',
+          supports: ['DELIVERY', 'HIRE_RETURN'],
           timestamp: new Date().toISOString()
         }),
         { 

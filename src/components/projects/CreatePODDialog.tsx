@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -19,14 +19,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Camera, Upload, X } from 'lucide-react';
+import { Camera, Upload, X, Package, Truck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 interface CreatePODDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
   onPodCreated: () => void;
+}
+
+interface PODFormData {
+  pod_type: string;
+  pod_category: 'DELIVERY' | 'HIRE_RETURN';
+  supplier_name: string;
+  description: string;
+  signed_by_name: string;
+  damage_notes: string;
+  plot_location: string;
+  order_reference: string;
+  hire_item_id: string;
+  quantity_expected: string;
+  quantity_received: string;
+  condition_on_arrival: 'good' | 'damaged' | 'incomplete';
+  discrepancy_value: string;
+  supplier_contact: string;
+  delivery_method: string;
 }
 
 const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: CreatePODDialogProps) => {
@@ -37,21 +56,53 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PODFormData>({
     pod_type: '',
+    pod_category: 'DELIVERY',
     supplier_name: '',
     description: '',
     signed_by_name: '',
-    damage_notes: ''
+    damage_notes: '',
+    plot_location: '',
+    order_reference: '',
+    hire_item_id: '',
+    quantity_expected: '',
+    quantity_received: '',
+    condition_on_arrival: 'good',
+    discrepancy_value: '',
+    supplier_contact: '',
+    delivery_method: ''
   });
+
+  // Auto-set category based on POD type
+  useEffect(() => {
+    const deliveryTypes = ['material_delivery', 'site_delivery', 'welfare_delivery', 'tool_delivery'];
+    const hireTypes = ['collection', 'off_hire', 'equipment_return'];
+    
+    if (deliveryTypes.includes(formData.pod_type)) {
+      setFormData(prev => ({ ...prev, pod_category: 'DELIVERY' }));
+    } else if (hireTypes.includes(formData.pod_type)) {
+      setFormData(prev => ({ ...prev, pod_category: 'HIRE_RETURN' }));
+    }
+  }, [formData.pod_type]);
 
   const resetForm = () => {
     setFormData({
       pod_type: '',
+      pod_category: 'DELIVERY',
       supplier_name: '',
       description: '',
       signed_by_name: '',
-      damage_notes: ''
+      damage_notes: '',
+      plot_location: '',
+      order_reference: '',
+      hire_item_id: '',
+      quantity_expected: '',
+      quantity_received: '',
+      condition_on_arrival: 'good',
+      discrepancy_value: '',
+      supplier_contact: '',
+      delivery_method: ''
     });
     setPhotoFile(null);
     setPhotoPreview(null);
@@ -114,18 +165,31 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
         photoUrl = await uploadPhoto();
       }
 
-      // Create POD record
+      // Calculate discrepancy value
+      const discrepancyValue = formData.discrepancy_value ? parseFloat(formData.discrepancy_value) : 0;
+
+      // Create POD record with all new fields
       const { error } = await supabase
         .from('pod_register')
         .insert({
           project_id: projectId,
           pod_type: formData.pod_type,
+          pod_category: formData.pod_category,
           supplier_name: formData.supplier_name,
           description: formData.description,
-          signed_by_name: formData.signed_by_name,
+          signed_by_name: formData.signed_by_name || null,
           uploaded_by: profile.id,
           pod_photo_url: photoUrl,
           damage_notes: formData.damage_notes || null,
+          plot_location: formData.plot_location || null,
+          order_reference: formData.order_reference || null,
+          hire_item_id: formData.hire_item_id || null,
+          quantity_expected: formData.quantity_expected ? parseFloat(formData.quantity_expected) : null,
+          quantity_received: formData.quantity_received ? parseFloat(formData.quantity_received) : null,
+          condition_on_arrival: formData.condition_on_arrival,
+          discrepancy_value: discrepancyValue,
+          supplier_contact: formData.supplier_contact || null,
+          delivery_method: formData.delivery_method || null,
           status: 'pending'
         });
 
@@ -138,6 +202,7 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
 
       resetForm();
       onPodCreated();
+      onOpenChange(false);
     } catch (error) {
       console.error('Error creating POD:', error);
       toast({
@@ -158,17 +223,19 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
     }
   };
 
+  const isDelivery = formData.pod_category === 'DELIVERY';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <Camera className="h-5 w-5" />
-            <span>Add Proof of Delivery</span>
+            {isDelivery ? <Package className="h-5 w-5" /> : <Truck className="h-5 w-5" />}
+            <span>Add {isDelivery ? 'Delivery' : 'Collection'} POD</span>
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Photo Upload */}
           <div className="space-y-2">
             <Label>POD Photo *</Label>
@@ -179,7 +246,7 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
                     <img 
                       src={photoPreview} 
                       alt="POD Preview" 
-                      className="w-full h-32 object-cover rounded-md"
+                      className="w-full h-40 object-cover rounded-md"
                     />
                     <Button
                       type="button"
@@ -197,7 +264,7 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
               <Button
                 type="button"
                 variant="outline"
-                className="w-full h-32 border-dashed"
+                className="w-full h-40 border-dashed"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <div className="text-center">
@@ -216,38 +283,55 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
             />
           </div>
 
-          {/* POD Type */}
-          <div className="space-y-2">
-            <Label htmlFor="pod_type">POD Type *</Label>
-            <Select 
-              value={formData.pod_type} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, pod_type: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select POD type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="material_delivery">Material Delivery</SelectItem>
-                <SelectItem value="site_delivery">Site Equipment Delivery</SelectItem>
-                <SelectItem value="welfare_delivery">Welfare Unit Delivery</SelectItem>
-                <SelectItem value="tool_delivery">Tool/Plant Delivery</SelectItem>
-                <SelectItem value="collection">Collection</SelectItem>
-                <SelectItem value="off_hire">Off-Hire Return</SelectItem>
-                <SelectItem value="equipment_return">Equipment Return</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* POD Type Selection */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="pod_type">POD Type *</Label>
+              <Select 
+                value={formData.pod_type} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, pod_type: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select POD type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="px-2 py-1 text-xs font-medium text-muted-foreground">DELIVERIES</div>
+                  <SelectItem value="material_delivery">Material Delivery</SelectItem>
+                  <SelectItem value="site_delivery">Site Equipment Delivery</SelectItem>
+                  <SelectItem value="welfare_delivery">Welfare Unit Delivery</SelectItem>
+                  <SelectItem value="tool_delivery">Tool/Plant Delivery</SelectItem>
+                  <Separator className="my-2" />
+                  <div className="px-2 py-1 text-xs font-medium text-muted-foreground">COLLECTIONS</div>
+                  <SelectItem value="collection">Collection</SelectItem>
+                  <SelectItem value="off_hire">Off-Hire Return</SelectItem>
+                  <SelectItem value="equipment_return">Equipment Return</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Supplier */}
-          <div className="space-y-2">
-            <Label htmlFor="supplier_name">Supplier/Company *</Label>
-            <Input
-              id="supplier_name"
-              value={formData.supplier_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, supplier_name: e.target.value }))}
-              placeholder="e.g., MEP Hire Ltd"
-              required
-            />
+          {/* Basic Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="supplier_name">Supplier/Company *</Label>
+              <Input
+                id="supplier_name"
+                value={formData.supplier_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, supplier_name: e.target.value }))}
+                placeholder={isDelivery ? "e.g., Travis Perkins" : "e.g., MEP Hire Ltd"}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="plot_location">Plot/Location</Label>
+              <Input
+                id="plot_location"
+                value={formData.plot_location}
+                onChange={(e) => setFormData(prev => ({ ...prev, plot_location: e.target.value }))}
+                placeholder="e.g., Level 2 - Plot 2.04"
+              />
+            </div>
           </div>
 
           {/* Description */}
@@ -257,33 +341,159 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder={formData.pod_type.includes('delivery') ? "e.g., 50x 110mm soil pipes, 20x 90° bends" : "Brief description of items delivered/collected"}
+              placeholder={isDelivery ? 
+                "e.g., 50x 110mm soil pipes, 20x 90° bends, fittings as per order #12345" : 
+                "Brief description of items collected/returned"
+              }
               required
               rows={3}
             />
           </div>
 
-          {/* Signed By */}
-          <div className="space-y-2">
-            <Label htmlFor="signed_by_name">Signed By</Label>
-            <Input
-              id="signed_by_name"
-              value={formData.signed_by_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, signed_by_name: e.target.value }))}
-              placeholder="Person who signed the POD"
-            />
+          {/* Conditional Fields Based on Category */}
+          {isDelivery ? (
+            <div className="space-y-4">
+              <h3 className="font-medium text-sm text-muted-foreground">DELIVERY DETAILS</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="order_reference">Order Reference</Label>
+                  <Input
+                    id="order_reference"
+                    value={formData.order_reference}
+                    onChange={(e) => setFormData(prev => ({ ...prev, order_reference: e.target.value }))}
+                    placeholder="e.g., PO-12345"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="delivery_method">Delivery Method</Label>
+                  <Select 
+                    value={formData.delivery_method} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, delivery_method: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="crane_offload">Crane Offload</SelectItem>
+                      <SelectItem value="forklift">Forklift</SelectItem>
+                      <SelectItem value="manual">Manual Handling</SelectItem>
+                      <SelectItem value="direct_drop">Direct Drop</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quantity_expected">Quantity Expected</Label>
+                  <Input
+                    id="quantity_expected"
+                    type="number"
+                    step="0.01"
+                    value={formData.quantity_expected}
+                    onChange={(e) => setFormData(prev => ({ ...prev, quantity_expected: e.target.value }))}
+                    placeholder="e.g., 50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quantity_received">Quantity Received</Label>
+                  <Input
+                    id="quantity_received"
+                    type="number"
+                    step="0.01"
+                    value={formData.quantity_received}
+                    onChange={(e) => setFormData(prev => ({ ...prev, quantity_received: e.target.value }))}
+                    placeholder="e.g., 48"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <h3 className="font-medium text-sm text-muted-foreground">COLLECTION DETAILS</h3>
+              <div className="space-y-2">
+                <Label htmlFor="hire_item_id">Hire Item Reference</Label>
+                <Input
+                  id="hire_item_id"
+                  value={formData.hire_item_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, hire_item_id: e.target.value }))}
+                  placeholder="Link to on-hire record"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Condition and Issues */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="condition_on_arrival">Condition</Label>
+                <Select 
+                  value={formData.condition_on_arrival} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, condition_on_arrival: value as 'good' | 'damaged' | 'incomplete' }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="good">Good Condition</SelectItem>
+                    <SelectItem value="damaged">Damaged</SelectItem>
+                    <SelectItem value="incomplete">Incomplete/Short</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.condition_on_arrival !== 'good' && (
+                <div className="space-y-2">
+                  <Label htmlFor="discrepancy_value">Discrepancy Value (£)</Label>
+                  <Input
+                    id="discrepancy_value"
+                    type="number"
+                    step="0.01"
+                    value={formData.discrepancy_value}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discrepancy_value: e.target.value }))}
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
+            </div>
+
+            {formData.condition_on_arrival !== 'good' && (
+              <div className="space-y-2">
+                <Label htmlFor="damage_notes">Damage/Issues Details *</Label>
+                <Textarea
+                  id="damage_notes"
+                  value={formData.damage_notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, damage_notes: e.target.value }))}
+                  placeholder="Describe the damage, shortage, or issues in detail"
+                  rows={3}
+                  required={formData.condition_on_arrival === 'damaged' || formData.condition_on_arrival === 'incomplete'}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Damage Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="damage_notes">Damage/Issues (if any)</Label>
-            <Textarea
-              id="damage_notes"
-              value={formData.damage_notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, damage_notes: e.target.value }))}
-              placeholder="Any damage or issues noted"
-              rows={2}
-            />
+          {/* Contact & Signature */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="signed_by_name">Signed By</Label>
+              <Input
+                id="signed_by_name"
+                value={formData.signed_by_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, signed_by_name: e.target.value }))}
+                placeholder="Person who signed the POD"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="supplier_contact">Supplier Contact</Label>
+              <Input
+                id="supplier_contact"
+                value={formData.supplier_contact}
+                onChange={(e) => setFormData(prev => ({ ...prev, supplier_contact: e.target.value }))}
+                placeholder="Driver/delivery contact"
+              />
+            </div>
           </div>
 
           {/* Submit Buttons */}
