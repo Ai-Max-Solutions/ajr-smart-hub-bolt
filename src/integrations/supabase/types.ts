@@ -1416,6 +1416,53 @@ export type Database = {
           },
         ]
       }
+      demo_completions: {
+        Row: {
+          assistance_needed: boolean | null
+          completed_at: string | null
+          demo_type: string
+          id: string
+          induction_id: string
+          notes: string | null
+          qr_code_scanned: string | null
+          scan_result: Json | null
+          time_taken_seconds: number | null
+          understanding_confirmed: boolean | null
+        }
+        Insert: {
+          assistance_needed?: boolean | null
+          completed_at?: string | null
+          demo_type: string
+          id?: string
+          induction_id: string
+          notes?: string | null
+          qr_code_scanned?: string | null
+          scan_result?: Json | null
+          time_taken_seconds?: number | null
+          understanding_confirmed?: boolean | null
+        }
+        Update: {
+          assistance_needed?: boolean | null
+          completed_at?: string | null
+          demo_type?: string
+          id?: string
+          induction_id?: string
+          notes?: string | null
+          qr_code_scanned?: string | null
+          scan_result?: Json | null
+          time_taken_seconds?: number | null
+          understanding_confirmed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_completions_induction_id_fkey"
+            columns: ["induction_id"]
+            isOneToOne: false
+            referencedRelation: "induction_progress"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_controllers: {
         Row: {
           access_level: string | null
@@ -2719,6 +2766,105 @@ export type Database = {
           },
         ]
       }
+      induction_materials: {
+        Row: {
+          content_url: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          language: string | null
+          material_type: string
+          metadata: Json | null
+          project_id: string | null
+          title: string
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          content_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          language?: string | null
+          material_type: string
+          metadata?: Json | null
+          project_id?: string | null
+          title: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          content_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          language?: string | null
+          material_type?: string
+          metadata?: Json | null
+          project_id?: string | null
+          title?: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: []
+      }
+      induction_progress: {
+        Row: {
+          completed_at: string | null
+          completion_percentage: number | null
+          created_at: string | null
+          current_step: number | null
+          device_info: Json | null
+          id: string
+          induction_type: string
+          language_preference: string | null
+          location: string | null
+          project_id: string | null
+          started_at: string | null
+          status: string
+          supervisor_id: string | null
+          total_steps: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completion_percentage?: number | null
+          created_at?: string | null
+          current_step?: number | null
+          device_info?: Json | null
+          id?: string
+          induction_type?: string
+          language_preference?: string | null
+          location?: string | null
+          project_id?: string | null
+          started_at?: string | null
+          status?: string
+          supervisor_id?: string | null
+          total_steps?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completion_percentage?: number | null
+          created_at?: string | null
+          current_step?: number | null
+          device_info?: Json | null
+          id?: string
+          induction_type?: string
+          language_preference?: string | null
+          location?: string | null
+          project_id?: string | null
+          started_at?: string | null
+          status?: string
+          supervisor_id?: string | null
+          total_steps?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       Job_Templates: {
         Row: {
           airtable_created_time: string | null
@@ -2812,6 +2958,59 @@ export type Database = {
           whalesync_postgres_id?: string
         }
         Relationships: []
+      }
+      learning_analytics: {
+        Row: {
+          ai_feedback: Json | null
+          completion_time_minutes: number | null
+          created_at: string | null
+          difficulty_areas: string[] | null
+          id: string
+          induction_id: string
+          language_used: string | null
+          learning_style: string | null
+          quiz_score: number | null
+          recommendations: Json | null
+          retry_count: number | null
+          user_id: string
+        }
+        Insert: {
+          ai_feedback?: Json | null
+          completion_time_minutes?: number | null
+          created_at?: string | null
+          difficulty_areas?: string[] | null
+          id?: string
+          induction_id: string
+          language_used?: string | null
+          learning_style?: string | null
+          quiz_score?: number | null
+          recommendations?: Json | null
+          retry_count?: number | null
+          user_id: string
+        }
+        Update: {
+          ai_feedback?: Json | null
+          completion_time_minutes?: number | null
+          created_at?: string | null
+          difficulty_areas?: string[] | null
+          id?: string
+          induction_id?: string
+          language_used?: string | null
+          learning_style?: string | null
+          quiz_score?: number | null
+          recommendations?: Json | null
+          retry_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_analytics_induction_id_fkey"
+            columns: ["induction_id"]
+            isOneToOne: false
+            referencedRelation: "induction_progress"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       Levels: {
         Row: {
@@ -4484,6 +4683,56 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      post_demo_quiz: {
+        Row: {
+          ai_explanation: string | null
+          correct_answer: string | null
+          created_at: string | null
+          difficulty_level: string | null
+          id: string
+          induction_id: string
+          is_correct: boolean | null
+          question_id: string
+          question_text: string
+          time_taken_seconds: number | null
+          user_answer: string | null
+        }
+        Insert: {
+          ai_explanation?: string | null
+          correct_answer?: string | null
+          created_at?: string | null
+          difficulty_level?: string | null
+          id?: string
+          induction_id: string
+          is_correct?: boolean | null
+          question_id: string
+          question_text: string
+          time_taken_seconds?: number | null
+          user_answer?: string | null
+        }
+        Update: {
+          ai_explanation?: string | null
+          correct_answer?: string | null
+          created_at?: string | null
+          difficulty_level?: string | null
+          id?: string
+          induction_id?: string
+          is_correct?: boolean | null
+          question_id?: string
+          question_text?: string
+          time_taken_seconds?: number | null
+          user_answer?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_demo_quiz_induction_id_fkey"
+            columns: ["induction_id"]
+            isOneToOne: false
+            referencedRelation: "induction_progress"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -8992,6 +9241,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      complete_induction_step: {
+        Args: {
+          p_induction_id: string
+          p_step_number: number
+          p_step_data?: Json
+        }
+        Returns: boolean
+      }
       complete_onboarding: {
         Args:
           | Record<PropertyKey, never>
@@ -9488,6 +9745,16 @@ export type Database = {
           p_notes?: string
         }
         Returns: Json
+      }
+      start_induction: {
+        Args: {
+          p_user_id: string
+          p_project_id?: string
+          p_supervisor_id?: string
+          p_language?: string
+          p_device_info?: Json
+        }
+        Returns: string
       }
       supersede_document_version: {
         Args: {
