@@ -17,6 +17,7 @@ import AIAssistant from "./pages/AIAssistant";
 import { Auth } from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import InductionDemo from "./pages/InductionDemo";
+import MobileDashboard from "./pages/MobileDashboard";
 
 const queryClient = new QueryClient();
 
@@ -102,6 +103,17 @@ function App() {
                   <RouteProtection fallbackPath="/auth">
                     <AppLayout>
                       <AIAssistant />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/mobile" 
+                element={
+                  <RouteProtection fallbackPath="/auth">
+                    <AppLayout>
+                      <MobileDashboard />
                     </AppLayout>
                   </RouteProtection>
                 } 
