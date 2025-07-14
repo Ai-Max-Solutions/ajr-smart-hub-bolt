@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,9 @@ interface Plot {
   actualhandoverdate: string;
   plotnotes: string;
   level: string;
+  // Additional properties for PlotDetailsCard compatibility
+  assignedTo?: string;
+  completedDate?: string;
 }
 
 interface Level {
@@ -48,32 +52,269 @@ interface LevelsAndPlotsProps {
   levels?: any[];
 }
 
-// Mock expanded plot data
+// Mock expanded plot data using correct property names
 const mockPlotsData: Record<string, Plot> = {
-  'B01': { id: 'B01', name: 'B01', status: 'completed', assignedTo: 'John Smith', completedDate: '2024-01-15' },
-  'B02': { id: 'B02', name: 'B02', status: 'completed', assignedTo: 'Mike Jones', completedDate: '2024-01-16' },
-  'B03': { id: 'B03', name: 'B03', status: 'in-progress', assignedTo: 'Sarah Wilson' },
-  'B04': { id: 'B04', name: 'B04', status: 'pending' },
-  'B05': { id: 'B05', name: 'B05', status: 'pending' },
-  'B06': { id: 'B06', name: 'B06', status: 'on-hold', assignedTo: 'Tom Brown' },
-  'G01': { id: 'G01', name: 'G01', status: 'completed', assignedTo: 'Emma Davis', completedDate: '2024-01-18' },
-  'G02': { id: 'G02', name: 'G02', status: 'completed', assignedTo: 'Luke Taylor', completedDate: '2024-01-19' },
-  'G03': { id: 'G03', name: 'G03', status: 'completed', assignedTo: 'Anna Clark', completedDate: '2024-01-20' },
-  'G04': { id: 'G04', name: 'G04', status: 'in-progress', assignedTo: 'Chris White' },
-  'G05': { id: 'G05', name: 'G05', status: 'in-progress', assignedTo: 'Jenny Brown' },
-  'G06': { id: 'G06', name: 'G06', status: 'pending' },
-  'G07': { id: 'G07', name: 'G07', status: 'pending' },
-  'G08': { id: 'G08', name: 'G08', status: 'pending' },
-  'F01': { id: 'F01', name: 'F01', status: 'completed', assignedTo: 'David Miller', completedDate: '2024-01-21' },
-  'F02': { id: 'F02', name: 'F02', status: 'completed', assignedTo: 'Lisa Johnson', completedDate: '2024-01-22' },
-  'F03': { id: 'F03', name: 'F03', status: 'completed', assignedTo: 'Mark Wilson', completedDate: '2024-01-23' },
-  'F04': { id: 'F04', name: 'F04', status: 'in-progress', assignedTo: 'Sophie Davis' },
-  'F05': { id: 'F05', name: 'F05', status: 'pending' },
-  'F06': { id: 'F06', name: 'F06', status: 'pending' },
-  'F07': { id: 'F07', name: 'F07', status: 'pending' },
-  'F08': { id: 'F08', name: 'F08', status: 'pending' },
-  'S01': { id: 'S01', name: 'S01', status: 'pending' },
-  'S02': { id: 'S02', name: 'S02', status: 'pending' }
+  'B01': { 
+    whalesync_postgres_id: 'plot-b01', 
+    plotnumber: 'B01', 
+    plotstatus: 'completed', 
+    completion_percentage: 100,
+    plannedhandoverdate: '2024-01-15',
+    actualhandoverdate: '2024-01-15',
+    plotnotes: 'Completed on schedule',
+    level: 'basement',
+    assignedTo: 'John Smith', 
+    completedDate: '2024-01-15' 
+  },
+  'B02': { 
+    whalesync_postgres_id: 'plot-b02', 
+    plotnumber: 'B02', 
+    plotstatus: 'completed', 
+    completion_percentage: 100,
+    plannedhandoverdate: '2024-01-16',
+    actualhandoverdate: '2024-01-16',
+    plotnotes: 'Completed on schedule',
+    level: 'basement',
+    assignedTo: 'Mike Jones', 
+    completedDate: '2024-01-16' 
+  },
+  'B03': { 
+    whalesync_postgres_id: 'plot-b03', 
+    plotnumber: 'B03', 
+    plotstatus: 'in-progress', 
+    completion_percentage: 65,
+    plannedhandoverdate: '2024-02-01',
+    actualhandoverdate: '',
+    plotnotes: 'In progress',
+    level: 'basement',
+    assignedTo: 'Sarah Wilson' 
+  },
+  'B04': { 
+    whalesync_postgres_id: 'plot-b04', 
+    plotnumber: 'B04', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-02-15',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'basement'
+  },
+  'B05': { 
+    whalesync_postgres_id: 'plot-b05', 
+    plotnumber: 'B05', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-02-20',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'basement'
+  },
+  'B06': { 
+    whalesync_postgres_id: 'plot-b06', 
+    plotnumber: 'B06', 
+    plotstatus: 'on-hold', 
+    completion_percentage: 30,
+    plannedhandoverdate: '2024-03-01',
+    actualhandoverdate: '',
+    plotnotes: 'On hold pending materials',
+    level: 'basement',
+    assignedTo: 'Tom Brown' 
+  },
+  'G01': { 
+    whalesync_postgres_id: 'plot-g01', 
+    plotnumber: 'G01', 
+    plotstatus: 'completed', 
+    completion_percentage: 100,
+    plannedhandoverdate: '2024-01-18',
+    actualhandoverdate: '2024-01-18',
+    plotnotes: 'Completed on schedule',
+    level: 'ground',
+    assignedTo: 'Emma Davis', 
+    completedDate: '2024-01-18' 
+  },
+  'G02': { 
+    whalesync_postgres_id: 'plot-g02', 
+    plotnumber: 'G02', 
+    plotstatus: 'completed', 
+    completion_percentage: 100,
+    plannedhandoverdate: '2024-01-19',
+    actualhandoverdate: '2024-01-19',
+    plotnotes: 'Completed on schedule',
+    level: 'ground',
+    assignedTo: 'Luke Taylor', 
+    completedDate: '2024-01-19' 
+  },
+  'G03': { 
+    whalesync_postgres_id: 'plot-g03', 
+    plotnumber: 'G03', 
+    plotstatus: 'completed', 
+    completion_percentage: 100,
+    plannedhandoverdate: '2024-01-20',
+    actualhandoverdate: '2024-01-20',
+    plotnotes: 'Completed on schedule',
+    level: 'ground',
+    assignedTo: 'Anna Clark', 
+    completedDate: '2024-01-20' 
+  },
+  'G04': { 
+    whalesync_postgres_id: 'plot-g04', 
+    plotnumber: 'G04', 
+    plotstatus: 'in-progress', 
+    completion_percentage: 80,
+    plannedhandoverdate: '2024-02-05',
+    actualhandoverdate: '',
+    plotnotes: 'Nearly complete',
+    level: 'ground',
+    assignedTo: 'Chris White' 
+  },
+  'G05': { 
+    whalesync_postgres_id: 'plot-g05', 
+    plotnumber: 'G05', 
+    plotstatus: 'in-progress', 
+    completion_percentage: 45,
+    plannedhandoverdate: '2024-02-10',
+    actualhandoverdate: '',
+    plotnotes: 'In progress',
+    level: 'ground',
+    assignedTo: 'Jenny Brown' 
+  },
+  'G06': { 
+    whalesync_postgres_id: 'plot-g06', 
+    plotnumber: 'G06', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-02-25',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'ground'
+  },
+  'G07': { 
+    whalesync_postgres_id: 'plot-g07', 
+    plotnumber: 'G07', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-03-05',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'ground'
+  },
+  'G08': { 
+    whalesync_postgres_id: 'plot-g08', 
+    plotnumber: 'G08', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-03-10',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'ground'
+  },
+  'F01': { 
+    whalesync_postgres_id: 'plot-f01', 
+    plotnumber: 'F01', 
+    plotstatus: 'completed', 
+    completion_percentage: 100,
+    plannedhandoverdate: '2024-01-21',
+    actualhandoverdate: '2024-01-21',
+    plotnotes: 'Completed on schedule',
+    level: 'first',
+    assignedTo: 'David Miller', 
+    completedDate: '2024-01-21' 
+  },
+  'F02': { 
+    whalesync_postgres_id: 'plot-f02', 
+    plotnumber: 'F02', 
+    plotstatus: 'completed', 
+    completion_percentage: 100,
+    plannedhandoverdate: '2024-01-22',
+    actualhandoverdate: '2024-01-22',
+    plotnotes: 'Completed on schedule',
+    level: 'first',
+    assignedTo: 'Lisa Johnson', 
+    completedDate: '2024-01-22' 
+  },
+  'F03': { 
+    whalesync_postgres_id: 'plot-f03', 
+    plotnumber: 'F03', 
+    plotstatus: 'completed', 
+    completion_percentage: 100,
+    plannedhandoverdate: '2024-01-23',
+    actualhandoverdate: '2024-01-23',
+    plotnotes: 'Completed on schedule',
+    level: 'first',
+    assignedTo: 'Mark Wilson', 
+    completedDate: '2024-01-23' 
+  },
+  'F04': { 
+    whalesync_postgres_id: 'plot-f04', 
+    plotnumber: 'F04', 
+    plotstatus: 'in-progress', 
+    completion_percentage: 70,
+    plannedhandoverdate: '2024-02-12',
+    actualhandoverdate: '',
+    plotnotes: 'In progress',
+    level: 'first',
+    assignedTo: 'Sophie Davis' 
+  },
+  'F05': { 
+    whalesync_postgres_id: 'plot-f05', 
+    plotnumber: 'F05', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-03-01',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'first'
+  },
+  'F06': { 
+    whalesync_postgres_id: 'plot-f06', 
+    plotnumber: 'F06', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-03-15',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'first'
+  },
+  'F07': { 
+    whalesync_postgres_id: 'plot-f07', 
+    plotnumber: 'F07', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-03-20',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'first'
+  },
+  'F08': { 
+    whalesync_postgres_id: 'plot-f08', 
+    plotnumber: 'F08', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-03-25',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'first'
+  },
+  'S01': { 
+    whalesync_postgres_id: 'plot-s01', 
+    plotnumber: 'S01', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-04-01',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'second'
+  },
+  'S02': { 
+    whalesync_postgres_id: 'plot-s02', 
+    plotnumber: 'S02', 
+    plotstatus: 'pending', 
+    completion_percentage: 0,
+    plannedhandoverdate: '2024-04-05',
+    actualhandoverdate: '',
+    plotnotes: 'Awaiting start',
+    level: 'second'
+  }
 };
 
 const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
@@ -209,7 +450,7 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
                       <SelectValue placeholder="Choose a level" />
                     </SelectTrigger>
                     <SelectContent>
-                      {levels.map((level) => (
+                      {levels?.map((level) => (
                         <SelectItem key={level.id} value={level.id}>
                           {level.name}
                         </SelectItem>
@@ -242,10 +483,19 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
 
       {/* Levels and Plots Tree Structure */}
       <div className="space-y-4">
-        {levels.map((level) => {
-          const plots = level.plots.map(plotId => mockPlotsData[plotId] || { id: plotId, name: plotId, status: 'pending' as const });
-          const completedPlots = plots.filter(p => p.status === 'completed').length;
-          const completionPercentage = Math.round((completedPlots / plots.length) * 100);
+        {levels?.map((level) => {
+          const plots = level.plots?.map((plotId: string) => mockPlotsData[plotId] || { 
+            whalesync_postgres_id: `plot-${plotId}`, 
+            plotnumber: plotId, 
+            plotstatus: 'pending',
+            completion_percentage: 0,
+            plannedhandoverdate: '',
+            actualhandoverdate: '',
+            plotnotes: '',
+            level: level.name
+          }) || [];
+          const completedPlots = plots.filter((p: Plot) => p.plotstatus === 'completed').length;
+          const completionPercentage = plots.length > 0 ? Math.round((completedPlots / plots.length) * 100) : 0;
           const isExpanded = expandedLevels[level.id] ?? true;
           
           return (
@@ -289,20 +539,20 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
                 <CollapsibleContent>
                   <CardContent className="pt-6">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                      {plots.map((plot) => (
+                      {plots.map((plot: Plot) => (
                         <Card 
-                          key={plot.id} 
+                          key={plot.whalesync_postgres_id} 
                           className="card-hover cursor-pointer"
                           onClick={() => handlePlotClick(plot)}
                         >
                           <CardContent className="pt-4 pb-4">
                             <div className="text-center space-y-2">
                               <div className="flex items-center justify-center space-x-2">
-                                {getStatusIcon(plot.status)}
-                                <span className="font-medium">{plot.name}</span>
+                                {getStatusIcon(plot.plotstatus)}
+                                <span className="font-medium">{plot.plotnumber}</span>
                               </div>
                               
-                              {getStatusBadge(plot.status)}
+                              {getStatusBadge(plot.plotstatus)}
                               
                               {plot.assignedTo && (
                                 <p className="text-xs text-muted-foreground">{plot.assignedTo}</p>
@@ -331,11 +581,13 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <PlotDetailsCard 
             plot={{
-              ...selectedPlot,
-              level: levels.find(level => level.plots.includes(selectedPlot.id))?.name || 'Unknown Level',
+              id: selectedPlot.whalesync_postgres_id,
+              name: selectedPlot.plotnumber,
+              status: selectedPlot.plotstatus as "completed" | "in-progress" | "pending" | "on-hold",
+              level: levels?.find(level => level.plots?.includes(selectedPlot.plotnumber))?.name || 'Unknown Level',
               workCategories: ['1st Fix', '2nd Fix'],
               estimatedCompletion: '2024-02-15',
-              notes: 'Standard electrical installation work'
+              notes: selectedPlot.plotnotes || 'Standard electrical installation work'
             }}
             userRole="pm"
             onClose={() => setSelectedPlot(null)}
@@ -343,7 +595,7 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
         </div>
       )}
 
-      {levels.length === 0 && (
+      {(!levels || levels.length === 0) && (
         <Card>
           <CardContent className="pt-6 text-center py-12">
             <Building className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
