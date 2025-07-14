@@ -11,10 +11,10 @@
     /* AJ Ryan Brand Colors - New Premium Design */
     --aj-navy-deep: 223 45% 11%; /* #1d1e3d - Dark Blue Primary */
     --aj-navy-light: 223 35% 20%; /* Lighter navy for panels */
-    --aj-yellow: 48 100% 56%; /* #ffcf21 - Strong Yellow */
+    --aj-yellow: 48 85% 45%; /* #d4a929 - More subdued yellow */
     --aj-yellow-bright: 48 100% 65%; /* Brighter yellow variant */
     --aj-blue-calm: 215 25% 70%; /* #acb7d1 - Calming Blue */
-    --aj-blue-accent: 203 100% 30%; /* #006198 - Blue Accent */
+    --aj-blue-accent: 203 85% 35%; /* #0a7cb8 - Strong but not overwhelming blue */
     
     /* AJ Ryan Premium Light Theme */
     --background: 0 0% 100%; /* Pure white background */
@@ -32,8 +32,8 @@
     --secondary: 210 20% 95%; /* Very light grey */
     --secondary-foreground: 223 45% 11%;
 
-    --accent: 48 100% 56%; /* Strong yellow accent */
-    --accent-foreground: 223 45% 11%; /* Navy text on yellow */
+    --accent: 203 85% 35%; /* Strong blue accent instead of bright yellow */
+    --accent-foreground: 0 0% 100%; /* White text on blue accent */
 
     --muted: 210 20% 95%; /* Light grey for muted elements */
     --muted-foreground: 215 25% 50%;
@@ -99,8 +99,8 @@
     --secondary: 223 35% 12%; /* Dark navy secondary */
     --secondary-foreground: 0 0% 95%; /* Near-white text for better contrast */
 
-    --accent: 48 100% 65%; /* Bright yellow accent */
-    --accent-foreground: 223 45% 11%; /* Navy text on yellow */
+    --accent: 203 85% 35%; /* Strong blue accent in dark mode */
+    --accent-foreground: 0 0% 100%; /* White text on blue accent */
 
     --muted: 223 35% 12%; /* Dark muted background */
     --muted-foreground: 0 0% 70%; /* Light grey for muted text */

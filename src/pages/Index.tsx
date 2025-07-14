@@ -122,8 +122,8 @@ const Index = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-poppins font-bold text-foreground">
-                {getWelcomeMessage(user.user_metadata?.full_name?.split(' ')[0] || user.user_metadata?.first_name || user.email?.split('@')[0] || 'User')}
+              <h2 className="text-2xl font-poppins font-bold text-aj-blue-accent">
+                {getPersonalizedGreeting(user.user_metadata?.first_name, user.email)}
               </h2>
               <p className="text-muted-foreground font-poppins mt-1">
                 Here's what's happening with your projects today
