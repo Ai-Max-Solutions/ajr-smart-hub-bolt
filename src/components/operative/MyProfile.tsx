@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   User, 
   Mail, 
@@ -34,13 +35,56 @@ const MyProfile = () => {
     cscsExpiry: ''
   });
 
-  const handleSave = () => {
-    // In a real app, this would make an API call to update the profile
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been successfully updated.",
-    });
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      if (!user?.user_id) {
+        toast({
+          title: "Error",
+          description: "User not found. Please try logging in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update user profile in the database
+      const { error } = await supabase
+        .from('Users')
+        .update({
+          firstname: formData.firstName,
+          lastname: formData.lastName,
+          fullname: `${formData.firstName} ${formData.lastName}`.trim(),
+          phone: formData.phone,
+          address: formData.address,
+          emergencycontact: formData.emergencyContact,
+          emergencyphone: formData.emergencyPhone,
+          cscscardnumber: formData.cscsNumber,
+          cscsexpirydate: formData.cscsExpiry || null,
+        })
+        .eq('whalesync_postgres_id', user.user_id);
+
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update profile. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been successfully updated.",
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancel = () => {
