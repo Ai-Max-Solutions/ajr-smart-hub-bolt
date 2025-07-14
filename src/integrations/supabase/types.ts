@@ -1048,6 +1048,135 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          mentioned_users: string[] | null
+          message_metadata: Json | null
+          message_type: string
+          reply_to_message_id: string | null
+          room_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          mentioned_users?: string[] | null
+          message_metadata?: Json | null
+          message_type?: string
+          reply_to_message_id?: string | null
+          room_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          mentioned_users?: string[] | null
+          message_metadata?: Json | null
+          message_type?: string
+          reply_to_message_id?: string | null
+          room_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chat_room_participants: {
+        Row: {
+          id: string
+          joined_at: string
+          last_read_at: string | null
+          muted_until: string | null
+          notification_settings: Json | null
+          role: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          muted_until?: string | null
+          notification_settings?: Json | null
+          role?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          muted_until?: string | null
+          notification_settings?: Json | null
+          role?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chat_rooms: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_participants: number | null
+          name: string
+          project_id: string | null
+          room_settings: Json | null
+          room_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_participants?: number | null
+          name: string
+          project_id?: string | null
+          room_settings?: Json | null
+          room_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_participants?: number | null
+          name?: string
+          project_id?: string | null
+          room_settings?: Json | null
+          room_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       compliance_dashboard_stats: {
         Row: {
           active_task_plans: number | null
@@ -1462,6 +1591,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      document_collaboration: {
+        Row: {
+          action_type: string
+          created_at: string
+          cursor_position: Json | null
+          document_id: string
+          document_type: string
+          id: string
+          is_active: boolean | null
+          last_activity: string
+          selection_range: Json | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          cursor_position?: Json | null
+          document_id: string
+          document_type: string
+          id?: string
+          is_active?: boolean | null
+          last_activity?: string
+          selection_range?: Json | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          cursor_position?: Json | null
+          document_id?: string
+          document_type?: string
+          id?: string
+          is_active?: boolean | null
+          last_activity?: string
+          selection_range?: Json | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       document_controllers: {
         Row: {
@@ -5594,6 +5765,42 @@ export type Database = {
           },
         ]
       }
+      push_notification_subscriptions: {
+        Row: {
+          auth_key: string
+          browser_info: Json | null
+          created_at: string
+          device_type: string | null
+          endpoint: string
+          id: string
+          is_active: boolean | null
+          p256dh_key: string
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          browser_info?: Json | null
+          created_at?: string
+          device_type?: string | null
+          endpoint: string
+          id?: string
+          is_active?: boolean | null
+          p256dh_key: string
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          browser_info?: Json | null
+          created_at?: string
+          device_type?: string | null
+          endpoint?: string
+          id?: string
+          is_active?: boolean | null
+          p256dh_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       qr_posters: {
         Row: {
           created_at: string
@@ -6309,6 +6516,54 @@ export type Database = {
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
+      }
+      real_time_notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          email_sent: boolean | null
+          expires_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          priority: string
+          push_sent: boolean | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          email_sent?: boolean | null
+          expires_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          priority?: string
+          push_sent?: boolean | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          email_sent?: boolean | null
+          expires_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          priority?: string
+          push_sent?: boolean | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       role_invitations: {
         Row: {
@@ -8723,6 +8978,39 @@ export type Database = {
           },
         ]
       }
+      user_presence: {
+        Row: {
+          current_location: string | null
+          custom_status: string | null
+          device_info: Json | null
+          id: string
+          last_seen: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_location?: string | null
+          custom_status?: string | null
+          device_info?: Json | null
+          id?: string
+          last_seen?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_location?: string | null
+          custom_status?: string | null
+          device_info?: Json | null
+          id?: string
+          last_seen?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_type_settings: {
         Row: {
           auto_deactivate_days: number | null
@@ -10034,6 +10322,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      cleanup_inactive_collaborations: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       cleanup_old_notifications: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -10111,6 +10403,16 @@ export type Database = {
       }
       convert_to_temporary_user: {
         Args: { p_user_id: string; p_days?: number; p_reason?: string }
+        Returns: Json
+      }
+      create_chat_room: {
+        Args: {
+          p_name: string
+          p_description?: string
+          p_room_type?: string
+          p_project_id?: string
+          p_participant_ids?: string[]
+        }
         Returns: Json
       }
       create_toolbox_talk: {
@@ -10534,6 +10836,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      send_real_time_notification: {
+        Args: {
+          p_user_ids: string[]
+          p_title: string
+          p_message: string
+          p_type?: string
+          p_priority?: string
+          p_action_url?: string
+          p_metadata?: Json
+        }
+        Returns: number
+      }
       send_role_invitation: {
         Args: { p_email: string; p_role: string; p_project_id?: string }
         Returns: string
@@ -10572,6 +10886,14 @@ export type Database = {
       update_user_names: {
         Args: { p_first_name?: string; p_last_name?: string }
         Returns: Json
+      }
+      update_user_presence: {
+        Args: {
+          p_status?: string
+          p_location?: string
+          p_custom_status?: string
+        }
+        Returns: boolean
       }
       upsert_qualification: {
         Args:
