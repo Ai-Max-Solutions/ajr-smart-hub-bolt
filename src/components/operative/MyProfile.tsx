@@ -9,6 +9,7 @@ import { useAuth } from '@/components/auth/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CSCSCardUploader } from '@/components/ui/cscs-card-uploader';
+import { ProfilePictureUploader } from '@/components/ui/profile-picture-uploader';
 import { 
   User, 
   Mail, 
@@ -36,7 +37,8 @@ const MyProfile = () => {
     emergencyPhone: '',
     cscsNumber: '',
     cscsExpiry: '',
-    cscsType: ''
+    cscsType: '',
+    avatarUrl: ''
   });
 
   // Fetch user profile data
@@ -76,7 +78,8 @@ const MyProfile = () => {
             emergencyPhone: data.emergencyphone || '',
             cscsNumber: data.cscscardnumber || '',
             cscsExpiry: data.cscsexpirydate || '',
-            cscsType: ''
+            cscsType: '',
+            avatarUrl: data.avatar_url || ''
           });
         }
       } catch (error) {
@@ -154,7 +157,8 @@ const MyProfile = () => {
         emergencyPhone: userProfile.emergencyphone || '',
         cscsNumber: userProfile.cscscardnumber || '',
         cscsExpiry: userProfile.cscsexpirydate || '',
-        cscsType: ''
+        cscsType: '',
+        avatarUrl: userProfile.avatar_url || ''
       });
     }
     setIsEditing(false);
@@ -212,12 +216,41 @@ const MyProfile = () => {
           )}
         </div>
 
+        {/* Profile Picture Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center space-x-2">
+              <User className="w-5 h-5" />
+              <span>Profile Picture</span>
+            </CardTitle>
+            <CardDescription>
+              Upload a selfie or let our AI create something amazing for you!
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProfilePictureUploader
+              currentAvatarUrl={formData.avatarUrl}
+              userName={`${formData.firstName} ${formData.lastName}`.trim()}
+              userRole={userProfile?.role || 'Site Operative'}
+              onAvatarUpdate={(url) => setFormData({ ...formData, avatarUrl: url })}
+            />
+          </CardContent>
+        </Card>
+
         {/* Profile Overview */}
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center">
-                <User className="w-8 h-8 text-accent" />
+              <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center overflow-hidden">
+                {formData.avatarUrl ? (
+                  <img 
+                    src={formData.avatarUrl} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-8 h-8 text-accent" />
+                )}
               </div>
               <div>
                 <CardTitle className="text-2xl">

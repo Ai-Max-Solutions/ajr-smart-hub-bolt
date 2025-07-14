@@ -1,0 +1,308 @@
+import React, { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthContext';
+import { 
+  Upload, 
+  Sparkles, 
+  Loader2, 
+  Camera, 
+  User,
+  Shuffle,
+  Download
+} from 'lucide-react';
+
+interface ProfilePictureUploaderProps {
+  currentAvatarUrl?: string;
+  userName?: string;
+  userRole?: string;
+  onAvatarUpdate: (url: string) => void;
+}
+
+export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
+  currentAvatarUrl,
+  userName,
+  userRole,
+  onAvatarUpdate
+}) => {
+  const { user } = useAuth();
+  const [isUploading, setIsUploading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiMood, setAiMood] = useState<string>('');
+  const [aiPersonality, setAiPersonality] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image file (PNG, JPG, GIF, WebP).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Create file path with user ID
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update user's avatar URL in database
+      const { error: updateError } = await supabase
+        .from('Users')
+        .update({ avatar_url: publicUrl })
+        .eq('supabase_auth_id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      onAvatarUpdate(publicUrl);
+      toast({
+        title: "Profile Picture Updated",
+        description: "Your new profile picture has been uploaded successfully!",
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload your profile picture. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleGenerateAI = async () => {
+    if (!user) return;
+
+    setIsGenerating(true);
+    setAiMood('');
+    setAiPersonality('');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-profile-generator', {
+        body: {
+          userName: userName || '',
+          userRole: userRole || 'Site Worker',
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.imageUrl) {
+        // Set the AI mood and personality for display
+        setAiMood(data.aiMood);
+        setAiPersonality(data.aiPersonality);
+
+        // Convert image URL to blob and upload to our storage
+        const response = await fetch(data.imageUrl);
+        const blob = await response.blob();
+        
+        const fileName = `${user.id}/ai-avatar-${Date.now()}.png`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, blob, {
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+        // Update user's avatar URL in database
+        const { error: updateError } = await supabase
+          .from('Users')
+          .update({ avatar_url: publicUrl })
+          .eq('supabase_auth_id', user.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        onAvatarUpdate(publicUrl);
+        
+        toast({
+          title: "AI Avatar Generated! 🎨",
+          description: data.aiPersonality || "Your new AI-generated profile picture is ready!",
+        });
+      }
+    } catch (error) {
+      console.error('Error generating AI avatar:', error);
+      toast({
+        title: "Generation Failed",
+        description: "The AI got a bit too creative this time! Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const getUserInitials = () => {
+    if (userName) {
+      return userName.split(' ')
+        .map(name => name.charAt(0))
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return 'U';
+  };
+
+  return (
+    <Card className="w-full">
+      <CardContent className="p-6">
+        <div className="flex flex-col items-center space-y-6">
+          {/* Avatar Display */}
+          <div className="relative">
+            <Avatar className="w-32 h-32 border-4 border-border">
+              <AvatarImage 
+                src={currentAvatarUrl} 
+                alt="Profile picture"
+                className="object-cover"
+              />
+              <AvatarFallback className="text-2xl bg-accent/20 text-accent">
+                {getUserInitials()}
+              </AvatarFallback>
+            </Avatar>
+            
+            {/* Camera icon overlay */}
+            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-accent rounded-full flex items-center justify-center border-4 border-background">
+              <Camera className="w-5 h-5 text-accent-foreground" />
+            </div>
+          </div>
+
+          {/* AI Mood Display */}
+          {aiMood && aiPersonality && (
+            <div className="text-center p-4 bg-accent/10 rounded-lg border-2 border-accent/20">
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <Sparkles className="w-4 h-4 text-accent" />
+                <span className="font-medium text-accent">AI Mood: {aiMood}</span>
+              </div>
+              <p className="text-sm text-muted-foreground italic">
+                "{aiPersonality}"
+              </p>
+            </div>
+          )}
+
+          {/* Upload Options */}
+          <div className="w-full space-y-3">
+            {/* File Upload Button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading || isGenerating}
+              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Your Selfie
+                </>
+              )}
+            </Button>
+
+            {/* AI Generation Button */}
+            <Button
+              onClick={handleGenerateAI}
+              disabled={isUploading || isGenerating}
+              variant="outline"
+              className="w-full border-accent/50 hover:bg-accent/10"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  AI is being creative...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Let AI Surprise Me! ✨
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Fun Helper Text */}
+          <div className="text-center max-w-md">
+            <p className="text-sm text-muted-foreground mb-2">
+              Can't be bothered with a selfie? No worries! 
+            </p>
+            <p className="text-xs text-muted-foreground italic">
+              Our AI is feeling particularly {isGenerating ? 'creative' : 'cheeky'} today and might surprise you! 
+              Sometimes it goes full professional, sometimes it gets... interesting. 😄
+            </p>
+          </div>
+
+          {/* Technical Details */}
+          <div className="text-xs text-muted-foreground text-center">
+            <p>Supports PNG, JPG, GIF, WebP • Max 5MB</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};

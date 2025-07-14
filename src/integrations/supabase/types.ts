@@ -9293,6 +9293,7 @@ export type Database = {
           airtable_record_id: string | null
           auth_provider: string | null
           availablefromdate: string | null
+          avatar_url: string | null
           avg_weekly_hours: number | null
           basehourlyrate: number | null
           calloutrate: number | null
@@ -9368,6 +9369,7 @@ export type Database = {
           airtable_record_id?: string | null
           auth_provider?: string | null
           availablefromdate?: string | null
+          avatar_url?: string | null
           avg_weekly_hours?: number | null
           basehourlyrate?: number | null
           calloutrate?: number | null
@@ -9443,6 +9445,7 @@ export type Database = {
           airtable_record_id?: string | null
           auth_provider?: string | null
           availablefromdate?: string | null
+          avatar_url?: string | null
           avg_weekly_hours?: number | null
           basehourlyrate?: number | null
           calloutrate?: number | null
