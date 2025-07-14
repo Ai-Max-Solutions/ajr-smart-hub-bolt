@@ -2518,6 +2518,85 @@ export type Database = {
           },
         ]
       }
+      offline_prompt_cache: {
+        Row: {
+          cached_input: string
+          cached_output: string
+          created_at: string | null
+          device_fingerprint: string | null
+          id: string
+          is_synced: boolean | null
+          synced_at: string | null
+          template_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cached_input: string
+          cached_output: string
+          created_at?: string | null
+          device_fingerprint?: string | null
+          id?: string
+          is_synced?: boolean | null
+          synced_at?: string | null
+          template_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cached_input?: string
+          cached_output?: string
+          created_at?: string | null
+          device_fingerprint?: string | null
+          id?: string
+          is_synced?: boolean | null
+          synced_at?: string | null
+          template_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_prompt_cache_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "smart_prompt_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offline_prompt_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "offline_prompt_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "offline_prompt_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "offline_prompt_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "offline_prompt_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       on_hire: {
         Row: {
           actual_end_date: string | null
@@ -4725,6 +4804,290 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_prompt_refinements: {
+        Row: {
+          approved_by: string | null
+          created_at: string | null
+          id: string
+          improvement_reason: string | null
+          is_active: boolean | null
+          original_prompt: string
+          performance_gain: number | null
+          refined_prompt: string
+          template_id: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          improvement_reason?: string | null
+          is_active?: boolean | null
+          original_prompt: string
+          performance_gain?: number | null
+          refined_prompt: string
+          template_id?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          improvement_reason?: string | null
+          is_active?: boolean | null
+          original_prompt?: string
+          performance_gain?: number | null
+          refined_prompt?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_prompt_refinements_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_refinements_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_refinements_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_refinements_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_refinements_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_refinements_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "smart_prompt_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_prompt_templates: {
+        Row: {
+          avg_rating: number | null
+          category: string
+          context_fields: Json | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          estimated_tokens: number | null
+          example_input: string | null
+          id: string
+          is_active: boolean | null
+          output_format: string | null
+          priority: number | null
+          requires_context: boolean | null
+          role_scopes: string[]
+          success_rate: number | null
+          system_prompt: string
+          title: string
+          updated_at: string | null
+          usage_count: number | null
+          variables: Json | null
+        }
+        Insert: {
+          avg_rating?: number | null
+          category?: string
+          context_fields?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          estimated_tokens?: number | null
+          example_input?: string | null
+          id?: string
+          is_active?: boolean | null
+          output_format?: string | null
+          priority?: number | null
+          requires_context?: boolean | null
+          role_scopes: string[]
+          success_rate?: number | null
+          system_prompt: string
+          title: string
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Update: {
+          avg_rating?: number | null
+          category?: string
+          context_fields?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          estimated_tokens?: number | null
+          example_input?: string | null
+          id?: string
+          is_active?: boolean | null
+          output_format?: string | null
+          priority?: number | null
+          requires_context?: boolean | null
+          role_scopes?: string[]
+          success_rate?: number | null
+          system_prompt?: string
+          title?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_prompt_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      smart_prompt_usage: {
+        Row: {
+          context_used: Json | null
+          executed_at: string | null
+          execution_time_ms: number | null
+          id: string
+          input_text: string | null
+          mobile_device: boolean | null
+          offline_mode: boolean | null
+          output_text: string | null
+          refinement_count: number | null
+          template_id: string | null
+          tokens_used: number | null
+          user_feedback: string | null
+          user_id: string | null
+          user_rating: number | null
+          voice_input: boolean | null
+          was_refined: boolean | null
+        }
+        Insert: {
+          context_used?: Json | null
+          executed_at?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          input_text?: string | null
+          mobile_device?: boolean | null
+          offline_mode?: boolean | null
+          output_text?: string | null
+          refinement_count?: number | null
+          template_id?: string | null
+          tokens_used?: number | null
+          user_feedback?: string | null
+          user_id?: string | null
+          user_rating?: number | null
+          voice_input?: boolean | null
+          was_refined?: boolean | null
+        }
+        Update: {
+          context_used?: Json | null
+          executed_at?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          input_text?: string | null
+          mobile_device?: boolean | null
+          offline_mode?: boolean | null
+          output_text?: string | null
+          refinement_count?: number | null
+          template_id?: string | null
+          tokens_used?: number | null
+          user_feedback?: string | null
+          user_id?: string | null
+          user_rating?: number | null
+          voice_input?: boolean | null
+          was_refined?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_prompt_usage_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "smart_prompt_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "smart_prompt_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       smart_schedules: {
         Row: {
           auto_scheduled: boolean | null
@@ -6126,6 +6489,44 @@ export type Database = {
           },
         ]
       }
+      voice_commands: {
+        Row: {
+          command_phrase: string
+          confidence_threshold: number | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          role_scopes: string[]
+          template_id: string | null
+        }
+        Insert: {
+          command_phrase: string
+          confidence_threshold?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          role_scopes: string[]
+          template_id?: string | null
+        }
+        Update: {
+          command_phrase?: string
+          confidence_threshold?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          role_scopes?: string[]
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_commands_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "smart_prompt_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_tracking_history: {
         Row: {
           action: string | null
@@ -6820,6 +7221,15 @@ export type Database = {
         }
         Returns: Json
       }
+      cache_prompt_offline: {
+        Args: {
+          p_template_id: string
+          p_input: string
+          p_output: string
+          p_device_fingerprint?: string
+        }
+        Returns: boolean
+      }
       calculate_approval_priority: {
         Args: { p_item_type: string; p_item_id: string }
         Returns: number
@@ -6984,6 +7394,16 @@ export type Database = {
         Args: { p_email: string }
         Returns: Json
       }
+      execute_smart_prompt: {
+        Args: {
+          p_template_id: string
+          p_input_text: string
+          p_context?: Json
+          p_mobile_device?: boolean
+          p_voice_input?: boolean
+        }
+        Returns: Json
+      }
       get_admin_pending_actions: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -7106,6 +7526,20 @@ export type Database = {
           role: string
           user_count: number
           percentage: number
+        }[]
+      }
+      get_role_smart_prompts: {
+        Args: { p_role: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          category: string
+          priority: number
+          usage_count: number
+          avg_rating: number
+          requires_context: boolean
+          context_fields: Json
         }[]
       }
       get_task_plan_analytics: {

@@ -15,12 +15,16 @@ import {
 } from 'lucide-react';
 import { AIChat } from './AIChat';
 import { VoiceInterface } from './VoiceInterface';
+import { SmartPromptLibrary } from './SmartPromptLibrary';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useMobileOptimization } from '@/hooks/useMobileOptimization';
 
 export const AIDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState('prompts');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [lastPromptResponse, setLastPromptResponse] = useState<string>('');
   const { profile: userProfile } = useUserProfile();
+  const { mobileFeatures, isOneHandedMode } = useMobileOptimization();
 
   const getRoleFeatures = (role: string) => {
     const features = {
@@ -87,7 +91,7 @@ export const AIDashboard: React.FC = () => {
   const roleFeatures = getRoleFeatures(userProfile.role);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className={`container mx-auto p-6 space-y-6 ${isOneHandedMode ? 'one-handed-mode' : ''}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -95,6 +99,18 @@ export const AIDashboard: React.FC = () => {
           <p className="text-muted-foreground">
             Intelligent support tailored for your role and responsibilities
           </p>
+          {mobileFeatures.deviceType === 'mobile' && (
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="secondary" className="text-xs">
+                📱 Mobile Optimized
+              </Badge>
+              {mobileFeatures.isOffline && (
+                <Badge variant="outline" className="text-xs text-orange-600">
+                  Offline Mode
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
         <Badge variant="outline" className={getRoleColor(userProfile.role)}>
           {userProfile.role}
@@ -120,19 +136,38 @@ export const AIDashboard: React.FC = () => {
 
       {/* AI Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className={`grid w-full ${mobileFeatures.deviceType === 'mobile' ? 'grid-cols-3' : 'grid-cols-3'}`}>
+          <TabsTrigger value="prompts" className="flex items-center gap-2">
+            <div className="relative">
+              <MessageCircle className="h-4 w-4" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-gradient-to-r from-primary to-primary-foreground rounded-full animate-pulse" />
+            </div>
+            {mobileFeatures.deviceType === 'mobile' ? 'Prompts' : 'Smart Prompts'}
+          </TabsTrigger>
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
-            Text Chat
+            {mobileFeatures.deviceType === 'mobile' ? 'Chat' : 'Text Chat'}
           </TabsTrigger>
           <TabsTrigger value="voice" className="flex items-center gap-2">
             <Mic className="h-4 w-4" />
-            Voice Assistant
+            {mobileFeatures.deviceType === 'mobile' ? 'Voice' : 'Voice Assistant'}
             {isSpeaking && (
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             )}
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="prompts" className="mt-6">
+          <SmartPromptLibrary 
+            onPromptExecuted={(response) => {
+              setLastPromptResponse(response);
+              // Optionally switch to chat tab to show full response
+              if (response.length > 500) {
+                setActiveTab('chat');
+              }
+            }}
+          />
+        </TabsContent>
 
         <TabsContent value="chat" className="mt-6">
           <AIChat isVoiceMode={false} />
