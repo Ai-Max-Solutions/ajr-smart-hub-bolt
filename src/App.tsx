@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { RouteProtection } from "@/components/auth/RouteProtection";
+import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import DocumentStatusChecker from "./pages/DocumentStatusChecker";
 import OnboardingFlow from "./pages/OnboardingFlow";
@@ -15,6 +16,7 @@ import DirectorDashboard from "./pages/DirectorDashboard";
 import AIAssistant from "./pages/AIAssistant";
 import { Auth } from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import InductionDemo from "./pages/InductionDemo";
 
 const queryClient = new QueryClient();
 
@@ -27,57 +29,84 @@ function App() {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
+              {/* Public routes without navigation */}
               <Route path="/auth" element={<Auth />} />
               <Route path="/check/:docId" element={<DocumentStatusChecker />} />
+              <Route path="/demo/*" element={<InductionDemo />} />
+              
+              {/* Protected routes with navigation */}
+              <Route path="/" element={
+                <AppLayout>
+                  <Index />
+                </AppLayout>
+              } />
+              
               <Route 
                 path="/onboarding/*" 
                 element={
                   <RouteProtection requiredResource="onboarding">
-                    <OnboardingFlow />
+                    <AppLayout>
+                      <OnboardingFlow />
+                    </AppLayout>
                   </RouteProtection>
                 } 
               />
+              
               <Route 
                 path="/operative/*" 
                 element={
                   <RouteProtection requiredResource="my_dashboard">
-                    <OperativePortal />
+                    <AppLayout>
+                      <OperativePortal />
+                    </AppLayout>
                   </RouteProtection>
                 } 
               />
+              
               <Route 
                 path="/projects/*" 
                 element={
                   <RouteProtection requiredRole={['pm', 'admin', 'supervisor']}>
-                    <ProjectsManagement />
+                    <AppLayout>
+                      <ProjectsManagement />
+                    </AppLayout>
                   </RouteProtection>
                 } 
               />
+              
               <Route 
                 path="/admin" 
                 element={
                   <RouteProtection requiredRole={['admin', 'dpo']}>
-                    <AdminDashboard />
+                    <AppLayout>
+                      <AdminDashboard />
+                    </AppLayout>
                   </RouteProtection>
                 } 
               />
+              
               <Route 
                 path="/director" 
                 element={
                   <RouteProtection requiredRole={['director', 'admin', 'dpo']}>
-                    <DirectorDashboard />
+                    <AppLayout>
+                      <DirectorDashboard />
+                    </AppLayout>
                   </RouteProtection>
                 } 
               />
+              
               <Route 
                 path="/ai-assistant" 
                 element={
                   <RouteProtection fallbackPath="/auth">
-                    <AIAssistant />
+                    <AppLayout>
+                      <AIAssistant />
+                    </AppLayout>
                   </RouteProtection>
                 } 
               />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

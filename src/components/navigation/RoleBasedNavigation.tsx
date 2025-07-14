@@ -1,276 +1,315 @@
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { usePermissions, PermissionGate, DashboardGate } from '@/components/auth/RouteProtection';
+import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { 
-  Shield, 
-  Users, 
   Building2, 
-  FileText, 
-  Calendar, 
+  LayoutDashboard, 
   Clock, 
+  Brain, 
+  Shield, 
   Settings, 
-  UserCheck,
-  HardHat,
-  ClipboardList,
-  TrendingUp,
-  Database,
-  Lock,
-  MessageCircle
-} from 'lucide-react';
+  FileText, 
+  Users, 
+  ChevronLeft, 
+  ChevronRight,
+  Menu,
+  X,
+  Home,
+  MapPin,
+  Zap,
+  BarChart3
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AJIcon } from "@/components/ui/aj-icon";
+import { Badge } from "@/components/ui/badge";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface NavigationItem {
-  title: string;
-  description: string;
+  id: string;
+  label: string;
   path: string;
   icon: any;
-  resource?: string;
-  action?: string;
-  roles?: string[];
-  dashboard?: string;
-  variant?: 'default' | 'admin' | 'director' | 'pm';
+  roles: string[];
+  badge?: string;
+  description?: string;
 }
 
-export const RoleBasedNavigation = () => {
-  const navigate = useNavigate();
+const navigationItems: NavigationItem[] = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    path: "/",
+    icon: LayoutDashboard,
+    roles: ["all"],
+    description: "Overview and key metrics"
+  },
+  {
+    id: "operative",
+    label: "My Portal",
+    path: "/operative",
+    icon: Home,
+    roles: ["operative", "all"],
+    description: "Personal dashboard and tasks"
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    path: "/projects",
+    icon: Building2,
+    roles: ["pm", "admin", "supervisor", "director"],
+    description: "Project management and tracking"
+  },
+  {
+    id: "timesheets",
+    label: "Timesheets",
+    path: "/operative/timesheets",
+    icon: Clock,
+    roles: ["operative", "pm", "admin", "supervisor"],
+    description: "Time tracking and approvals"
+  },
+  {
+    id: "ai-assistant",
+    label: "AI Assistant",
+    path: "/ai-assistant",
+    icon: Brain,
+    roles: ["all"],
+    badge: "AI",
+    description: "Smart assistant and automation"
+  },
+  {
+    id: "evidence-chain",
+    label: "Evidence Chain",
+    path: "/operative/evidence",
+    icon: Shield,
+    roles: ["operative", "pm", "admin", "supervisor"],
+    description: "Document trail and compliance"
+  },
+  {
+    id: "compliance",
+    label: "Compliance",
+    path: "/operative/compliance",
+    icon: FileText,
+    roles: ["operative", "pm", "admin", "supervisor"],
+    description: "Safety and regulatory compliance"
+  },
+  {
+    id: "admin",
+    label: "Admin Panel",
+    path: "/admin",
+    icon: Settings,
+    roles: ["admin", "dpo"],
+    badge: "Admin",
+    description: "System administration"
+  },
+  {
+    id: "director",
+    label: "Director Dashboard",
+    path: "/director",
+    icon: BarChart3,
+    roles: ["director", "admin", "dpo"],
+    badge: "Executive",
+    description: "High-level analytics and insights"
+  }
+];
+
+interface RoleBasedNavigationProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  isMobile?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function RoleBasedNavigation({ 
+  collapsed = false, 
+  onToggleCollapse, 
+  isMobile = false,
+  isOpen = false,
+  onClose 
+}: RoleBasedNavigationProps) {
   const location = useLocation();
-  const { user, userRole, hasPermission, canAccessDashboard } = usePermissions();
+  const { profile } = useUserProfile();
+  const userRole = profile?.role || "operative";
 
-  const navigationItems: NavigationItem[] = [
-    // AI Assistant - Available to all roles
-    {
-      title: 'AI Assistant',
-      description: 'Chat with your intelligent role-based AI assistant',
-      path: '/ai-assistant',
-      icon: MessageCircle,
-      variant: 'default'
-    },
-    // Core operational dashboards
-    {
-      title: 'Operative Portal',
-      description: 'Access your personal dashboard, timesheets, and documents',
-      path: '/operative',
-      icon: HardHat,
-      resource: 'my_dashboard',
-      roles: ['operative', 'supervisor', 'pm', 'admin', 'dpo'],
-      variant: 'default'
-    },
-    {
-      title: 'Project Management',
-      description: 'Manage projects, teams, and site operations',
-      path: '/projects',
-      icon: Building2,
-      resource: 'project_data',
-      roles: ['pm', 'admin', 'dpo'],
-      variant: 'pm'
-    },
-    {
-      title: 'Director Dashboard',
-      description: 'Executive overview of all projects and company metrics',
-      path: '/director',
-      icon: TrendingUp,
-      dashboard: 'director_dashboard',
-      roles: ['director', 'admin', 'dpo'],
-      variant: 'director'
-    },
-    {
-      title: 'Admin Dashboard',
-      description: 'User management, security, and system administration',
-      path: '/admin',
-      icon: Shield,
-      dashboard: 'admin_dashboard',
-      roles: ['admin', 'dpo'],
-      variant: 'admin'
-    },
+  // Filter navigation items based on user role
+  const filteredNavItems = navigationItems.filter(item => 
+    item.roles.includes("all") || item.roles.includes(userRole)
+  );
 
-    // Specific functional areas
-    {
-      title: 'Onboarding',
-      description: 'Complete your onboarding process and documentation',
-      path: '/onboarding',
-      icon: UserCheck,
-      resource: 'onboarding',
-      roles: ['operative', 'supervisor', 'pm', 'admin', 'dpo'],
-      variant: 'default'
-    },
-    {
-      title: 'Document Checker',
-      description: 'Verify document status and compliance',
-      path: '/check',
-      icon: FileText,
-      variant: 'default'
-    }
-  ];
-
-  const getVariantStyles = (variant: string) => {
-    switch (variant) {
-      case 'admin':
-        return 'border-destructive/20 bg-destructive/5 hover:border-destructive/40 hover:bg-destructive/10';
-      case 'director':
-        return 'border-primary/20 bg-primary/5 hover:border-primary/40 hover:bg-primary/10';
-      case 'pm':
-        return 'border-accent/20 bg-accent/5 hover:border-accent/40 hover:bg-accent/10';
-      default:
-        return 'border-border hover:border-primary/20 hover:bg-muted/50';
-    }
+  const isActivePath = (path: string) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
   };
 
-  const getIconColor = (variant: string) => {
-    switch (variant) {
-      case 'admin':
-        return 'text-destructive';
-      case 'director':
-        return 'text-primary';
-      case 'pm':
-        return 'text-accent';
-      default:
-        return 'text-muted-foreground';
-    }
-  };
+  const getNavLinkClass = (path: string) => cn(
+    "flex items-center gap-3 px-4 py-3 rounded-lg transition-aj duration-aj-smooth font-poppins font-medium group relative",
+    "hover:bg-accent hover:text-accent-foreground hover:shadow-card hover:-translate-y-0.5",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+    isActivePath(path) 
+      ? "bg-accent text-accent-foreground shadow-card" 
+      : "text-muted-foreground hover:text-foreground",
+    isMobile ? "text-body" : collapsed ? "justify-center" : "text-body"
+  );
 
-  const isAccessible = (item: NavigationItem) => {
-    // Check role-based access
-    if (item.roles && !item.roles.includes(userRole)) {
-      return false;
-    }
-
-    // Check resource permission
-    if (item.resource && !hasPermission(item.resource, item.action || 'read')) {
-      return false;
-    }
-
-    // Check dashboard access
-    if (item.dashboard && !canAccessDashboard(item.dashboard)) {
-      return false;
-    }
-
-    return true;
-  };
-
-  const accessibleItems = navigationItems.filter(isAccessible);
-
-  return (
-    <div className="space-y-6">
-      {/* User Role Badge */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-primary">Available Dashboards</h2>
-          <p className="text-muted-foreground">Select the area you want to access</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="capitalize">
-            <Lock className="w-3 h-3 mr-1" />
-            {userRole}
-          </Badge>
-        </div>
+  const navContent = (
+    <>
+      {/* Header */}
+      <div className={cn(
+        "flex items-center gap-3 p-lg border-b border-border",
+        isMobile ? "justify-between" : collapsed ? "justify-center" : "justify-between"
+      )}>
+        {(!collapsed || isMobile) && (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-brand rounded-lg flex items-center justify-center shadow-elevated">
+              <Building2 className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-body font-poppins font-bold text-foreground">AJ Ryan</h2>
+              <p className="text-label text-muted-foreground font-poppins">SmartWork Hub</p>
+            </div>
+          </div>
+        )}
+        
+        {isMobile ? (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-6 w-6" />
+          </Button>
+        ) : (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onToggleCollapse}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          </Button>
+        )}
       </div>
 
-      {/* Navigation Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {accessibleItems.map((item) => {
-          const Icon = item.icon;
-          const isCurrentPath = location.pathname.startsWith(item.path);
-          
-          return (
-            <Card 
-              key={item.path}
-              className={`card-hover cursor-pointer transition-all ${getVariantStyles(item.variant || 'default')} ${
-                isCurrentPath ? 'ring-2 ring-primary' : ''
-              }`}
-              onClick={() => navigate(item.path)}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-4">
-                  <div className={`p-3 rounded-lg bg-background border ${getIconColor(item.variant || 'default')}`}>
-                    <Icon className="w-6 h-6" />
+      {/* Navigation Items */}
+      <nav className="flex-1 p-lg space-y-2">
+        {filteredNavItems.map((item) => (
+          <NavLink
+            key={item.id}
+            to={item.path}
+            className={getNavLinkClass(item.path)}
+            onClick={isMobile ? onClose : undefined}
+          >
+            <AJIcon 
+              icon={item.icon} 
+              variant={isActivePath(item.path) ? "navy" : "yellow"} 
+              size="default"
+              className="shrink-0"
+            />
+            
+            {(!collapsed || isMobile) && (
+              <>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate">{item.label}</span>
+                    {item.badge && (
+                      <Badge variant="secondary" className="text-xs px-2 py-0 h-5">
+                        {item.badge}
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-foreground mb-2">
-                      {item.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm mb-3">
+                  {item.description && (
+                    <p className="text-xs text-muted-foreground mt-1 truncate">
                       {item.description}
                     </p>
-                    <Button 
-                      variant={isCurrentPath ? "default" : "outline"} 
-                      size="sm"
-                      className="w-full"
-                    >
-                      {isCurrentPath ? 'Current' : 'Access'}
-                    </Button>
-                  </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+              </>
+            )}
+            
+            {/* Tooltip for collapsed state */}
+            {collapsed && !isMobile && (
+              <div className="absolute left-full ml-2 px-3 py-2 bg-card border border-border rounded-lg shadow-elevated opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 min-w-[200px]">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{item.label}</span>
+                  {item.badge && (
+                    <Badge variant="secondary" className="text-xs">
+                      {item.badge}
+                    </Badge>
+                  )}
+                </div>
+                {item.description && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {item.description}
+                  </p>
+                )}
+              </div>
+            )}
+          </NavLink>
+        ))}
+      </nav>
 
-      {/* Role-specific information */}
-      <div className="mt-8 p-4 bg-muted/30 rounded-lg border">
-        <div className="flex items-center gap-2 mb-2">
-          <Settings className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium text-sm">Role Permissions</span>
-        </div>
-        <div className="text-sm text-muted-foreground">
-          {userRole === 'operative' && (
-            <p>You have access to your personal data, timesheets, and assigned project documents.</p>
-          )}
-          {userRole === 'supervisor' && (
-            <p>You can manage your team's data and approve activities for your assigned projects.</p>
-          )}
-          {userRole === 'pm' && (
-            <p>You have full project management access for your assigned projects, including team management and reporting.</p>
-          )}
-          {userRole === 'director' && (
-            <p>You have read-only access to all company data for strategic oversight and reporting.</p>
-          )}
-          {(userRole === 'admin' || userRole === 'dpo') && (
-            <p>You have full system access including user management, security controls, and data administration.</p>
-          )}
-        </div>
+      {/* Footer */}
+      <div className={cn(
+        "p-lg border-t border-border",
+        collapsed && !isMobile ? "text-center" : ""
+      )}>
+        {(!collapsed || isMobile) && (
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground font-poppins">
+              Role: <span className="text-accent font-medium capitalize">{userRole}</span>
+            </p>
+          </div>
+        )}
       </div>
+    </>
+  );
 
-      {/* Quick Actions for Admin/DPO */}
-      {(userRole === 'admin' || userRole === 'dpo') && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <PermissionGate resource="user_management" action="read">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => navigate('/admin')}
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Manage Users
-            </Button>
-          </PermissionGate>
-          
-          <PermissionGate resource="audit_logs" action="read">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => navigate('/admin')}
-            >
-              <ClipboardList className="w-4 h-4 mr-2" />
-              View Audit Logs
-            </Button>
-          </PermissionGate>
-          
-          <PermissionGate resource="security_dashboard" action="read">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => navigate('/admin')}
-            >
-              <Shield className="w-4 h-4 mr-2" />
-              Security Dashboard
-            </Button>
-          </PermissionGate>
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile Overlay */}
+        {isOpen && (
+          <div 
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
+            onClick={onClose}
+          />
+        )}
+        
+        {/* Mobile Sidebar */}
+        <div className={cn(
+          "fixed top-0 left-0 h-full w-80 bg-card border-r border-border shadow-elevated z-50 transform transition-transform duration-300 lg:hidden",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}>
+          <div className="flex flex-col h-full">
+            {navContent}
+          </div>
         </div>
-      )}
+      </>
+    );
+  }
+
+  // Desktop Sidebar
+  return (
+    <div className={cn(
+      "hidden lg:flex flex-col h-screen bg-card border-r border-border shadow-card transition-all duration-300",
+      collapsed ? "w-20" : "w-80"
+    )}>
+      {navContent}
     </div>
   );
-};
+}
 
-export default RoleBasedNavigation;
+// Mobile Navigation Toggle Button
+export function MobileNavToggle({ onClick }: { onClick: () => void }) {
+  return (
+    <Button 
+      variant="ghost" 
+      size="icon" 
+      onClick={onClick}
+      className="lg:hidden text-muted-foreground hover:text-foreground"
+    >
+      <Menu className="h-6 w-6" />
+    </Button>
+  );
+}
