@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import { RoleBasedNavigation, MobileNavToggle } from "@/components/navigation/RoleBasedNavigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +15,13 @@ interface AppLayoutProps {
 export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const { theme, setTheme } = useTheme();
 
   const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed);
   const toggleMobileNav = () => setMobileNavOpen(!mobileNavOpen);
   const closeMobileNav = () => setMobileNavOpen(false);
-  const toggleTheme = () => setIsDark(!isDark);
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
   if (!showNavigation) {
     return <div className="min-h-screen bg-background">{children}</div>;
@@ -78,7 +79,7 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
                 onClick={toggleTheme}
                 className="text-muted-foreground hover:text-foreground"
               >
-                {isDark ? (
+                {theme === 'dark' ? (
                   <Sun className="h-5 w-5" />
                 ) : (
                   <Moon className="h-5 w-5" />

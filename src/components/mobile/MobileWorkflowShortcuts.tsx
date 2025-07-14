@@ -75,7 +75,7 @@ export function MobileWorkflowShortcuts() {
       title: 'QR Scanner',
       description: 'Scan QR codes for instant access',
       icon: QrCode,
-      action: () => navigate('/demo/qr'),
+      action: () => navigate('/beta/qr'),
     },
     {
       id: 'report-issue',

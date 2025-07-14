@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { ThemeProvider } from "next-themes";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/components/auth/AuthContext";
@@ -25,15 +26,16 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Routes>
               {/* Public routes without navigation */}
               <Route path="/auth" element={<Auth />} />
               <Route path="/check/:docId" element={<DocumentStatusChecker />} />
-              <Route path="/demo/*" element={<InductionDemo />} />
+              <Route path="/beta/*" element={<InductionDemo />} />
               
               {/* Protected routes with navigation */}
               <Route path="/" element={
@@ -123,6 +125,7 @@ function App() {
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
+      </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

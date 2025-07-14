@@ -82,13 +82,13 @@ export const InductionQRDemo: React.FC<InductionQRDemoProps> = ({ onComplete }) 
               <Shield className="h-12 w-12 text-primary" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold mb-2">QR Safety Induction Demo</h2>
+              <h2 className="text-2xl font-bold mb-2">QR Safety Induction Beta</h2>
               <p className="text-muted-foreground max-w-md mx-auto">
                 Learn how to use QR codes for safety compliance on construction sites.
               </p>
             </div>
             <Button onClick={nextStep} size="lg" className="px-8">
-              Start Demo
+              Start Beta
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -217,7 +217,7 @@ export const InductionQRDemo: React.FC<InductionQRDemoProps> = ({ onComplete }) 
             <div>
               <h2 className="text-2xl font-bold mb-2 text-green-600">Induction Complete!</h2>
               <p className="text-muted-foreground">
-                You have successfully completed the QR Safety Induction demo.
+                You have successfully completed the QR Safety Induction beta.
               </p>
             </div>
             <div className="bg-green-50 border border-green-200 rounded-lg p-6 max-w-md mx-auto">
@@ -249,7 +249,7 @@ export const InductionQRDemo: React.FC<InductionQRDemoProps> = ({ onComplete }) 
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">QR Safety Induction</h1>
-          <p className="text-muted-foreground mb-4">Interactive Training Demo</p>
+          <p className="text-muted-foreground mb-4">Interactive Training Beta</p>
           
           {/* Progress Bar */}
           <div className="space-y-2">
@@ -276,7 +276,7 @@ export const InductionQRDemo: React.FC<InductionQRDemoProps> = ({ onComplete }) 
 
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-muted-foreground">
-          <p>This is a demonstration of the QR Safety Induction system.</p>
+          <p>This is a beta version of the QR Safety Induction system.</p>
         </div>
       </div>
     </div>
