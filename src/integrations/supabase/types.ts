@@ -1177,6 +1177,57 @@ export type Database = {
         }
         Relationships: []
       }
+      collaboration_sessions: {
+        Row: {
+          created_at: string
+          document_id: string | null
+          document_type: string | null
+          ended_at: string | null
+          host_user_id: string
+          id: string
+          is_active: boolean | null
+          participants: Json | null
+          project_id: string | null
+          session_data: Json | null
+          session_name: string
+          session_type: string
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_id?: string | null
+          document_type?: string | null
+          ended_at?: string | null
+          host_user_id: string
+          id?: string
+          is_active?: boolean | null
+          participants?: Json | null
+          project_id?: string | null
+          session_data?: Json | null
+          session_name: string
+          session_type: string
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string | null
+          document_type?: string | null
+          ended_at?: string | null
+          host_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          participants?: Json | null
+          project_id?: string | null
+          session_data?: Json | null
+          session_name?: string
+          session_type?: string
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       compliance_dashboard_stats: {
         Row: {
           active_task_plans: number | null
@@ -3499,6 +3550,54 @@ export type Database = {
           },
         ]
       }
+      live_activity_feed: {
+        Row: {
+          activity_type: string
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_system_generated: boolean | null
+          metadata: Json | null
+          priority: string | null
+          project_id: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_system_generated?: boolean | null
+          metadata?: Json | null
+          priority?: string | null
+          project_id?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_system_generated?: boolean | null
+          metadata?: Json | null
+          priority?: string | null
+          project_id?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       location_tracking: {
         Row: {
           accuracy_meters: number | null
@@ -3584,6 +3683,33 @@ export type Database = {
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string | null
+          id: string
+          message_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          message_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          message_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       migration_incentives: {
         Row: {
@@ -6745,6 +6871,54 @@ export type Database = {
           },
         ]
       }
+      shared_workspaces: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          members: Json | null
+          name: string
+          owner_id: string
+          permissions: Json | null
+          project_id: string | null
+          updated_at: string
+          workspace_data: Json | null
+          workspace_type: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          members?: Json | null
+          name: string
+          owner_id: string
+          permissions?: Json | null
+          project_id?: string | null
+          updated_at?: string
+          workspace_data?: Json | null
+          workspace_type: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          members?: Json | null
+          name?: string
+          owner_id?: string
+          permissions?: Json | null
+          project_id?: string | null
+          updated_at?: string
+          workspace_data?: Json | null
+          workspace_type?: string
+        }
+        Relationships: []
+      }
       signatures: {
         Row: {
           created_at: string
@@ -9296,6 +9470,69 @@ export type Database = {
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
+      }
+      video_call_sessions: {
+        Row: {
+          actual_start: string | null
+          call_type: string
+          created_at: string
+          duration_minutes: number | null
+          ended_at: string | null
+          host_user_id: string
+          id: string
+          meeting_notes: string | null
+          metadata: Json | null
+          participants: Json | null
+          project_id: string | null
+          recording_enabled: boolean | null
+          recording_url: string | null
+          room_id: string
+          scheduled_start: string | null
+          session_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actual_start?: string | null
+          call_type?: string
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          host_user_id: string
+          id?: string
+          meeting_notes?: string | null
+          metadata?: Json | null
+          participants?: Json | null
+          project_id?: string | null
+          recording_enabled?: boolean | null
+          recording_url?: string | null
+          room_id: string
+          scheduled_start?: string | null
+          session_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_start?: string | null
+          call_type?: string
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          host_user_id?: string
+          id?: string
+          meeting_notes?: string | null
+          metadata?: Json | null
+          participants?: Json | null
+          project_id?: string | null
+          recording_enabled?: boolean | null
+          recording_url?: string | null
+          room_id?: string
+          scheduled_start?: string | null
+          session_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       voice_commands: {
         Row: {
