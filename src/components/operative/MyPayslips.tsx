@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Clock, 
   CheckCircle, 
-  DollarSign, 
+  PoundSterling, 
   X, 
   Download, 
   Phone, 
@@ -192,7 +192,7 @@ const MyPayslips = () => {
                   Your weekly earnings breakdown with real-time status
                 </p>
               </div>
-              <DollarSign className="w-8 h-8 text-accent" />
+              <PoundSterling className="w-8 h-8 text-accent" />
             </div>
           </CardHeader>
         </Card>
