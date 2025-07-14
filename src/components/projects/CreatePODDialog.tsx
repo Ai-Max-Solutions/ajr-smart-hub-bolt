@@ -227,11 +227,13 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
                 <SelectValue placeholder="Select POD type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="delivery">Delivery</SelectItem>
+                <SelectItem value="material_delivery">Material Delivery</SelectItem>
+                <SelectItem value="site_delivery">Site Equipment Delivery</SelectItem>
+                <SelectItem value="welfare_delivery">Welfare Unit Delivery</SelectItem>
+                <SelectItem value="tool_delivery">Tool/Plant Delivery</SelectItem>
                 <SelectItem value="collection">Collection</SelectItem>
                 <SelectItem value="off_hire">Off-Hire Return</SelectItem>
-                <SelectItem value="return">Equipment Return</SelectItem>
-                <SelectItem value="site_delivery">Site Delivery</SelectItem>
+                <SelectItem value="equipment_return">Equipment Return</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -255,7 +257,7 @@ const CreatePODDialog = ({ open, onOpenChange, projectId, onPodCreated }: Create
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Brief description of items delivered/collected"
+              placeholder={formData.pod_type.includes('delivery') ? "e.g., 50x 110mm soil pipes, 20x 90° bends" : "Brief description of items delivered/collected"}
               required
               rows={3}
             />
