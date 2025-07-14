@@ -347,7 +347,7 @@ const InductionAnalyticsDashboard: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Success Rate</p>
                 <p className="text-3xl font-bold text-orange-600">
-                  {Math.round((analyticsData.quizPerformance.find(q => q.score_range === '75-89%')?.count || 0) + 
+                  {Math.round(((analyticsData.quizPerformance.find(q => q.score_range === '75-89%')?.count || 0) + 
                               (analyticsData.quizPerformance.find(q => q.score_range === '90-100%')?.count || 0)) / 
                              analyticsData.totalInductions * 100)}%
                 </p>
