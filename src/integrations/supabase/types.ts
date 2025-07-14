@@ -113,6 +113,81 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_compliance_predictions: {
+        Row: {
+          actual_outcome: string | null
+          confidence_score: number
+          created_at: string
+          expires_at: string
+          factors: Json
+          historical_patterns: Json | null
+          id: string
+          notification_generated: boolean | null
+          notification_id: string | null
+          predicted_date: string | null
+          prediction_type: string
+          prevention_success: boolean | null
+          project_id: string | null
+          recommended_actions: Json
+          risk_level: string
+          user_id: string | null
+          was_accurate: boolean | null
+        }
+        Insert: {
+          actual_outcome?: string | null
+          confidence_score: number
+          created_at?: string
+          expires_at?: string
+          factors: Json
+          historical_patterns?: Json | null
+          id?: string
+          notification_generated?: boolean | null
+          notification_id?: string | null
+          predicted_date?: string | null
+          prediction_type: string
+          prevention_success?: boolean | null
+          project_id?: string | null
+          recommended_actions: Json
+          risk_level: string
+          user_id?: string | null
+          was_accurate?: boolean | null
+        }
+        Update: {
+          actual_outcome?: string | null
+          confidence_score?: number
+          created_at?: string
+          expires_at?: string
+          factors?: Json
+          historical_patterns?: Json | null
+          id?: string
+          notification_generated?: boolean | null
+          notification_id?: string | null
+          predicted_date?: string | null
+          prediction_type?: string
+          prevention_success?: boolean | null
+          project_id?: string | null
+          recommended_actions?: Json
+          risk_level?: string
+          user_id?: string | null
+          was_accurate?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_compliance_predictions_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "smart_notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_compliance_predictions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       ai_conversation_context: {
         Row: {
           context_id: string | null
@@ -2434,6 +2509,185 @@ export type Database = {
           },
         ]
       }
+      notification_analytics: {
+        Row: {
+          actual_engagement_score: number | null
+          ai_prediction_accuracy: number | null
+          created_at: string
+          delivery_time_ms: number | null
+          device_type: string | null
+          failed_channels: string[] | null
+          final_delivery_channel: string | null
+          id: string
+          interaction_count: number | null
+          location_context: string | null
+          notification_id: string | null
+          predicted_engagement_score: number | null
+          successful_channels: string[] | null
+          time_of_day: string | null
+          time_to_action_seconds: number | null
+          time_to_read_seconds: number | null
+          user_id: string | null
+        }
+        Insert: {
+          actual_engagement_score?: number | null
+          ai_prediction_accuracy?: number | null
+          created_at?: string
+          delivery_time_ms?: number | null
+          device_type?: string | null
+          failed_channels?: string[] | null
+          final_delivery_channel?: string | null
+          id?: string
+          interaction_count?: number | null
+          location_context?: string | null
+          notification_id?: string | null
+          predicted_engagement_score?: number | null
+          successful_channels?: string[] | null
+          time_of_day?: string | null
+          time_to_action_seconds?: number | null
+          time_to_read_seconds?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          actual_engagement_score?: number | null
+          ai_prediction_accuracy?: number | null
+          created_at?: string
+          delivery_time_ms?: number | null
+          device_type?: string | null
+          failed_channels?: string[] | null
+          final_delivery_channel?: string | null
+          id?: string
+          interaction_count?: number | null
+          location_context?: string | null
+          notification_id?: string | null
+          predicted_engagement_score?: number | null
+          successful_channels?: string[] | null
+          time_of_day?: string | null
+          time_to_action_seconds?: number | null
+          time_to_read_seconds?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_analytics_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "smart_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_escalation_rules: {
+        Row: {
+          applicable_roles: string[]
+          auto_escalate_unacknowledged: boolean | null
+          auto_escalate_unread: boolean | null
+          compliance_risk_threshold: number | null
+          created_at: string
+          escalation_chain: Json
+          id: string
+          is_active: boolean | null
+          max_escalation_level: number | null
+          name: string
+          notification_type: string
+          priority: string
+          project_ids: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          applicable_roles: string[]
+          auto_escalate_unacknowledged?: boolean | null
+          auto_escalate_unread?: boolean | null
+          compliance_risk_threshold?: number | null
+          created_at?: string
+          escalation_chain: Json
+          id?: string
+          is_active?: boolean | null
+          max_escalation_level?: number | null
+          name: string
+          notification_type: string
+          priority: string
+          project_ids?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          applicable_roles?: string[]
+          auto_escalate_unacknowledged?: boolean | null
+          auto_escalate_unread?: boolean | null
+          compliance_risk_threshold?: number | null
+          created_at?: string
+          escalation_chain?: Json
+          id?: string
+          is_active?: boolean | null
+          max_escalation_level?: number | null
+          name?: string
+          notification_type?: string
+          priority?: string
+          project_ids?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_enabled: boolean | null
+          id: string
+          in_app_enabled: boolean | null
+          min_priority_email: string | null
+          min_priority_push: string | null
+          min_priority_sms: string | null
+          project_specific: Json | null
+          push_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          role_overrides: Json | null
+          sms_enabled: boolean | null
+          updated_at: string
+          user_id: string | null
+          voice_enabled: boolean | null
+          weekend_notifications: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          email_enabled?: boolean | null
+          id?: string
+          in_app_enabled?: boolean | null
+          min_priority_email?: string | null
+          min_priority_push?: string | null
+          min_priority_sms?: string | null
+          project_specific?: Json | null
+          push_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          role_overrides?: Json | null
+          sms_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+          voice_enabled?: boolean | null
+          weekend_notifications?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          email_enabled?: boolean | null
+          id?: string
+          in_app_enabled?: boolean | null
+          min_priority_email?: string | null
+          min_priority_push?: string | null
+          min_priority_sms?: string | null
+          project_specific?: Json | null
+          push_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          role_overrides?: Json | null
+          sms_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+          voice_enabled?: boolean | null
+          weekend_notifications?: boolean | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -4683,87 +4937,116 @@ export type Database = {
       }
       smart_notifications: {
         Row: {
-          action_url: string | null
-          channel: string[] | null
-          created_at: string | null
-          delivered_at: string | null
+          acknowledged_at: string | null
+          action_taken: string | null
+          action_taken_at: string | null
+          ai_confidence: number | null
+          audit_trail: Json | null
+          auto_escalate_after: unknown | null
+          category: string
+          compliance_deadline: string | null
+          context_data: Json | null
+          created_at: string
+          delivery_channels: Json
+          delivery_status: Json
           expires_at: string | null
+          fallback_attempted: boolean | null
+          geo_trigger_location: unknown | null
+          geo_trigger_radius: number | null
           id: string
+          is_acknowledged: boolean | null
+          is_ai_generated: boolean | null
+          is_gdpr_sensitive: boolean | null
           is_read: boolean | null
           message: string
           metadata: Json | null
-          priority: string | null
+          notification_type: string
+          predicted_compliance_risk: number | null
+          priority: string
+          project_id: string | null
           read_at: string | null
+          recipient_role: string
+          signature_vault_ref: string | null
           title: string
-          type: string
+          updated_at: string
           user_id: string | null
         }
         Insert: {
-          action_url?: string | null
-          channel?: string[] | null
-          created_at?: string | null
-          delivered_at?: string | null
+          acknowledged_at?: string | null
+          action_taken?: string | null
+          action_taken_at?: string | null
+          ai_confidence?: number | null
+          audit_trail?: Json | null
+          auto_escalate_after?: unknown | null
+          category: string
+          compliance_deadline?: string | null
+          context_data?: Json | null
+          created_at?: string
+          delivery_channels?: Json
+          delivery_status?: Json
           expires_at?: string | null
+          fallback_attempted?: boolean | null
+          geo_trigger_location?: unknown | null
+          geo_trigger_radius?: number | null
           id?: string
+          is_acknowledged?: boolean | null
+          is_ai_generated?: boolean | null
+          is_gdpr_sensitive?: boolean | null
           is_read?: boolean | null
           message: string
           metadata?: Json | null
-          priority?: string | null
+          notification_type: string
+          predicted_compliance_risk?: number | null
+          priority?: string
+          project_id?: string | null
           read_at?: string | null
+          recipient_role: string
+          signature_vault_ref?: string | null
           title: string
-          type: string
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
-          action_url?: string | null
-          channel?: string[] | null
-          created_at?: string | null
-          delivered_at?: string | null
+          acknowledged_at?: string | null
+          action_taken?: string | null
+          action_taken_at?: string | null
+          ai_confidence?: number | null
+          audit_trail?: Json | null
+          auto_escalate_after?: unknown | null
+          category?: string
+          compliance_deadline?: string | null
+          context_data?: Json | null
+          created_at?: string
+          delivery_channels?: Json
+          delivery_status?: Json
           expires_at?: string | null
+          fallback_attempted?: boolean | null
+          geo_trigger_location?: unknown | null
+          geo_trigger_radius?: number | null
           id?: string
+          is_acknowledged?: boolean | null
+          is_ai_generated?: boolean | null
+          is_gdpr_sensitive?: boolean | null
           is_read?: boolean | null
           message?: string
           metadata?: Json | null
-          priority?: string | null
+          notification_type?: string
+          predicted_compliance_risk?: number | null
+          priority?: string
+          project_id?: string | null
           read_at?: string | null
+          recipient_role?: string
+          signature_vault_ref?: string | null
           title?: string
-          type?: string
+          updated_at?: string
           user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "smart_notifications_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "smart_notifications_project_id_fkey"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "mandatory_qualification_compliance"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "smart_notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "task_plan_compliance_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "smart_notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_extended"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "smart_notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_qualification_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "smart_notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "Users"
+            referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
@@ -6523,6 +6806,59 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "smart_prompt_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_interaction_logs: {
+        Row: {
+          action_successful: boolean | null
+          background_noise_level: string | null
+          command_text: string
+          confidence_score: number | null
+          created_at: string
+          device_info: Json | null
+          error_message: string | null
+          id: string
+          intent_detected: string | null
+          location_context: string | null
+          notification_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_successful?: boolean | null
+          background_noise_level?: string | null
+          command_text: string
+          confidence_score?: number | null
+          created_at?: string
+          device_info?: Json | null
+          error_message?: string | null
+          id?: string
+          intent_detected?: string | null
+          location_context?: string | null
+          notification_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_successful?: boolean | null
+          background_noise_level?: string | null
+          command_text?: string
+          confidence_score?: number | null
+          created_at?: string
+          device_info?: Json | null
+          error_message?: string | null
+          id?: string
+          intent_detected?: string | null
+          location_context?: string | null
+          notification_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_interaction_logs_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "smart_notifications"
             referencedColumns: ["id"]
           },
         ]
