@@ -63,11 +63,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserProfile = async (authUser: User) => {
     try {
+      console.log('Fetching profile for auth user:', authUser.id);
+      
       const { data, error } = await supabase
         .from('Users')
         .select('whalesync_postgres_id, email, fullname, role, currentproject')
         .eq('supabase_auth_id', authUser.id)
         .maybeSingle();
+
+      console.log('Profile fetch result:', { data, error });
 
       if (error) {
         console.error('Database profile fetch failed:', error);
@@ -77,12 +81,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (!data) {
-        console.error('User profile not found in database');
+        console.error('User profile not found in database for auth ID:', authUser.id);
         setUser(null);
         setLoading(false);
         return;
       }
 
+      console.log('Setting user with data:', data);
       setUser({
         user_id: data.whalesync_postgres_id,
         email: data.email || authUser.email || '',

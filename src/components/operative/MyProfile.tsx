@@ -39,7 +39,10 @@ const MyProfile = () => {
 
   const handleSave = async () => {
     try {
+      console.log('handleSave called with user:', user);
+      
       if (!user?.user_id) {
+        console.error('No user_id found in user object:', user);
         toast({
           title: "Error",
           description: "User not found. Please try logging in again.",
