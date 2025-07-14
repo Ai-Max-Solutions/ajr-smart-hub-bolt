@@ -2,13 +2,75 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/components/auth/AuthContext";
-import { Building, Users, FileText, Shield, Calendar, TrendingUp, LogIn, LayoutDashboard, Activity, Clock, Zap } from "lucide-react";
+import { Building, Users, FileText, Shield, Calendar, TrendingUp, LogIn, LayoutDashboard, Activity, Clock, Zap, Plus, Upload, Search, Settings, MessageSquare, BarChart3, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { getPersonalizedGreeting, getWelcomeMessage } from "@/utils/greetings";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useState } from "react";
 
 const Index = () => {
   const { user, session } = useAuth();
+  const [activityOpen, setActivityOpen] = useState(false);
+
+  // Mock activity data
+  const recentActivity = [
+    {
+      id: 1,
+      type: "project_update",
+      title: "Project Milestone Reached",
+      description: "Thames Gateway project reached 75% completion",
+      time: "2 minutes ago",
+      icon: Building,
+      color: "text-green-600"
+    },
+    {
+      id: 2,
+      type: "document_upload",
+      title: "New RAMS Document",
+      description: "Health & Safety document uploaded by John Smith",
+      time: "15 minutes ago",
+      icon: FileText,
+      color: "text-blue-600"
+    },
+    {
+      id: 3,
+      type: "team_update",
+      title: "Team Member Added",
+      description: "Sarah Johnson joined as Site Supervisor",
+      time: "1 hour ago",
+      icon: Users,
+      color: "text-purple-600"
+    },
+    {
+      id: 4,
+      type: "compliance",
+      title: "Compliance Check Completed",
+      description: "Weekly safety inspection passed",
+      time: "3 hours ago",
+      icon: Shield,
+      color: "text-green-600"
+    },
+    {
+      id: 5,
+      type: "notification",
+      title: "Payment Approved",
+      description: "Invoice #12345 has been approved for payment",
+      time: "5 hours ago",
+      icon: Calendar,
+      color: "text-orange-600"
+    }
+  ];
+
+  const quickActions = [
+    { label: "Create New Project", icon: Plus, href: "/projects?action=create" },
+    { label: "Upload Documents", icon: Upload, href: "/projects?tab=documents" },
+    { label: "Search Projects", icon: Search, href: "/projects?search=true" },
+    { label: "Analytics Dashboard", icon: BarChart3, href: "/analytics" },
+    { label: "Team Chat", icon: MessageSquare, href: "/collaboration" },
+    { label: "Settings", icon: Settings, href: "/admin" }
+  ];
 
   // If user is not authenticated, show landing page with login option
   if (!session || !user) {
@@ -105,14 +167,98 @@ const Index = () => {
         ]}
         actions={
           <div className="flex gap-3">
-            <Button variant="outline" size="touch" className="font-poppins">
-              <Activity className="w-5 h-5 mr-2" />
-              Activity
-            </Button>
-            <Button variant="accent" size="touch" className="font-poppins">
-              <Zap className="w-5 h-5 mr-2" />
-              Quick Actions
-            </Button>
+            {/* Activity Sheet */}
+            <Sheet open={activityOpen} onOpenChange={setActivityOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="touch" className="font-poppins">
+                  <Activity className="w-5 h-5 mr-2" />
+                  Activity
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:w-[400px] bg-background border-l">
+                <SheetHeader className="border-b pb-4 mb-6">
+                  <SheetTitle className="flex items-center gap-2 font-poppins">
+                    <Activity className="w-5 h-5 text-accent" />
+                    Recent Activity
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4">
+                  {recentActivity.map((item, index) => {
+                    const IconComponent = item.icon;
+                    return (
+                      <div 
+                        key={item.id} 
+                        className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-all duration-200 animate-fade-in"
+                        style={{ animationDelay: `${index * 100}ms` }}
+                      >
+                        <div className={`p-2 rounded-lg bg-background border ${item.color}`}>
+                          <IconComponent className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-poppins font-medium text-sm leading-5">{item.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-1 leading-4">{item.description}</p>
+                          <p className="text-xs text-muted-foreground mt-2 opacity-70">{item.time}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-6 pt-4 border-t">
+                  <Button 
+                    variant="outline" 
+                    className="w-full font-poppins"
+                    onClick={() => setActivityOpen(false)}
+                  >
+                    View All Activity
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Quick Actions Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="accent" size="touch" className="font-poppins">
+                  <Zap className="w-5 h-5 mr-2" />
+                  Quick Actions
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-background/95 backdrop-blur-sm border shadow-elevated">
+                <div className="p-2">
+                  <div className="text-xs font-poppins font-medium text-muted-foreground mb-2 px-2">QUICK ACTIONS</div>
+                  {quickActions.slice(0, 3).map((action) => {
+                    const IconComponent = action.icon;
+                    return (
+                      <DropdownMenuItem key={action.label} asChild>
+                        <a 
+                          href={action.href}
+                          className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-accent/10 transition-colors cursor-pointer"
+                        >
+                          <IconComponent className="w-4 h-4 text-accent" />
+                          <span className="font-poppins text-sm">{action.label}</span>
+                        </a>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                  <DropdownMenuSeparator className="my-2" />
+                  <div className="text-xs font-poppins font-medium text-muted-foreground mb-2 px-2">TOOLS</div>
+                  {quickActions.slice(3).map((action) => {
+                    const IconComponent = action.icon;
+                    return (
+                      <DropdownMenuItem key={action.label} asChild>
+                        <a 
+                          href={action.href}
+                          className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-accent/10 transition-colors cursor-pointer"
+                        >
+                          <IconComponent className="w-4 h-4 text-accent" />
+                          <span className="font-poppins text-sm">{action.label}</span>
+                        </a>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
