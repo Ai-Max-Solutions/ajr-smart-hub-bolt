@@ -16,10 +16,12 @@ import {
   Plus,
   Users,
   Calendar,
-  Shield
+  Shield,
+  Building
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
 import DABSCreationForm from './DABSCreationForm';
 
@@ -40,6 +42,12 @@ interface SiteNotice {
   project_id?: string;
   valid_from?: string;
   valid_until?: string;
+  project_name?: string;
+}
+
+interface UserProject {
+  project_id: string;
+  project_name: string;
 }
 
 const SiteNotices = () => {
@@ -48,18 +56,93 @@ const SiteNotices = () => {
   const [expandedNotice, setExpandedNotice] = useState<string | null>(null);
   const [showDABSForm, setShowDABSForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userProjects, setUserProjects] = useState<UserProject[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const fetchUserProjects = async () => {
+    if (!user?.user_id) return [];
+    
+    try {
+      // Get user's current project
+      const currentProject = user.current_project;
+      const projects: UserProject[] = [];
+      
+      if (currentProject) {
+        const { data: currentProjectData, error: currentError } = await supabase
+          .from('Projects')
+          .select('whalesync_postgres_id, projectname')
+          .eq('whalesync_postgres_id', currentProject)
+          .single();
+          
+        if (!currentError && currentProjectData) {
+          projects.push({
+            project_id: currentProjectData.whalesync_postgres_id,
+            project_name: currentProjectData.projectname
+          });
+        }
+      }
+      
+      // Get projects from project_teams table
+      const { data: teamData, error: teamError } = await supabase
+        .from('project_teams')
+        .select(`
+          project_id,
+          Projects!inner(whalesync_postgres_id, projectname)
+        `)
+        .eq('user_id', user.user_id);
+        
+      if (!teamError && teamData) {
+        teamData.forEach((team: any) => {
+          if (team.Projects && !projects.find(p => p.project_id === team.project_id)) {
+            projects.push({
+              project_id: team.project_id,
+              project_name: team.Projects.projectname
+            });
+          }
+        });
+      }
+      
+      return projects;
+    } catch (error) {
+      console.error('Error fetching user projects:', error);
+      return [];
+    }
+  };
 
   const fetchNotices = async () => {
     try {
-      const { data, error } = await supabase
+      const userProjectsList = await fetchUserProjects();
+      setUserProjects(userProjectsList);
+      
+      const projectIds = userProjectsList.map(p => p.project_id);
+      
+      // Build query for project-specific notices
+      let query = supabase
         .from('site_notices')
-        .select('*')
+        .select(`
+          *,
+          Projects(projectname)
+        `)
         .order('created_at', { ascending: false });
+      
+      // Filter by user's projects if they have any assigned
+      if (projectIds.length > 0) {
+        query = query.or(`project_id.in.(${projectIds.join(',')}),project_id.is.null`);
+      } else {
+        // If no projects assigned, show only global notices (no project_id)
+        query = query.is('project_id', null);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
-      const allNotices = (data || []) as SiteNotice[];
+      const allNotices = (data || []).map((notice: any) => ({
+        ...notice,
+        project_name: notice.Projects?.projectname || null
+      })) as SiteNotice[];
+      
       const dabs = allNotices.filter(notice => notice.notice_category === 'dabs');
       const regular = allNotices.filter(notice => notice.notice_category !== 'dabs');
       
@@ -271,7 +354,15 @@ const SiteNotices = () => {
         </CardTitle>
         
           <div className="text-sm text-muted-foreground">
-            <div>Type: {notice.notice_type}</div>
+            <div className="flex items-center gap-4">
+              <span>Type: {notice.notice_type}</span>
+              {notice.project_name && (
+                <div className="flex items-center gap-1 text-primary">
+                  <Building className="w-3 h-3" />
+                  <span className="font-medium">{notice.project_name}</span>
+                </div>
+              )}
+            </div>
             {notice.expires_at && notice.notice_category === 'dabs' && (
               <div className="text-accent">Auto-archives in {formatTimeRemaining(notice.expires_at)}</div>
             )}

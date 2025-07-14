@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,24 +7,101 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Megaphone, Mic, MicOff, Calendar, Clock } from 'lucide-react';
+import { Megaphone, Mic, MicOff, Calendar, Clock, Building } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DABSCreationFormProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialContent?: {title: string; content: string} | null;
 }
 
-const DABSCreationForm = ({ open, onClose, onSuccess }: DABSCreationFormProps) => {
+interface Project {
+  id: string;
+  name: string;
+}
+
+const DABSCreationForm = ({ open, onClose, onSuccess, initialContent }: DABSCreationFormProps) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [priority, setPriority] = useState<'Low' | 'Medium' | 'High' | 'Critical'>('Medium');
   const [requiresSignature, setRequiresSignature] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchUserProjects = async () => {
+      if (!user?.user_id) return;
+      
+      try {
+        const userProjects: Project[] = [];
+        
+        // Get user's current project
+        if (user.current_project) {
+          const { data: currentProjectData, error: currentError } = await supabase
+            .from('Projects')
+            .select('whalesync_postgres_id, projectname')
+            .eq('whalesync_postgres_id', user.current_project)
+            .single();
+            
+          if (!currentError && currentProjectData) {
+            userProjects.push({
+              id: currentProjectData.whalesync_postgres_id,
+              name: currentProjectData.projectname
+            });
+          }
+        }
+        
+        // Get projects from project_teams table
+        const { data: teamData, error: teamError } = await supabase
+          .from('project_teams')
+          .select(`
+            project_id,
+            Projects!inner(whalesync_postgres_id, projectname)
+          `)
+          .eq('user_id', user.user_id);
+          
+        if (!teamError && teamData) {
+          teamData.forEach((team: any) => {
+            if (team.Projects && !userProjects.find(p => p.id === team.project_id)) {
+              userProjects.push({
+                id: team.project_id,
+                name: team.Projects.projectname
+              });
+            }
+          });
+        }
+        
+        setProjects(userProjects);
+        
+        // Auto-select current project if available
+        if (user.current_project && userProjects.find(p => p.id === user.current_project)) {
+          setSelectedProject(user.current_project);
+        }
+      } catch (error) {
+        console.error('Error fetching user projects:', error);
+      }
+    };
+    
+    if (open) {
+      fetchUserProjects();
+    }
+  }, [open, user]);
+
+  // Set initial content from AI if provided
+  useEffect(() => {
+    if (initialContent) {
+      setTitle(initialContent.title);
+      setContent(initialContent.content);
+    }
+  }, [initialContent]);
 
   const handleVoiceInput = async () => {
     if (!isRecording) {
@@ -123,6 +200,7 @@ const DABSCreationForm = ({ open, onClose, onSuccess }: DABSCreationFormProps) =
           notice_type: 'DABS Weekly Update',
           notice_category: 'dabs',
           priority,
+          project_id: selectedProject || null,
           expires_at: expiresAt.toISOString(),
           auto_archive: true,
           requires_signature: requiresSignature,
@@ -140,6 +218,7 @@ const DABSCreationForm = ({ open, onClose, onSuccess }: DABSCreationFormProps) =
       setTitle('');
       setContent('');
       setPriority('Medium');
+      setSelectedProject('');
       setRequiresSignature(false);
       
       onSuccess();
@@ -237,6 +316,34 @@ const DABSCreationForm = ({ open, onClose, onSuccess }: DABSCreationFormProps) =
               />
               <p className="text-xs text-muted-foreground">
                 Use the voice input button to speak your briefing content
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Project Assignment</Label>
+              <Select value={selectedProject} onValueChange={setSelectedProject}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project (leave blank for all projects)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">
+                    <div className="flex items-center gap-2">
+                      <Building className="w-4 h-4" />
+                      <span>All Projects (Global Notice)</span>
+                    </div>
+                  </SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      <div className="flex items-center gap-2">
+                        <Building className="w-4 h-4" />
+                        <span>{project.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Only operatives assigned to the selected project will see this DABS briefing
               </p>
             </div>
 

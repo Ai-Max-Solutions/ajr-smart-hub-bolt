@@ -22,14 +22,37 @@ import {
   HardHat,
   Wrench,
   MessageSquare,
-  DollarSign
+  DollarSign,
+  Bot,
+  Megaphone
 } from 'lucide-react';
+import AIDABSAssistant from '@/components/notices/AIDABSAssistant';
+import DABSCreationForm from '@/components/notices/DABSCreationForm';
 
 interface ProjectManagerDashboardProps {
   projectId: string;
 }
 
 const ProjectManagerDashboard: React.FC<ProjectManagerDashboardProps> = ({ projectId }) => {
+  const [showAIAssistant, setShowAIAssistant] = React.useState(false);
+  const [showDABSForm, setShowDABSForm] = React.useState(false);
+  const [aiGeneratedContent, setAIGeneratedContent] = React.useState<{title: string; content: string} | null>(null);
+  const [projectName, setProjectName] = React.useState<string>('');
+  
+  // Fetch project name when component mounts
+  React.useEffect(() => {
+    const fetchProjectName = async () => {
+      try {
+        // In a real implementation, you'd fetch from your data source
+        setProjectName('Sample Project Name'); // Replace with actual fetch
+      } catch (error) {
+        console.error('Error fetching project name:', error);
+      }
+    };
+    
+    fetchProjectName();
+  }, [projectId]);
+
   // Mock data - in real implementation, this would come from your data source
   const mockData = {
     compliance: {
@@ -401,6 +424,23 @@ const ProjectManagerDashboard: React.FC<ProjectManagerDashboardProps> = ({ proje
             <div className="space-y-2 pt-4 border-t">
               <h4 className="text-sm font-medium">Quick Actions</h4>
               <div className="grid grid-cols-1 gap-2">
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowAIAssistant(true)}
+                  className="justify-start btn-accent"
+                >
+                  <Bot className="w-4 h-4 mr-2" />
+                  AI DABS Assistant
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="justify-start"
+                  onClick={() => setShowDABSForm(true)}
+                >
+                  <Megaphone className="w-4 h-4 mr-2" />
+                  Quick DABS Notice
+                </Button>
                 <Button size="sm" variant="outline" className="justify-start">
                   <Send className="w-4 h-4 mr-2" />
                   Broadcast Site Notice
@@ -428,6 +468,31 @@ const ProjectManagerDashboard: React.FC<ProjectManagerDashboardProps> = ({ proje
           </CardContent>
         </Card>
       </div>
+
+      {/* AI DABS Assistant Dialog */}
+      <AIDABSAssistant
+        open={showAIAssistant}
+        onClose={() => setShowAIAssistant(false)}
+        onUseContent={(title, content) => {
+          setAIGeneratedContent({ title, content });
+          setShowDABSForm(true);
+        }}
+        projectName={projectName}
+      />
+
+      {/* DABS Creation Form */}
+      <DABSCreationForm
+        open={showDABSForm}
+        onClose={() => {
+          setShowDABSForm(false);
+          setAIGeneratedContent(null);
+        }}
+        onSuccess={() => {
+          setShowDABSForm(false);
+          setAIGeneratedContent(null);
+        }}
+        initialContent={aiGeneratedContent}
+      />
     </div>
   );
 };
