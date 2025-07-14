@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit, Trash2, Users, Calendar, Building, AlertCircle } from "lucide-react";
+import { FormBuilder, FormFieldConfig } from "@/components/ui/form-builder";
+import { EnhancedTable, ColumnDef } from "@/components/ui/enhanced-table";
+import { Edit, Trash2, Calendar, Building, MapPin, User, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { z } from "zod";
+import { AJIcon } from "@/components/ui/aj-icon";
 
 interface ProjectsCRUDProps {
   searchQuery: string;
@@ -29,16 +29,19 @@ interface Project {
   totalplots: number;
 }
 
-interface ProjectFormData {
-  projectname: string;
-  clientname: string;
-  status: string;
-  startdate: string;
-  plannedenddate: string;
-  projectmanager: string;
-  siteaddress: string;
-  Project_Description: string;
-}
+// Form schema for validation
+const projectSchema = z.object({
+  projectname: z.string().min(1, "Project name is required"),
+  clientname: z.string().min(1, "Client name is required"),
+  status: z.string(),
+  startdate: z.string().optional(),
+  plannedenddate: z.string().optional(),
+  projectmanager: z.string().optional(),
+  siteaddress: z.string().optional(),
+  Project_Description: z.string().optional(),
+});
+
+type ProjectFormData = z.infer<typeof projectSchema>;
 
 export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -46,16 +49,7 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
   const [loading, setLoading] = useState(true);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<ProjectFormData>({
-    projectname: "",
-    clientname: "",
-    status: "Planning",
-    startdate: "",
-    plannedenddate: "",
-    projectmanager: "",
-    siteaddress: "",
-    Project_Description: ""
-  });
+  const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
 
   useEffect(() => {
     fetchProjects();
@@ -95,14 +89,12 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (data: ProjectFormData) => {
     try {
       if (editingProject) {
         const { error } = await supabase
           .from('Projects')
-          .update(formData)
+          .update(data)
           .eq('whalesync_postgres_id', editingProject.whalesync_postgres_id);
 
         if (error) throw error;
@@ -110,7 +102,7 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
       } else {
         const { error } = await supabase
           .from('Projects')
-          .insert([formData]);
+          .insert([data]);
 
         if (error) throw error;
         toast.success("Project created successfully");
@@ -118,7 +110,7 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
 
       fetchProjects();
       setIsDialogOpen(false);
-      resetForm();
+      setEditingProject(null);
     } catch (error: any) {
       toast.error(error.message || "Failed to save project");
     }
@@ -141,32 +133,13 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      projectname: "",
-      clientname: "",
-      status: "Planning",
-      startdate: "",
-      plannedenddate: "",
-      projectmanager: "",
-      siteaddress: "",
-      Project_Description: ""
-    });
+  const openCreateDialog = () => {
     setEditingProject(null);
+    setIsDialogOpen(true);
   };
 
   const openEditDialog = (project: Project) => {
     setEditingProject(project);
-    setFormData({
-      projectname: project.projectname || "",
-      clientname: project.clientname || "",
-      status: project.status || "Planning",
-      startdate: project.startdate || "",
-      plannedenddate: project.plannedenddate || "",
-      projectmanager: project.projectmanager || "",
-      siteaddress: project.siteaddress || "",
-      Project_Description: ""
-    });
     setIsDialogOpen(true);
   };
 
@@ -181,251 +154,326 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
     return <Badge variant={(statusColors[status as keyof typeof statusColors] || 'secondary') as "default" | "secondary" | "destructive" | "outline"}>{status}</Badge>;
   };
 
-  const filteredProjects = projects.filter(project =>
-    project.projectname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    project.clientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    project.projectmanager?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Enhanced table columns definition
+  const columns: ColumnDef<Project>[] = [
+    {
+      id: "project",
+      header: "Project",
+      accessorKey: "projectname",
+      sortable: true,
+      filterable: true,
+      cell: ({ row }) => (
+        <div className="space-y-1">
+          <div className="font-semibold text-foreground">{row.projectname}</div>
+          {row.siteaddress && (
+            <div className="text-sm text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {row.siteaddress}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      id: "client",
+      header: "Client",
+      accessorKey: "clientname",
+      sortable: true,
+      filterable: true,
+      cell: ({ value }) => (
+        <div className="font-medium">{value}</div>
+      )
+    },
+    {
+      id: "status",
+      header: "Status",
+      accessorKey: "status",
+      sortable: true,
+      cell: ({ value }) => getStatusBadge(value)
+    },
+    {
+      id: "manager",
+      header: "Project Manager",
+      accessorKey: "projectmanager",
+      sortable: true,
+      filterable: true,
+      cell: ({ value }) => (
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <span>{value || "Unassigned"}</span>
+        </div>
+      )
+    },
+    {
+      id: "dates",
+      header: "Timeline",
+      cell: ({ row }) => (
+        <div className="space-y-1 text-sm">
+          {row.startdate && (
+            <div className="flex items-center gap-1">
+              <Calendar className="h-3 w-3 text-muted-foreground" />
+              <span>Start: {row.startdate}</span>
+            </div>
+          )}
+          {row.plannedenddate && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span>End: {row.plannedenddate}</span>
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      id: "plots",
+      header: "Plots",
+      accessorKey: "totalplots",
+      sortable: true,
+      cell: ({ value }) => (
+        <Badge variant="outline" className="font-mono">
+          {value || 0}
+        </Badge>
+      )
+    },
+    {
+      id: "actions",
+      header: "",
+      width: 100,
+      cell: ({ row, index }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => openEditDialog(row)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Project
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleDelete(row.whalesync_postgres_id)}
+              className="text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Archive Project
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+  ];
+
+  // Form fields configuration
+  const formFields: FormFieldConfig<ProjectFormData>[] = [
+    {
+      name: "projectname",
+      label: "Project Name",
+      type: "text",
+      placeholder: "Enter project name",
+      required: true,
+      icon: <Building className="h-4 w-4" />,
+      grid: { xs: 2, md: 1 }
+    },
+    {
+      name: "clientname", 
+      label: "Client Name",
+      type: "text",
+      placeholder: "Enter client name",
+      required: true,
+      icon: <User className="h-4 w-4" />,
+      grid: { xs: 2, md: 1 }
+    },
+    {
+      name: "status",
+      label: "Project Status",
+      type: "select",
+      options: [
+        { value: "Planning", label: "Planning", description: "Project in planning phase" },
+        { value: "Active", label: "Active", description: "Project actively running" },
+        { value: "On Hold", label: "On Hold", description: "Project temporarily paused" },
+        { value: "Completed", label: "Completed", description: "Project finished" }
+      ],
+      grid: { xs: 2, md: 1 }
+    },
+    {
+      name: "projectmanager",
+      label: "Project Manager",
+      type: "select",
+      placeholder: "Select project manager",
+      options: users.map(user => ({
+        value: user.fullname,
+        label: user.fullname,
+        description: user.role
+      })),
+      grid: { xs: 2, md: 1 }
+    },
+    {
+      name: "startdate",
+      label: "Start Date",
+      type: "date",
+      grid: { xs: 2, md: 1 }
+    },
+    {
+      name: "plannedenddate", 
+      label: "Planned End Date",
+      type: "date",
+      grid: { xs: 2, md: 1 }
+    },
+    {
+      name: "siteaddress",
+      label: "Site Address",
+      type: "text",
+      placeholder: "Enter site address",
+      icon: <MapPin className="h-4 w-4" />,
+      grid: { xs: 2 }
+    },
+    {
+      name: "Project_Description",
+      label: "Project Description",
+      type: "textarea",
+      placeholder: "Enter project description",
+      rows: 4,
+      grid: { xs: 2 }
+    }
+  ];
 
   if (loading) {
     return <div className="flex justify-center py-8">Loading projects...</div>;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Quick stats */}
+    <div className="space-y-6 animate-fade-in">
+      {/* Quick stats with enhanced design */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-primary">{projects.filter(p => p.status === 'Active').length}</div>
-            <div className="text-sm text-muted-foreground">Active Projects</div>
+        <Card className="hover-scale border-l-4 border-l-primary">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <AJIcon icon={Building} variant="navy" size="sm" hover={false} />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-primary">
+                  {projects.filter(p => p.status === 'Active').length}
+                </div>
+                <div className="text-sm text-muted-foreground font-poppins">Active Projects</div>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-warning">{projects.filter(p => p.status === 'Planning').length}</div>
-            <div className="text-sm text-muted-foreground">Planning</div>
+        <Card className="hover-scale border-l-4 border-l-warning">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-warning/10">
+                <AJIcon icon={Calendar} variant="yellow" size="sm" hover={false} />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-warning">
+                  {projects.filter(p => p.status === 'Planning').length}
+                </div>
+                <div className="text-sm text-muted-foreground font-poppins">Planning</div>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-success">{projects.filter(p => p.status === 'Completed').length}</div>
-            <div className="text-sm text-muted-foreground">Completed</div>
+        <Card className="hover-scale border-l-4 border-l-success">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-success/10">
+                <AJIcon icon={Building} variant="yellow" size="sm" hover={false} />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-success">
+                  {projects.filter(p => p.status === 'Completed').length}
+                </div>
+                <div className="text-sm text-muted-foreground font-poppins">Completed</div>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-muted-foreground">{projects.reduce((sum, p) => sum + (p.totalplots || 0), 0)}</div>
-            <div className="text-sm text-muted-foreground">Total Plots</div>
+        <Card className="hover-scale border-l-4 border-l-muted">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-muted/20">
+                <AJIcon icon={MapPin} variant="yellow" size="sm" hover={false} />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-foreground">
+                  {projects.reduce((sum, p) => sum + (p.totalplots || 0), 0)}
+                </div>
+                <div className="text-sm text-muted-foreground font-poppins">Total Plots</div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Projects table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Projects ({filteredProjects.length})</span>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={resetForm} size="lg" className="h-12">
-                  <Building className="h-4 w-4 mr-2" />
-                  Add Project
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingProject ? "Edit Project" : "Create New Project"}
-                  </DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="projectname">Project Name *</Label>
-                      <Input
-                        id="projectname"
-                        value={formData.projectname}
-                        onChange={(e) => setFormData({ ...formData, projectname: e.target.value })}
-                        required
-                        className="h-12"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="clientname">Client Name *</Label>
-                      <Input
-                        id="clientname"
-                        value={formData.clientname}
-                        onChange={(e) => setFormData({ ...formData, clientname: e.target.value })}
-                        required
-                        className="h-12"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Status</Label>
-                      <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                        <SelectTrigger className="h-12">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Planning">Planning</SelectItem>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="On Hold">On Hold</SelectItem>
-                          <SelectItem value="Completed">Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="projectmanager">Project Manager</Label>
-                      <Select value={formData.projectmanager} onValueChange={(value) => setFormData({ ...formData, projectmanager: value })}>
-                        <SelectTrigger className="h-12">
-                          <SelectValue placeholder="Select PM" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {users.map((user) => (
-                            <SelectItem key={user.whalesync_postgres_id} value={user.fullname}>
-                              {user.fullname} ({user.role})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="startdate">Start Date</Label>
-                      <Input
-                        id="startdate"
-                        type="date"
-                        value={formData.startdate}
-                        onChange={(e) => setFormData({ ...formData, startdate: e.target.value })}
-                        className="h-12"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="plannedenddate">Planned End Date</Label>
-                      <Input
-                        id="plannedenddate"
-                        type="date"
-                        value={formData.plannedenddate}
-                        onChange={(e) => setFormData({ ...formData, plannedenddate: e.target.value })}
-                        className="h-12"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="siteaddress">Site Address</Label>
-                    <Input
-                      id="siteaddress"
-                      value={formData.siteaddress}
-                      onChange={(e) => setFormData({ ...formData, siteaddress: e.target.value })}
-                      className="h-12"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.Project_Description}
-                      onChange={(e) => setFormData({ ...formData, Project_Description: e.target.value })}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <Button type="submit" className="flex-1 h-12">
-                      {editingProject ? "Update Project" : "Create Project"}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="h-12">
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>PM</TableHead>
-                  <TableHead>Dates</TableHead>
-                  <TableHead>Plots</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProjects.map((project) => (
-                  <TableRow key={project.whalesync_postgres_id}>
-                    <TableCell className="font-medium">
-                      <div>
-                        <div className="font-semibold">{project.projectname}</div>
-                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {project.siteaddress}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{project.clientname}</TableCell>
-                    <TableCell>{getStatusBadge(project.status)}</TableCell>
-                    <TableCell>{project.projectmanager}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {project.startdate}
-                        </div>
-                        {project.plannedenddate && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            {project.plannedenddate}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{project.totalplots || 0}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-1 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditDialog(project)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(project.whalesync_postgres_id)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {filteredProjects.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                {searchQuery ? "No projects match your search" : "No projects found"}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Enhanced projects table */}
+      <EnhancedTable
+        columns={columns}
+        data={projects}
+        title="Projects Management"
+        description="Manage construction projects, track progress, and assign resources"
+        loading={loading}
+        onRefresh={fetchProjects}
+        onRowClick={(project) => openEditDialog(project)}
+        enableSelection={true}
+        selectedRows={selectedProjects}
+        onSelectionChange={setSelectedProjects}
+        customActions={
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreateDialog} size="sm" className="font-poppins">
+                <Building className="h-4 w-4 mr-2" />
+                Add Project
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="font-poppins text-xl">
+                  {editingProject ? "Edit Project" : "Create New Project"}
+                </DialogTitle>
+              </DialogHeader>
+              
+              <FormBuilder
+                fields={formFields}
+                schema={projectSchema}
+                onSubmit={handleSubmit}
+                onCancel={() => setIsDialogOpen(false)}
+                defaultValues={editingProject ? {
+                  projectname: editingProject.projectname || "",
+                  clientname: editingProject.clientname || "",
+                  status: editingProject.status || "Planning",
+                  startdate: editingProject.startdate || "",
+                  plannedenddate: editingProject.plannedenddate || "",
+                  projectmanager: editingProject.projectmanager || "",
+                  siteaddress: editingProject.siteaddress || "",
+                  Project_Description: ""
+                } : {
+                  projectname: "",
+                  clientname: "",
+                  status: "Planning",
+                  startdate: "",
+                  plannedenddate: "",
+                  projectmanager: "",
+                  siteaddress: "",
+                  Project_Description: ""
+                }}
+                submitText={editingProject ? "Update Project" : "Create Project"}
+                gridCols={2}
+                className="border-0 shadow-none"
+              />
+            </DialogContent>
+          </Dialog>
+        }
+        emptyMessage="No projects found"
+        emptyDescription="Get started by creating your first project"
+      />
     </div>
   );
 };
