@@ -1,16 +1,14 @@
 import React from 'react';
-import InductionQRDemo from '@/components/inductions/InductionQRDemo';
+import { InductionQRDemo } from '@/components/inductions/InductionQRDemo';
 
 const InductionDemo: React.FC = () => {
+  const handleComplete = () => {
+    console.log('Induction demo completed');
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      <InductionQRDemo 
-        showVoiceGuide={true}
-        allowLanguageSwitch={true}
-        onComplete={() => {
-          console.log('Induction completed successfully');
-        }}
-      />
+    <div>
+      <InductionQRDemo onComplete={handleComplete} />
     </div>
   );
 };
