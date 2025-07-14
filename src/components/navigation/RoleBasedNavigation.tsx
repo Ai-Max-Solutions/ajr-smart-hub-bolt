@@ -2,9 +2,8 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { 
-  Building2, 
   LayoutDashboard, 
-  Clock, 
+  Clock,
   Brain, 
   Shield, 
   Settings, 
@@ -55,7 +54,7 @@ const navigationItems: NavigationItem[] = [
     id: "projects",
     label: "Projects",
     path: "/projects",
-    icon: Building2,
+    icon: LayoutDashboard,
     roles: ["pm", "admin", "supervisor", "director"],
     description: "Project management and tracking"
   },
@@ -160,13 +159,11 @@ export function RoleBasedNavigation({
       )}>
         {(!collapsed || isMobile) && (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-brand rounded-lg flex items-center justify-center shadow-elevated">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-body font-poppins font-bold text-foreground">AJ Ryan</h2>
-              <p className="text-label text-muted-foreground font-poppins">SmartWork Hub</p>
-            </div>
+            <img 
+              src="/lovable-uploads/0b275deb-8a7d-4a00-85a3-ae746d59b6f1.png" 
+              alt="A&J Ryan Logo" 
+              className="w-[180px] rounded-[5px]"
+            />
           </div>
         )}
         

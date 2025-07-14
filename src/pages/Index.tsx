@@ -18,10 +18,11 @@ const Index = () => {
             {/* AJ Ryan Landing Header */}
             <div className="text-center mb-16">
               <div className="flex items-center justify-center mb-8">
-                <div className="w-16 h-16 bg-gradient-brand rounded-xl flex items-center justify-center shadow-elevated mr-6">
-                  <Building className="h-10 w-10 text-white" />
-                </div>
-                <h1 className="text-5xl font-poppins font-bold text-foreground">AJ Ryan SmartWork Hub</h1>
+                <img 
+                  src="/lovable-uploads/0b275deb-8a7d-4a00-85a3-ae746d59b6f1.png" 
+                  alt="A&J Ryan Logo" 
+                  className="w-[180px] rounded-[5px] mr-6"
+                />
               </div>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-poppins">
                 Modern Construction Management Platform

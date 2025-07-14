@@ -49,14 +49,11 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <MobileNavToggle onClick={toggleMobileNav} />
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-brand rounded-lg flex items-center justify-center">
-                  <span className="text-lg">🏗️</span>
-                </div>
-                <div>
-                  <h1 className="text-body font-poppins font-bold text-foreground">AJ Ryan</h1>
-                </div>
-              </div>
+              <img 
+                src="/lovable-uploads/0b275deb-8a7d-4a00-85a3-ae746d59b6f1.png" 
+                alt="A&J Ryan Logo" 
+                className="w-[180px] rounded-[5px]"
+              />
             </div>
             
             <div className="flex items-center gap-3">
