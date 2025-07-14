@@ -201,7 +201,7 @@ export function RoleBasedNavigation({
               icon={item.icon} 
               variant={isActivePath(item.path) ? "navy" : "yellow"} 
               size="default"
-              className="shrink-0"
+              className="shrink-0 group-hover:text-aj-navy-deep transition-aj duration-aj-smooth"
             />
             
             {(!collapsed || isMobile) && (
