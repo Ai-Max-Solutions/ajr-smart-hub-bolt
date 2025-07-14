@@ -11,20 +11,27 @@ import {
   Users, 
   FileText,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Settings
 } from 'lucide-react';
 import { AIChat } from './AIChat';
 import { VoiceInterface } from './VoiceInterface';
 import { SmartPromptLibrary } from './SmartPromptLibrary';
+import { PersonalizedAIChat } from './PersonalizedAIChat';
+import { ProactiveSuggestions } from './ProactiveSuggestions';
+import { AIPreferences } from './AIPreferences';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useMobileOptimization } from '@/hooks/useMobileOptimization';
+import { usePersonalizedAI } from '@/hooks/usePersonalizedAI';
 
 export const AIDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('prompts');
+  const [activeTab, setActiveTab] = useState('chat');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastPromptResponse, setLastPromptResponse] = useState<string>('');
+  const [showPreferences, setShowPreferences] = useState(false);
   const { profile: userProfile } = useUserProfile();
   const { mobileFeatures, isOneHandedMode } = useMobileOptimization();
+  const { personalizedGreeting, isLoading: aiLoading } = usePersonalizedAI();
 
   const getRoleFeatures = (role: string) => {
     const features = {
@@ -97,7 +104,7 @@ export const AIDashboard: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">AJ Ryan AI Assistant</h1>
           <p className="text-muted-foreground">
-            Intelligent support tailored for your role and responsibilities
+            {personalizedGreeting || 'Intelligent support tailored for your role and responsibilities'}
           </p>
           {mobileFeatures.deviceType === 'mobile' && (
             <div className="flex items-center gap-2 mt-1">
@@ -112,41 +119,70 @@ export const AIDashboard: React.FC = () => {
             </div>
           )}
         </div>
-        <Badge variant="outline" className={getRoleColor(userProfile.role)}>
-          {userProfile.role}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={getRoleColor(userProfile.role)}>
+            {userProfile.role}
+          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowPreferences(!showPreferences)}
+            className="h-8 w-8 p-0"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
+      {/* Proactive Suggestions */}
+      <ProactiveSuggestions 
+        onSuggestionClick={(suggestion) => {
+          if (suggestion.action_type === 'open_chat') {
+            setActiveTab('chat');
+          }
+        }}
+        maxSuggestions={3}
+      />
+
+      {/* AI Preferences Panel */}
+      {showPreferences && (
+        <div className="mb-6">
+          <AIPreferences />
+        </div>
+      )}
+
       {/* Role-specific features overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {roleFeatures.map((feature, index) => (
-          <Card key={index} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-start space-x-3">
-                <feature.icon className="h-5 w-5 text-primary mt-1" />
-                <div>
-                  <h3 className="font-medium">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+      {!showPreferences && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {roleFeatures.map((feature, index) => (
+            <Card key={index} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-3">
+                  <feature.icon className="h-5 w-5 text-primary mt-1" />
+                  <div>
+                    <h3 className="font-medium">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* AI Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className={`grid w-full ${mobileFeatures.deviceType === 'mobile' ? 'grid-cols-3' : 'grid-cols-3'}`}>
-          <TabsTrigger value="prompts" className="flex items-center gap-2">
+          <TabsTrigger value="chat" className="flex items-center gap-2">
             <div className="relative">
               <MessageCircle className="h-4 w-4" />
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-gradient-to-r from-primary to-primary-foreground rounded-full animate-pulse" />
             </div>
-            {mobileFeatures.deviceType === 'mobile' ? 'Prompts' : 'Smart Prompts'}
+            {mobileFeatures.deviceType === 'mobile' ? 'AI Chat' : 'Personalized Chat'}
           </TabsTrigger>
-          <TabsTrigger value="chat" className="flex items-center gap-2">
+          <TabsTrigger value="prompts" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
-            {mobileFeatures.deviceType === 'mobile' ? 'Chat' : 'Text Chat'}
+            {mobileFeatures.deviceType === 'mobile' ? 'Prompts' : 'Smart Prompts'}
           </TabsTrigger>
           <TabsTrigger value="voice" className="flex items-center gap-2">
             <Mic className="h-4 w-4" />
@@ -156,6 +192,13 @@ export const AIDashboard: React.FC = () => {
             )}
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="chat" className="mt-6">
+          <PersonalizedAIChat 
+            isVoiceMode={false}
+            onToggle={() => setShowPreferences(!showPreferences)}
+          />
+        </TabsContent>
 
         <TabsContent value="prompts" className="mt-6">
           <SmartPromptLibrary 
@@ -167,10 +210,6 @@ export const AIDashboard: React.FC = () => {
               }
             }}
           />
-        </TabsContent>
-
-        <TabsContent value="chat" className="mt-6">
-          <AIChat isVoiceMode={false} />
         </TabsContent>
 
         <TabsContent value="voice" className="mt-6">

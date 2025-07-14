@@ -226,6 +226,88 @@ export type Database = {
           },
         ]
       }
+      ai_conversation_memory: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          importance_score: number | null
+          last_accessed: string | null
+          memory_key: string
+          memory_type: string
+          memory_value: Json
+          user_id: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          importance_score?: number | null
+          last_accessed?: string | null
+          memory_key: string
+          memory_type: string
+          memory_value: Json
+          user_id?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          importance_score?: number | null
+          last_accessed?: string | null
+          memory_key?: string
+          memory_type?: string
+          memory_value?: Json
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversation_memory_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_memory_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_memory_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_memory_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_memory_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_memory_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       ai_conversations: {
         Row: {
           agent_id: string | null
@@ -268,6 +350,104 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_feedback: {
+        Row: {
+          accuracy: number | null
+          conversation_id: string | null
+          correction_text: string | null
+          created_at: string | null
+          feedback_type: string
+          feedback_value: string | null
+          helpfulness: number | null
+          id: string
+          message_id: string | null
+          processed: boolean | null
+          response_quality: number | null
+          sentiment_score: number | null
+          user_id: string | null
+        }
+        Insert: {
+          accuracy?: number | null
+          conversation_id?: string | null
+          correction_text?: string | null
+          created_at?: string | null
+          feedback_type: string
+          feedback_value?: string | null
+          helpfulness?: number | null
+          id?: string
+          message_id?: string | null
+          processed?: boolean | null
+          response_quality?: number | null
+          sentiment_score?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          accuracy?: number | null
+          conversation_id?: string | null
+          correction_text?: string | null
+          created_at?: string | null
+          feedback_type?: string
+          feedback_value?: string | null
+          helpfulness?: number | null
+          id?: string
+          message_id?: string | null
+          processed?: boolean | null
+          response_quality?: number | null
+          sentiment_score?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_feedback_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
           },
         ]
       }
@@ -3850,6 +4030,99 @@ export type Database = {
           },
         ]
       }
+      proactive_suggestions: {
+        Row: {
+          action_data: Json | null
+          action_type: string | null
+          clicked_at: string | null
+          confidence_score: number | null
+          content: string
+          created_at: string | null
+          dismissed_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          priority_score: number | null
+          shown_at: string | null
+          suggestion_type: string
+          title: string
+          triggered_by: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action_data?: Json | null
+          action_type?: string | null
+          clicked_at?: string | null
+          confidence_score?: number | null
+          content: string
+          created_at?: string | null
+          dismissed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority_score?: number | null
+          shown_at?: string | null
+          suggestion_type: string
+          title: string
+          triggered_by?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action_data?: Json | null
+          action_type?: string | null
+          clicked_at?: string | null
+          confidence_score?: number | null
+          content?: string
+          created_at?: string | null
+          dismissed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority_score?: number | null
+          shown_at?: string | null
+          suggestion_type?: string
+          title?: string
+          triggered_by?: Json | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proactive_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "proactive_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "proactive_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "proactive_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "proactive_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           airtable_last_sync: string | null
@@ -6309,6 +6582,48 @@ export type Database = {
           },
         ]
       }
+      trade_terminology: {
+        Row: {
+          context_usage: string[] | null
+          created_at: string | null
+          definition: string
+          difficulty_level: string | null
+          id: string
+          related_terms: string[] | null
+          synonyms: string[] | null
+          term: string
+          trade_category: string
+          updated_at: string | null
+          usage_frequency: number | null
+        }
+        Insert: {
+          context_usage?: string[] | null
+          created_at?: string | null
+          definition: string
+          difficulty_level?: string | null
+          id?: string
+          related_terms?: string[] | null
+          synonyms?: string[] | null
+          term: string
+          trade_category: string
+          updated_at?: string | null
+          usage_frequency?: number | null
+        }
+        Update: {
+          context_usage?: string[] | null
+          created_at?: string | null
+          definition?: string
+          difficulty_level?: string | null
+          id?: string
+          related_terms?: string[] | null
+          synonyms?: string[] | null
+          term?: string
+          trade_category?: string
+          updated_at?: string | null
+          usage_frequency?: number | null
+        }
+        Relationships: []
+      }
       trusted_domains: {
         Row: {
           created_at: string | null
@@ -6329,6 +6644,156 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      user_ai_preferences: {
+        Row: {
+          created_at: string | null
+          greeting_style: string | null
+          id: string
+          language_preference: string | null
+          morning_summary: boolean | null
+          notification_frequency: string | null
+          preferred_tone: string | null
+          proactive_suggestions: boolean | null
+          response_length: string | null
+          trade_terminology_level: string | null
+          updated_at: string | null
+          user_id: string | null
+          voice_enabled: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          greeting_style?: string | null
+          id?: string
+          language_preference?: string | null
+          morning_summary?: boolean | null
+          notification_frequency?: string | null
+          preferred_tone?: string | null
+          proactive_suggestions?: boolean | null
+          response_length?: string | null
+          trade_terminology_level?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          voice_enabled?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          greeting_style?: string | null
+          id?: string
+          language_preference?: string | null
+          morning_summary?: boolean | null
+          notification_frequency?: string | null
+          preferred_tone?: string | null
+          proactive_suggestions?: boolean | null
+          response_length?: string | null
+          trade_terminology_level?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          voice_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_ai_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_ai_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_ai_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_ai_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_ai_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      user_context_cache: {
+        Row: {
+          cache_key: string
+          context_data: Json
+          context_type: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          cache_key: string
+          context_data: Json
+          context_type: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          cache_key?: string
+          context_data?: Json
+          context_type?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_context_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_context_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_context_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_context_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_context_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
       }
       User_Job_Rates: {
         Row: {
@@ -6480,6 +6945,84 @@ export type Database = {
           {
             foreignKeyName: "user_job_rates_user_foreign"
             columns: ["user"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      user_patterns: {
+        Row: {
+          confidence_level: number | null
+          created_at: string | null
+          frequency_score: number | null
+          id: string
+          is_active: boolean | null
+          last_occurrence: string | null
+          next_predicted: string | null
+          pattern_data: Json
+          pattern_type: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          confidence_level?: number | null
+          created_at?: string | null
+          frequency_score?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_occurrence?: string | null
+          next_predicted?: string | null
+          pattern_data: Json
+          pattern_type: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          confidence_level?: number | null
+          created_at?: string | null
+          frequency_score?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_occurrence?: string | null
+          next_predicted?: string | null
+          pattern_data?: Json
+          pattern_type?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_patterns_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_patterns_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_patterns_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_patterns_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_patterns_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
@@ -7566,6 +8109,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      cache_user_context: {
+        Args: {
+          p_user_id: string
+          p_context_type: string
+          p_context_data: Json
+        }
+        Returns: undefined
+      }
       calculate_approval_priority: {
         Args: { p_item_type: string; p_item_id: string }
         Returns: number
@@ -7740,6 +8291,10 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_personalized_prompt: {
+        Args: { p_user_id: string; p_base_role: string }
+        Returns: string
+      }
       get_admin_pending_actions: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -7888,6 +8443,10 @@ export type Database = {
       }
       get_task_plan_summary: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_user_ai_context: {
+        Args: { p_user_id: string }
         Returns: Json
       }
       get_user_management_stats: {

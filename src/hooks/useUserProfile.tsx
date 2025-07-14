@@ -15,6 +15,7 @@ export interface UserProfile {
   skills?: string[];
   department?: string;
   phone?: string;
+  primaryskill?: string;
 }
 
 export const useUserProfile = () => {
@@ -45,7 +46,8 @@ export const useUserProfile = () => {
             employmentstatus,
             currentproject,
             skills,
-            phone
+            phone,
+            primaryskill
           `)
           .eq('supabase_auth_id', user.id)
           .single();
@@ -65,7 +67,8 @@ export const useUserProfile = () => {
             employmentstatus: data.employmentstatus || 'Active',
             currentproject: data.currentproject,
             skills: data.skills,
-            phone: data.phone
+            phone: data.phone,
+            primaryskill: data.primaryskill
           });
         }
       } catch (err) {

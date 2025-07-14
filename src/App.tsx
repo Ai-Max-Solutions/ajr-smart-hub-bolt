@@ -70,6 +70,14 @@ function App() {
                   </RouteProtection>
                 } 
               />
+              <Route 
+                path="/ai-assistant" 
+                element={
+                  <RouteProtection fallbackPath="/auth">
+                    <AIAssistant />
+                  </RouteProtection>
+                } 
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
