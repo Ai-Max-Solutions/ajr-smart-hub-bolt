@@ -3853,6 +3853,377 @@ export type Database = {
           },
         ]
       }
+      job_tracker: {
+        Row: {
+          agreed_rate: number
+          approved_at: string | null
+          approved_by: string | null
+          assigned_user_id: string
+          calculated_total: number | null
+          created_at: string
+          end_time: string | null
+          hours_worked: number | null
+          id: string
+          issues_encountered: string | null
+          job_type_id: string
+          materials_used: Json | null
+          override_at: string | null
+          override_by: string | null
+          override_reason: string | null
+          override_total: number | null
+          photos: string[] | null
+          plot_id: string
+          project_id: string
+          quantity_completed: number | null
+          rams_signed_id: string | null
+          rate_type: string
+          rejection_reason: string | null
+          safety_checks_completed: boolean | null
+          start_time: string | null
+          status: string
+          submitted_at: string
+          unit_type: string | null
+          updated_at: string
+          work_date: string
+          work_description: string
+        }
+        Insert: {
+          agreed_rate: number
+          approved_at?: string | null
+          approved_by?: string | null
+          assigned_user_id: string
+          calculated_total?: number | null
+          created_at?: string
+          end_time?: string | null
+          hours_worked?: number | null
+          id?: string
+          issues_encountered?: string | null
+          job_type_id: string
+          materials_used?: Json | null
+          override_at?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          override_total?: number | null
+          photos?: string[] | null
+          plot_id: string
+          project_id: string
+          quantity_completed?: number | null
+          rams_signed_id?: string | null
+          rate_type: string
+          rejection_reason?: string | null
+          safety_checks_completed?: boolean | null
+          start_time?: string | null
+          status?: string
+          submitted_at?: string
+          unit_type?: string | null
+          updated_at?: string
+          work_date?: string
+          work_description: string
+        }
+        Update: {
+          agreed_rate?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          assigned_user_id?: string
+          calculated_total?: number | null
+          created_at?: string
+          end_time?: string | null
+          hours_worked?: number | null
+          id?: string
+          issues_encountered?: string | null
+          job_type_id?: string
+          materials_used?: Json | null
+          override_at?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          override_total?: number | null
+          photos?: string[] | null
+          plot_id?: string
+          project_id?: string
+          quantity_completed?: number | null
+          rams_signed_id?: string | null
+          rate_type?: string
+          rejection_reason?: string | null
+          safety_checks_completed?: boolean | null
+          start_time?: string | null
+          status?: string
+          submitted_at?: string
+          unit_type?: string | null
+          updated_at?: string
+          work_date?: string
+          work_description?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_tracker_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_job_type_id_fkey"
+            columns: ["job_type_id"]
+            isOneToOne: false
+            referencedRelation: "job_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_tracker_override_by_fkey"
+            columns: ["override_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_override_by_fkey"
+            columns: ["override_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_override_by_fkey"
+            columns: ["override_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_override_by_fkey"
+            columns: ["override_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_override_by_fkey"
+            columns: ["override_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "Plots"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      job_tracker_duplicates: {
+        Row: {
+          detected_at: string
+          duplicate_job_id: string
+          id: string
+          notes: string | null
+          original_job_id: string
+          resolution_action: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          detected_at?: string
+          duplicate_job_id: string
+          id?: string
+          notes?: string | null
+          original_job_id: string
+          resolution_action?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          detected_at?: string
+          duplicate_job_id?: string
+          id?: string
+          notes?: string | null
+          original_job_id?: string
+          resolution_action?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_tracker_duplicates_duplicate_job_id_fkey"
+            columns: ["duplicate_job_id"]
+            isOneToOne: false
+            referencedRelation: "job_tracker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_tracker_duplicates_original_job_id_fkey"
+            columns: ["original_job_id"]
+            isOneToOne: false
+            referencedRelation: "job_tracker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_tracker_duplicates_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_duplicates_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_duplicates_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_duplicates_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_duplicates_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      job_types: {
+        Row: {
+          code: string
+          created_at: string
+          default_unit_price: number | null
+          default_unit_type: string | null
+          description: string | null
+          estimated_duration_hours: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          pricing_model: string
+          required_rams_template_id: string | null
+          requires_certification: string[] | null
+          updated_at: string
+          work_category_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_unit_price?: number | null
+          default_unit_type?: string | null
+          description?: string | null
+          estimated_duration_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          pricing_model: string
+          required_rams_template_id?: string | null
+          requires_certification?: string[] | null
+          updated_at?: string
+          work_category_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_unit_price?: number | null
+          default_unit_type?: string | null
+          description?: string | null
+          estimated_duration_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          pricing_model?: string
+          required_rams_template_id?: string | null
+          requires_certification?: string[] | null
+          updated_at?: string
+          work_category_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_types_work_category_id_fkey"
+            columns: ["work_category_id"]
+            isOneToOne: false
+            referencedRelation: "work_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Jobs: {
         Row: {
           jobname: string | null
@@ -4918,6 +5289,143 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      plot_job_status: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          id: string
+          job_type_id: string
+          lock_reason: string | null
+          locked_at: string | null
+          locked_by: string | null
+          plot_id: string
+          project_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          id?: string
+          job_type_id: string
+          lock_reason?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          plot_id: string
+          project_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          id?: string
+          job_type_id?: string
+          lock_reason?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          plot_id?: string
+          project_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plot_job_status_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_job_type_id_fkey"
+            columns: ["job_type_id"]
+            isOneToOne: false
+            referencedRelation: "job_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_locked_by_fkey"
+            columns: ["locked_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_locked_by_fkey"
+            columns: ["locked_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_locked_by_fkey"
+            columns: ["locked_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_locked_by_fkey"
+            columns: ["locked_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_locked_by_fkey"
+            columns: ["locked_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "Plots"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
@@ -9727,6 +10235,137 @@ export type Database = {
           },
         ]
       }
+      user_job_assignments: {
+        Row: {
+          assigned_by: string
+          assigned_date: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          job_type_id: string
+          notes: string | null
+          plot_id: string | null
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by: string
+          assigned_date?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          job_type_id: string
+          notes?: string | null
+          plot_id?: string | null
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string
+          assigned_date?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          job_type_id?: string
+          notes?: string | null
+          plot_id?: string | null
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_job_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_job_type_id_fkey"
+            columns: ["job_type_id"]
+            isOneToOne: false
+            referencedRelation: "job_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "Plots"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       User_Job_Rates: {
         Row: {
           airtable_created_time: string | null
@@ -9993,6 +10632,145 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_rate_cards: {
+        Row: {
+          approved_by: string | null
+          base_rate: number
+          created_at: string
+          effective_from: string
+          effective_until: string | null
+          id: string
+          is_active: boolean | null
+          job_type_id: string
+          notes: string | null
+          overtime_multiplier: number | null
+          project_id: string | null
+          rate_type: string
+          unit_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_by?: string | null
+          base_rate: number
+          created_at?: string
+          effective_from?: string
+          effective_until?: string | null
+          id?: string
+          is_active?: boolean | null
+          job_type_id: string
+          notes?: string | null
+          overtime_multiplier?: number | null
+          project_id?: string | null
+          rate_type: string
+          unit_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_by?: string | null
+          base_rate?: number
+          created_at?: string
+          effective_from?: string
+          effective_until?: string | null
+          id?: string
+          is_active?: boolean | null
+          job_type_id?: string
+          notes?: string | null
+          overtime_multiplier?: number | null
+          project_id?: string | null
+          rate_type?: string
+          unit_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_rate_cards_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_job_type_id_fkey"
+            columns: ["job_type_id"]
+            isOneToOne: false
+            referencedRelation: "job_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
       }
       user_type_settings: {
         Row: {
@@ -10475,6 +11253,56 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      work_categories: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_template: boolean | null
+          name: string
+          project_id: string | null
+          requires_rams: boolean | null
+          safety_requirements: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_template?: boolean | null
+          name: string
+          project_id?: string | null
+          requires_rams?: boolean | null
+          safety_requirements?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_template?: boolean | null
+          name?: string
+          project_id?: string | null
+          requires_rams?: boolean | null
+          safety_requirements?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_categories_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
       }
       work_packages: {
         Row: {
