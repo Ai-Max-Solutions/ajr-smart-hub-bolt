@@ -19,9 +19,12 @@ serve(async (req) => {
 
   try {
     console.log('CSCS Card Analyzer function called');
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
 
     if (!openAIApiKey) {
-      console.error('OpenAI API key not found');
+      console.error('OpenAI API key not found in environment variables');
+      console.error('Available env vars:', Object.keys(Deno.env.toObject()));
       return new Response(
         JSON.stringify({ error: 'OpenAI API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

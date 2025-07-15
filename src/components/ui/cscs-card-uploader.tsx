@@ -97,8 +97,15 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
             body: { imageUrl }
           });
           
+        console.log('Analysis response:', { analysis, analysisError });
+          
         if (analysisError) {
-          console.error('Analysis error:', analysisError);
+          console.error('Analysis error details:', {
+            message: analysisError.message,
+            details: analysisError.details,
+            hint: analysisError.hint,
+            code: analysisError.code
+          });
           throw new Error(`Analysis failed: ${analysisError.message}`);
         }
         
