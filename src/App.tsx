@@ -23,6 +23,7 @@ import ContractorDashboard from "./pages/ContractorDashboard";
 import NotFound from "./pages/NotFound";
 import InductionDemo from "./pages/InductionDemo";
 import MobileDashboard from "./pages/MobileDashboard";
+import { JobTrackerDashboard } from "./components/job-tracker/JobTrackerDashboard";
 
 const queryClient = new QueryClient();
 
@@ -123,6 +124,17 @@ function App() {
                   <RouteProtection fallbackPath="/auth">
                     <AppLayout>
                       <AIAssistant />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/job-tracker" 
+                element={
+                  <RouteProtection requiredRole={['operative', 'pm', 'admin', 'supervisor']}>
+                    <AppLayout>
+                      <JobTrackerDashboard />
                     </AppLayout>
                   </RouteProtection>
                 } 

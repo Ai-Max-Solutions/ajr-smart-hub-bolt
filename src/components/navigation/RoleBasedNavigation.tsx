@@ -16,7 +16,8 @@ import {
   Home,
   MapPin,
   Zap,
-  BarChart3
+  BarChart3,
+  ClipboardList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AJIcon } from "@/components/ui/aj-icon";
@@ -65,6 +66,14 @@ const navigationItems: NavigationItem[] = [
     icon: Clock,
     roles: ["operative", "pm", "admin", "supervisor"],
     description: "Time tracking and approvals"
+  },
+  {
+    id: "job-tracker",
+    label: "Job Tracker",
+    path: "/job-tracker",
+    icon: ClipboardList,
+    roles: ["operative", "pm", "admin", "supervisor"],
+    description: "Track and manage construction work"
   },
   {
     id: "ai-assistant",
