@@ -31,27 +31,50 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
   useEffect(() => {
     const checkCSCSStatus = async () => {
       if (!user || !session) {
+        console.log('[CSCSAccessGate] No user or session, allowing access');
         setLoading(false);
         return;
       }
 
+      console.log('[CSCSAccessGate] Checking CSCS status for user:', user.id);
+
       try {
-        // First check if user has uploaded a CSCS card using the direct table
+        // Get the most recent CSCS card using maybeSingle to avoid errors when no data exists
         const { data: cscsCard, error: cscsError } = await supabase
           .from('cscs_cards')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        if (cscsCard && !cscsError) {
+        console.log('[CSCSAccessGate] Query result:', { cscsCard, cscsError });
+
+        if (cscsError) {
+          console.error('[CSCSAccessGate] Database error:', cscsError);
+          setCSCSStatus({
+            is_valid: false,
+            status: 'error',
+            reason: 'Error checking CSCS status',
+            requires_upload: true
+          });
+          return;
+        }
+
+        if (cscsCard) {
           // User has a CSCS card, check if it's valid (not expired)
           const today = new Date();
           const expiryDate = new Date(cscsCard.expiry_date);
           
+          console.log('[CSCSAccessGate] Card found:', {
+            cardNumber: cscsCard.card_number,
+            expiryDate: cscsCard.expiry_date,
+            isValid: expiryDate > today
+          });
+          
           if (expiryDate > today) {
             // Card is valid
+            console.log('[CSCSAccessGate] CSCS card is valid, allowing access');
             setCSCSStatus({
               is_valid: true,
               status: 'valid',
@@ -60,6 +83,7 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
             });
           } else {
             // Card is expired
+            console.log('[CSCSAccessGate] CSCS card is expired');
             setCSCSStatus({
               is_valid: false,
               status: 'expired',
@@ -69,6 +93,7 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
           }
         } else {
           // No CSCS card found, user needs to upload
+          console.log('[CSCSAccessGate] No CSCS card found, requiring upload');
           setCSCSStatus({
             is_valid: false,
             status: 'missing',
@@ -77,8 +102,8 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
           });
         }
       } catch (error) {
-        console.error('Error in CSCS check:', error);
-        // Default to requiring upload on error
+        console.error('[CSCSAccessGate] Unexpected error:', error);
+        // Only require upload on genuine errors, not normal "no data" cases
         setCSCSStatus({
           is_valid: false,
           status: 'error',
