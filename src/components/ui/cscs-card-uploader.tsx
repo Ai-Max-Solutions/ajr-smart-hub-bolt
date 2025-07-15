@@ -35,6 +35,8 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [uploadError, setUploadError] = useState('');
   const [isCustomType, setIsCustomType] = useState(false);
+  const [showGoldSubtype, setShowGoldSubtype] = useState(false);
+  const [goldSubtype, setGoldSubtype] = useState('');
   
   // CSCS card type options with colors
   const cardTypes = [
@@ -44,13 +46,17 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
     { value: 'Experienced Worker', label: 'Experienced Worker (Red)', color: '#D71920' },
     { value: 'Experienced Technical/Supervisor/Manager', label: 'Experienced Technical/Supervisor/Manager (Red)', color: '#D71920' },
     { value: 'Skilled Worker', label: 'Skilled Worker (Blue)', color: '#0072CE' },
-    { value: 'Gold – Advanced Craft', label: 'Gold – Advanced Craft (Gold)', color: '#FFD700' },
-    { value: 'Gold – Supervisor', label: 'Gold – Supervisor (Gold)', color: '#FFD700' },
+    { value: 'Gold', label: 'Gold (Requires Specification)', color: '#FFD700' },
     { value: 'Academically Qualified Person', label: 'Academically Qualified Person (White)', color: '#FFFFFF' },
     { value: 'Professionally Qualified Person', label: 'Professionally Qualified Person (White)', color: '#FFFFFF' },
     { value: 'Manager', label: 'Manager (Black)', color: '#000000' },
     { value: 'Operative', label: 'Operative (Default)', color: '#00A650' },
     { value: 'Other', label: 'Other (Custom)', color: '#666666' }
+  ];
+
+  const goldSubtypes = [
+    { value: 'Advanced Craft', label: 'Advanced Craft' },
+    { value: 'Supervisor', label: 'Supervisor' }
   ];
 
   // File validation
@@ -59,11 +65,11 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
     const maxSize = 5 * 1024 * 1024; // 5MB
 
     if (!allowedTypes.includes(file.type)) {
-      return 'File must be PDF, JPG or PNG under 5MB.';
+      return 'File must be PDF, JPG or PNG, max 5MB.';
     }
 
     if (file.size > maxSize) {
-      return 'File must be PDF, JPG or PNG under 5MB.';
+      return 'File must be PDF, JPG or PNG, max 5MB.';
     }
 
     return null;
@@ -99,7 +105,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
         const filePath = `${user.id}/${fileName}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('cscs-cards')
+          .from('cards')
           .upload(filePath, file);
           
         if (uploadError) {
@@ -109,7 +115,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
         
         // Get signed URL for private bucket
         const { data: signedUrlData, error: urlError } = await supabase.storage
-          .from('cscs-cards')
+          .from('cards')
           .createSignedUrl(filePath, 60 * 60); // 1 hour expiry
           
         if (urlError) {
@@ -195,10 +201,92 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
   const handleCardTypeChange = (value: string) => {
     if (value === 'Other') {
       setIsCustomType(true);
+      setShowGoldSubtype(false);
       updateData({ cardType: '' });
+    } else if (value === 'Gold') {
+      setIsCustomType(false);
+      setShowGoldSubtype(true);
+      setGoldSubtype('');
+      updateData({ cardType: '' }); // Will be set when subtype is selected
     } else {
       setIsCustomType(false);
+      setShowGoldSubtype(false);
       updateData({ cardType: value });
+    }
+  };
+
+  const handleGoldSubtypeChange = (value: string) => {
+    setGoldSubtype(value);
+    updateData({ cardType: `Gold – ${value}` });
+  };
+
+  const validateForm = (): string | null => {
+    if (!data.frontImage) return 'Please upload a CSCS card image.';
+    if (!data.cardType) return 'Please select a card type.';
+    if (isCustomType && !data.cardType.trim()) return 'Please enter a custom card type.';
+    if (showGoldSubtype && !goldSubtype) return 'Please select Advanced Craft or Supervisor for Gold card.';
+    if (!data.number) return 'Please enter the card number.';
+    if (!data.expiryDate) return 'Please enter the expiry date.';
+    return null;
+  };
+
+  const handleSaveCard = async () => {
+    try {
+      const validationError = validateForm();
+      if (validationError) {
+        toast({
+          title: "Validation Error",
+          description: validationError,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get color hex based on card type
+      const cardTypeObj = cardTypes.find(type => type.value === data.cardType);
+      const colourHex = cardTypeObj?.color || '#666666';
+
+      // Insert into cscs_cards table
+      const { error } = await supabase
+        .from('cscs_cards')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          file_url: data.frontImage ? URL.createObjectURL(data.frontImage) : '',
+          cscs_card_type: data.cardType,
+          colour: colourHex,
+          custom_card_type: isCustomType ? data.cardType : null,
+          expiry_date: data.expiryDate || null,
+          card_number: data.number || null
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Card added successfully.",
+      });
+
+      // Reset form
+      updateData({
+        number: '',
+        expiryDate: '',
+        cardType: '',
+        frontImage: undefined,
+        backImage: undefined
+      });
+      setIsCustomType(false);
+      setShowGoldSubtype(false);
+      setGoldSubtype('');
+
+    } catch (error) {
+      console.error('Error saving card:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Upload failed, please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -273,7 +361,10 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
             <Label htmlFor="card-type" className="text-primary">
               Select Card Type {required && <span className="text-destructive">*</span>}
             </Label>
-            <Select value={isCustomType ? 'Other' : data.cardType} onValueChange={handleCardTypeChange}>
+            <Select 
+              value={isCustomType ? 'Other' : showGoldSubtype ? 'Gold' : data.cardType} 
+              onValueChange={handleCardTypeChange}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select your CSCS card type (defaults to Operative)" />
               </SelectTrigger>
@@ -292,6 +383,27 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Gold Subtype Selection */}
+          {showGoldSubtype && (
+            <div className="space-y-2">
+              <Label htmlFor="gold-subtype" className="text-primary">
+                Specify Gold Type {required && <span className="text-destructive">*</span>}
+              </Label>
+              <Select value={goldSubtype} onValueChange={handleGoldSubtypeChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Advanced Craft or Supervisor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {goldSubtypes.map((subtype) => (
+                    <SelectItem key={subtype.value} value={subtype.value}>
+                      {subtype.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Custom Type Input */}
           {isCustomType && (
@@ -348,13 +460,14 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           </div>
         </div>
 
-        {/* Add Button */}
+        {/* Save Card Button */}
         <div className="flex justify-end pt-4">
           <Button 
+            onClick={handleSaveCard}
             className="bg-accent text-primary hover:bg-accent/90"
-            disabled={!data.frontImage || !data.cardType || !data.number || !data.expiryDate}
+            disabled={isAnalyzing}
           >
-            Add CSCS Card
+            {isAnalyzing ? 'Processing...' : 'Save Card'}
           </Button>
         </div>
       </CardContent>
