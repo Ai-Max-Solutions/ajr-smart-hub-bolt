@@ -41,13 +41,22 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
   };
 
   const clearSignature = () => {
+    console.log('Clearing signature pad...');
     signaturePadRef.current?.clear();
   };
 
   const handleSign = () => {
+    console.log('Attempting to sign...', { 
+      padExists: !!signaturePadRef.current, 
+      isEmpty: signaturePadRef.current?.isEmpty() 
+    });
+    
     if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
       const signature = signaturePadRef.current.toDataURL();
+      console.log('Signature captured successfully');
       onSigned(signature);
+    } else {
+      console.log('Cannot sign - pad is empty or not available');
     }
   };
 
@@ -223,8 +232,15 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
                     ref={signaturePadRef}
                     canvasProps={{
                       className: 'w-full h-32 rounded-lg',
-                      style: { touchAction: 'none' }
+                      style: { 
+                        touchAction: 'none',
+                        cursor: 'crosshair',
+                        border: 'none',
+                        display: 'block'
+                      }
                     }}
+                    onBegin={() => console.log('Started signing')}
+                    onEnd={() => console.log('Finished signing stroke')}
                   />
                 </div>
                 
@@ -235,7 +251,6 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
                   <Button 
                     onClick={handleSign}
                     className="btn-primary"
-                    disabled={!signaturePadRef.current || signaturePadRef.current.isEmpty()}
                   >
                     Sign Document
                   </Button>

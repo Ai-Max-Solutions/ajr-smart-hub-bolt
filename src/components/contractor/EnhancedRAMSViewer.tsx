@@ -97,14 +97,23 @@ const EnhancedRAMSViewer = ({
   };
 
   const clearSignature = () => {
+    console.log('Clearing signature pad...');
     signaturePadRef.current?.clear();
   };
 
   const handleSign = () => {
+    console.log('Attempting to sign...', { 
+      padExists: !!signaturePadRef.current, 
+      isEmpty: signaturePadRef.current?.isEmpty() 
+    });
+    
     if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
       const signature = signaturePadRef.current.toDataURL();
+      console.log('Signature captured successfully');
       stopReading();
       onSigned(signature, readingTime);
+    } else {
+      console.log('Cannot sign - pad is empty or not available');
     }
   };
 
@@ -335,8 +344,15 @@ const EnhancedRAMSViewer = ({
                       ref={signaturePadRef}
                       canvasProps={{
                         className: 'w-full h-32 rounded-lg',
-                        style: { touchAction: 'none' }
+                        style: { 
+                          touchAction: 'none',
+                          cursor: 'crosshair',
+                          border: 'none',
+                          display: 'block'
+                        }
                       }}
+                      onBegin={() => console.log('Started signing')}
+                      onEnd={() => console.log('Finished signing stroke')}
                     />
                   </div>
                   
@@ -347,7 +363,6 @@ const EnhancedRAMSViewer = ({
                     <Button 
                       onClick={handleSign}
                       className="btn-primary"
-                      disabled={!signaturePadRef.current || signaturePadRef.current.isEmpty()}
                     >
                       <PenTool className="w-4 h-4 mr-2" />
                       Sign Document
