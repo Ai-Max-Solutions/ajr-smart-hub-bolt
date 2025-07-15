@@ -1,972 +1,789 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
 import { 
-  UserPlus, 
+  Users, 
+  Plus, 
+  Edit, 
+  Trash2, 
   Search, 
   Filter, 
   Download, 
-  Upload, 
-  MoreHorizontal, 
-  Edit, 
-  Pause, 
-  Archive, 
-  RotateCcw,
+  Upload,
   Shield,
-  ShieldCheck,
-  ShieldX,
-  Users,
-  FileText,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Info,
-  BookOpen,
-  FileSpreadsheet,
+  UserCheck,
+  UserX,
+  AlertCircle,
+  Calendar,
   Mail,
-  Key,
-  Settings
+  Phone,
+  MapPin,
+  Briefcase,
+  Star,
+  Clock,
+  Eye,
+  EyeOff
 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { useAuditLog } from "@/hooks/useAuditLog";
 
 interface User {
-  id: string;
-  name: string;
+  whalesync_postgres_id: string;
   email: string;
+  firstname: string;
+  lastname: string;
+  fullname: string;
   role: string;
-  status: "active" | "suspended" | "archived";
-  lastLogin: string;
-  twoFactorEnabled: boolean;
-  assignedProjects: string[];
-  createdAt: string;
-  createdBy: string;
-  lastModified: string;
-  modifiedBy: string;
-  suspensionReason?: string;
-  archiveReason?: string;
+  employmentstatus: string;
+  phone: string;
+  address: string;
+  startdate: string;
+  currentproject: string;
+  skills: string[];
+  avatar_url: string;
+  last_sign_in: string;
+  deactivation_date: string;
+  supabase_auth_id: string;
+  contracttype: string;
+  basehourlyrate: number;
+  performancerating: string;
+  cscsexpirydate: string;
+  healthsafetytraining: string;
 }
 
-interface BulkImportResult {
-  successful: number;
-  failed: number;
-  errors: string[];
+interface Project {
+  whalesync_postgres_id: string;
+  projectname: string;
+  status: string;
 }
-
-interface UserAction {
-  action: "suspend" | "archive" | "role_change";
-  reason: string;
-  replacementUser?: string;
-}
-
-// Mock data
-const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "John Smith",
-    email: "john.smith@ajryan.co.uk",
-    role: "admin",
-    status: "active",
-    lastLogin: "2025-01-13 09:15",
-    twoFactorEnabled: true,
-    assignedProjects: ["Kidbrooke Village", "Woodberry Down"],
-    createdAt: "2024-01-15",
-    createdBy: "System Admin",
-    lastModified: "2025-01-13",
-    modifiedBy: "System Admin"
-  },
-  {
-    id: "2",
-    name: "Sarah Connor",
-    email: "sarah.connor@ajryan.co.uk",
-    role: "supervisor",
-    status: "active",
-    lastLogin: "2025-01-13 08:45",
-    twoFactorEnabled: true,
-    assignedProjects: ["Kidbrooke Village"],
-    createdAt: "2024-03-20",
-    createdBy: "John Smith",
-    lastModified: "2024-12-01",
-    modifiedBy: "John Smith"
-  },
-  {
-    id: "3",
-    name: "Mike Johnson",
-    email: "mike.johnson@ajryan.co.uk",
-    role: "operative",
-    status: "suspended",
-    lastLogin: "2025-01-10 16:30",
-    twoFactorEnabled: false,
-    assignedProjects: ["Woodberry Down"],
-    createdAt: "2024-06-10",
-    createdBy: "Emma Wilson",
-    lastModified: "2025-01-11",
-    modifiedBy: "John Smith",
-    suspensionReason: "Failed safety compliance check"
-  },
-  {
-    id: "4",
-    name: "Emma Wilson",
-    email: "emma.wilson@ajryan.co.uk",
-    role: "pm",
-    status: "active",
-    lastLogin: "2025-01-13 07:20",
-    twoFactorEnabled: true,
-    assignedProjects: ["Kidbrooke Village", "Woodberry Down", "Greenwich Peninsula"],
-    createdAt: "2024-02-01",
-    createdBy: "John Smith",
-    lastModified: "2024-11-15",
-    modifiedBy: "John Smith"
-  }
-];
-
-const roles = ["operative", "supervisor", "pm", "admin", "dpo", "director"];
-const projects = ["Kidbrooke Village", "Woodberry Down", "Greenwich Peninsula", "Canary Wharf", "King's Cross"];
-
-// Role requirements for 2FA
-const requires2FA = ["admin", "dpo", "director"];
-
-// Email domain validation
-const validDomains = ["ajryan.co.uk", "ajryan.com"];
-
-// SOP Guidelines
-const sopGuidelines = {
-  userCreation: [
-    "Verify user has legitimate business need for access",
-    "Confirm email domain matches company policy (@ajryan.co.uk)",
-    "Assign minimum required permissions for role",
-    "Ensure 2FA is enabled for admin, DPO, and director roles",
-    "Document reason for account creation in audit log"
-  ],
-  roleChanges: [
-    "Document business justification for role change",
-    "Verify approver has authority for requested change",
-    "Update project assignments based on new role",
-    "Notify user of permission changes via email",
-    "Log all changes in security audit trail"
-  ],
-  suspension: [
-    "Document specific reason for suspension",
-    "Identify replacement user if applicable",
-    "Preserve audit trail and compliance records",
-    "Set review date for suspension status",
-    "Notify relevant project managers"
-  ],
-  archival: [
-    "Confirm user has left organization permanently",
-    "Export personal data if required for GDPR",
-    "Maintain compliance records per retention policy",
-    "Transfer critical responsibilities to replacement",
-    "Document final access removal in audit log"
-  ]
-};
 
 export const UserManagement = () => {
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterRole, setFilterRole] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  
-  // Enhanced state for SOP features
-  const [showAddUserDialog, setShowAddUserDialog] = useState(false);
-  const [showBulkImportDialog, setShowBulkImportDialog] = useState(false);
-  const [showSOPGuide, setShowSOPGuide] = useState(false);
-  const [pendingAction, setPendingAction] = useState<{user: User; action: UserAction} | null>(null);
-  const [bulkImportProgress, setBulkImportProgress] = useState(0);
-  const [bulkImportResults, setBulkImportResults] = useState<BulkImportResult | null>(null);
-  
-  // New user form state
-  const [newUser, setNewUser] = useState({
-    name: "",
+  const { user } = useAuth();
+  const { logCRUDOperation } = useAuditLog();
+  const [users, setUsers] = useState<User[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRole, setSelectedRole] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [showInactive, setShowInactive] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Form state for user creation/editing
+  const [formData, setFormData] = useState({
+    firstname: "",
+    lastname: "",
     email: "",
-    role: "",
-    assignedProjects: [] as string[],
-    requiresApproval: false
-  });
-  
-  // Action form state
-  const [actionForm, setActionForm] = useState({
-    reason: "",
-    replacementUser: "",
-    notifyStakeholders: true
+    phone: "",
+    address: "",
+    role: "Operative",
+    contracttype: "Permanent",
+    basehourlyrate: 0,
+    currentproject: "",
+    skills: [] as string[],
+    employmentstatus: "Active"
   });
 
-  // Validation functions
-  const validateEmail = (email: string): boolean => {
-    const domain = email.split('@')[1];
-    return validDomains.includes(domain);
-  };
+  const roles = [
+    "Operative", "Supervisor", "Foreman", "Project Manager", "Admin", 
+    "Document Controller", "Director", "Site Manager", "Quality Inspector"
+  ];
 
-  const validateUserCreation = (): string[] => {
-    const errors: string[] = [];
-    if (!newUser.name.trim()) errors.push("Full name is required");
-    if (!newUser.email.trim()) errors.push("Email is required");
-    if (!validateEmail(newUser.email)) errors.push("Email must use @ajryan.co.uk domain");
-    if (!newUser.role) errors.push("Role selection is required");
-    if (newUser.assignedProjects.length === 0) errors.push("At least one project must be assigned");
-    return errors;
-  };
+  const contractTypes = ["Permanent", "Fixed Term", "Contractor", "Freelance"];
+  const employmentStatuses = ["Active", "Inactive", "Suspended", "Terminated"];
 
-  const getStatusBadge = (status: User["status"]) => {
-    switch (status) {
-      case "active":
-        return <Badge variant="default" className="bg-success/10 text-success border-success/20">✅ Active</Badge>;
-      case "suspended":
-        return <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/20">⏸️ Suspended</Badge>;
-      case "archived":
-        return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">📁 Archived</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  // Fetch users and projects
+  useEffect(() => {
+    fetchUsers();
+    fetchProjects();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('Users')
+        .select('*')
+        .order('lastname', { ascending: true });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getTwoFactorBadge = (enabled: boolean, role: string) => {
-    const isRequired = requires2FA.includes(role);
-    
-    if (enabled) {
-      return <div title="2FA Enabled"><ShieldCheck className="h-4 w-4 text-success" /></div>;
-    } else if (isRequired) {
-      return <div title="2FA Required but Not Enabled"><ShieldX className="h-4 w-4 text-destructive" /></div>;
-    } else {
-      return <div title="2FA Not Required"><Clock className="h-4 w-4 text-muted-foreground" /></div>;
+  const fetchProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Projects')
+        .select('whalesync_postgres_id, projectname, status')
+        .eq('status', 'Active')
+        .order('projectname');
+
+      if (error) throw error;
+      setProjects(data || []);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
     }
   };
 
-  const getRoleBadge = (role: string) => {
-    const isHighPrivilege = ["admin", "dpo", "director"].includes(role);
-    return (
-      <Badge variant={isHighPrivilege ? "default" : "outline"} className={isHighPrivilege ? "bg-primary/10 text-primary border-primary/20" : ""}>
-        {role.charAt(0).toUpperCase() + role.slice(1)}
-        {isHighPrivilege && <Shield className="h-3 w-3 ml-1" />}
-      </Badge>
-    );
-  };
-
+  // Filter users based on search and filters
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === "all" || user.role === filterRole;
-    const matchesStatus = filterStatus === "all" || user.status === filterStatus;
+    const matchesSearch = (
+      user.firstname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.lastname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.fullname?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
     
-    return matchesSearch && matchesRole && matchesStatus;
+    const matchesRole = selectedRole === "all" || user.role === selectedRole;
+    const matchesStatus = selectedStatus === "all" || user.employmentstatus === selectedStatus;
+    const matchesActiveFilter = showInactive || user.employmentstatus === "Active";
+
+    return matchesSearch && matchesRole && matchesStatus && matchesActiveFilter;
   });
 
-  // Enhanced user creation
-  const handleCreateUser = () => {
-    const errors = validateUserCreation();
-    if (errors.length > 0) {
-      toast.error(`Validation failed: ${errors.join(", ")}`);
-      return;
+  // Handle user creation
+  const handleCreateUser = async () => {
+    try {
+      const newUser = {
+        ...formData,
+        fullname: `${formData.firstname} ${formData.lastname}`,
+        startdate: new Date().toISOString().split('T')[0],
+        airtable_created_time: new Date().toISOString().split('T')[0]
+      };
+
+      const { data, error } = await supabase
+        .from('Users')
+        .insert([newUser])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await logCRUDOperation('CREATE', 'Users', data.whalesync_postgres_id, null, newUser);
+      
+      setUsers([...users, data]);
+      setIsCreateDialogOpen(false);
+      resetForm();
+      toast.success('User created successfully');
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error('Failed to create user');
     }
+  };
 
-    const user: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      status: "active",
-      lastLogin: "Never",
-      twoFactorEnabled: requires2FA.includes(newUser.role),
-      assignedProjects: newUser.assignedProjects,
-      createdAt: new Date().toISOString().split('T')[0],
-      createdBy: "Current Admin", // In real app, get from auth context
-      lastModified: new Date().toISOString().split('T')[0],
-      modifiedBy: "Current Admin"
-    };
+  // Handle user update
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
 
-    setUsers([...users, user]);
-    
-    // Reset form
-    setNewUser({
-      name: "",
+    try {
+      const updatedData = {
+        ...formData,
+        fullname: `${formData.firstname} ${formData.lastname}`
+      };
+
+      const { data, error } = await supabase
+        .from('Users')
+        .update(updatedData)
+        .eq('whalesync_postgres_id', selectedUser.whalesync_postgres_id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await logCRUDOperation('UPDATE', 'Users', selectedUser.whalesync_postgres_id, selectedUser, updatedData);
+
+      setUsers(users.map(user => 
+        user.whalesync_postgres_id === selectedUser.whalesync_postgres_id ? data : user
+      ));
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+      resetForm();
+      toast.success('User updated successfully');
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('Failed to update user');
+    }
+  };
+
+  // Handle user deactivation (soft delete)
+  const handleDeactivateUser = async (userId: string) => {
+    try {
+      const userToDeactivate = users.find(u => u.whalesync_postgres_id === userId);
+      
+      const { error } = await supabase
+        .from('Users')
+        .update({ 
+          employmentstatus: 'Inactive',
+          deactivation_date: new Date().toISOString().split('T')[0]
+        })
+        .eq('whalesync_postgres_id', userId);
+
+      if (error) throw error;
+
+      await logCRUDOperation('UPDATE', 'Users', userId, userToDeactivate, { employmentstatus: 'Inactive' });
+
+      setUsers(users.map(user => 
+        user.whalesync_postgres_id === userId 
+          ? { ...user, employmentstatus: 'Inactive', deactivation_date: new Date().toISOString().split('T')[0] } 
+          : user
+      ));
+      toast.success('User deactivated successfully');
+    } catch (error) {
+      console.error('Error deactivating user:', error);
+      toast.error('Failed to deactivate user');
+    }
+  };
+
+  // Handle user reactivation
+  const handleReactivateUser = async (userId: string) => {
+    try {
+      const userToReactivate = users.find(u => u.whalesync_postgres_id === userId);
+      
+      const { error } = await supabase
+        .from('Users')
+        .update({ 
+          employmentstatus: 'Active',
+          deactivation_date: null
+        })
+        .eq('whalesync_postgres_id', userId);
+
+      if (error) throw error;
+
+      await logCRUDOperation('UPDATE', 'Users', userId, userToReactivate, { employmentstatus: 'Active' });
+
+      setUsers(users.map(user => 
+        user.whalesync_postgres_id === userId 
+          ? { ...user, employmentstatus: 'Active', deactivation_date: null } 
+          : user
+      ));
+      toast.success('User reactivated successfully');
+    } catch (error) {
+      console.error('Error reactivating user:', error);
+      toast.error('Failed to reactivate user');
+    }
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      firstname: "",
+      lastname: "",
       email: "",
-      role: "",
-      assignedProjects: [],
-      requiresApproval: false
+      phone: "",
+      address: "",
+      role: "Operative",
+      contracttype: "Permanent",
+      basehourlyrate: 0,
+      currentproject: "",
+      skills: [],
+      employmentstatus: "Active"
     });
-    
-    setShowAddUserDialog(false);
-    toast.success(`✅ User ${user.name} created successfully. Welcome email sent to ${user.email}.`);
   };
 
-  // Enhanced user actions with SOP compliance
-  const handleUserAction = (userId: string, action: string) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
+  // Load user data into form for editing
+  const loadUserForEdit = (user: User) => {
+    setSelectedUser(user);
+    setFormData({
+      firstname: user.firstname || "",
+      lastname: user.lastname || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      address: user.address || "",
+      role: user.role || "Operative",
+      contracttype: user.contracttype || "Permanent",
+      basehourlyrate: user.basehourlyrate || 0,
+      currentproject: user.currentproject || "",
+      skills: user.skills || [],
+      employmentstatus: user.employmentstatus || "Active"
+    });
+    setIsEditDialogOpen(true);
+  };
 
-    // For sensitive actions, require confirmation and reason
-    if (["suspend", "archive"].includes(action)) {
-      setPendingAction({
-        user,
-        action: { action: action as "suspend" | "archive", reason: "", replacementUser: "" }
-      });
-      return;
-    }
-
-    switch (action) {
-      case "activate":
-        setUsers(users.map(u => u.id === userId ? { 
-          ...u, 
-          status: "active" as const,
-          lastModified: new Date().toISOString().split('T')[0],
-          modifiedBy: "Current Admin"
-        } : u));
-        toast.success(`✅ ${user.name} has been activated`);
-        break;
-      case "reset-password":
-        toast.success(`🔐 Password reset email sent to ${user.email}`);
-        break;
-      case "reset-2fa":
-        setUsers(users.map(u => u.id === userId ? { 
-          ...u, 
-          twoFactorEnabled: false,
-          lastModified: new Date().toISOString().split('T')[0],
-          modifiedBy: "Current Admin"
-        } : u));
-        toast.success(`🔑 2FA reset for ${user.name}. They will be prompted to set up 2FA on next login.`);
-        break;
-      default:
-        break;
+  // Get status badge variant
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'Active': return 'default';
+      case 'Inactive': return 'secondary';
+      case 'Suspended': return 'destructive';
+      case 'Terminated': return 'destructive';
+      default: return 'secondary';
     }
   };
 
-  // Process confirmed action
-  const processUserAction = () => {
-    if (!pendingAction || !actionForm.reason.trim()) {
-      toast.error("Reason is required for this action");
-      return;
+  // Get role badge variant
+  const getRoleVariant = (role: string) => {
+    switch (role) {
+      case 'Admin':
+      case 'Director': return 'destructive';
+      case 'Project Manager':
+      case 'Document Controller': return 'default';
+      case 'Supervisor':
+      case 'Foreman': return 'secondary';
+      default: return 'outline';
     }
-
-    const { user, action } = pendingAction;
-    const updatedUser = {
-      ...user,
-      status: action.action === "suspend" ? "suspended" as const : "archived" as const,
-      lastModified: new Date().toISOString().split('T')[0],
-      modifiedBy: "Current Admin",
-      ...(action.action === "suspend" ? { suspensionReason: actionForm.reason } : { archiveReason: actionForm.reason })
-    };
-
-    setUsers(users.map(u => u.id === user.id ? updatedUser : u));
-    
-    // Reset states
-    setPendingAction(null);
-    setActionForm({ reason: "", replacementUser: "", notifyStakeholders: true });
-    
-    toast.success(`✅ ${user.name} has been ${action.action}d. ${actionForm.notifyStakeholders ? 'Stakeholders notified.' : ''}`);
-  };
-
-  // Enhanced bulk actions
-  const handleBulkAction = (action: string) => {
-    const selectedCount = selectedUsers.length;
-    if (selectedCount === 0) {
-      toast.error("Please select users first");
-      return;
-    }
-
-    switch (action) {
-      case "suspend":
-        setUsers(users.map(u => selectedUsers.includes(u.id) ? { 
-          ...u, 
-          status: "suspended" as const,
-          lastModified: new Date().toISOString().split('T')[0],
-          modifiedBy: "Current Admin",
-          suspensionReason: "Bulk suspension action"
-        } : u));
-        toast.success(`⏸️ ${selectedCount} users suspended`);
-        break;
-      case "activate":
-        setUsers(users.map(u => selectedUsers.includes(u.id) ? { 
-          ...u, 
-          status: "active" as const,
-          lastModified: new Date().toISOString().split('T')[0],
-          modifiedBy: "Current Admin"
-        } : u));
-        toast.success(`✅ ${selectedCount} users activated`);
-        break;
-      case "export":
-        exportUsers(selectedUsers);
-        break;
-      case "export-compliance":
-        exportComplianceReport();
-        break;
-      default:
-        break;
-    }
-    setSelectedUsers([]);
-  };
-
-  // CSV Template download
-  const downloadCSVTemplate = () => {
-    const csvContent = "full_name,email,role,assigned_projects\nJohn Doe,john.doe@ajryan.co.uk,operative,\"Kidbrooke Village,Woodberry Down\"\nJane Smith,jane.smith@ajryan.co.uk,supervisor,Greenwich Peninsula";
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'user_import_template.csv';
-    a.click();
-    toast.success("📄 CSV template downloaded");
-  };
-
-  // Simulate bulk import
-  const processBulkImport = (file: File) => {
-    setShowBulkImportDialog(true);
-    setBulkImportProgress(0);
-    
-    // Simulate processing
-    const interval = setInterval(() => {
-      setBulkImportProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setBulkImportResults({
-            successful: 8,
-            failed: 2,
-            errors: ["Invalid email domain for user@gmail.com", "Duplicate email: existing.user@ajryan.co.uk"]
-          });
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 200);
-  };
-
-  // Export functions
-  const exportUsers = (userIds: string[]) => {
-    const selectedUsersData = users.filter(u => userIds.includes(u.id));
-    toast.success(`📊 Exporting ${selectedUsersData.length} users to CSV`);
-  };
-
-  const exportComplianceReport = () => {
-    toast.success("📋 Compliance report generated: user_compliance_" + new Date().toISOString().split('T')[0] + ".pdf");
   };
 
   return (
     <div className="space-y-6">
-      {/* Header Actions */}
+      {/* Header with Actions */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Users className="w-6 h-6 text-accent" />
+            User Management
+          </h2>
+          <p className="text-muted-foreground">
+            Manage user accounts, roles, and permissions across the platform
+          </p>
+        </div>
+        
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            Export Users
+          </Button>
+          <Button variant="outline" size="sm">
+            <Upload className="w-4 h-4 mr-2" />
+            Import Users
+          </Button>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add User
+              </Button>
+            </DialogTrigger>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Users</p>
+                <p className="text-2xl font-bold">{users.length}</p>
+              </div>
+              <Users className="w-8 h-8 text-accent" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active Users</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {users.filter(u => u.employmentstatus === 'Active').length}
+                </p>
+              </div>
+              <UserCheck className="w-8 h-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Inactive Users</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {users.filter(u => u.employmentstatus !== 'Active').length}
+                </p>
+              </div>
+              <UserX className="w-8 h-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Admins</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {users.filter(u => ['Admin', 'Director', 'Document Controller'].includes(u.role)).length}
+                </p>
+              </div>
+              <Shield className="w-8 h-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Search */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Users & Roles Management
+        <CardContent className="p-4">
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search users by name, email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowSOPGuide(true)}>
-                <BookOpen className="h-4 w-4 mr-2" />
-                SOP Guide
-              </Button>
+            
+            <div className="flex flex-wrap gap-3 items-center">
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filter by role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {roles.map(role => (
+                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               
-              <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add User
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Add New User - AJ Ryan SmartWork Hub</DialogTitle>
-                    <DialogDescription>
-                      Create a new user account following AJ Ryan security protocols
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="name">Full Name *</Label>
-                        <Input 
-                          id="name" 
-                          placeholder="Enter full name"
-                          value={newUser.name}
-                          onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="email">Email Address *</Label>
-                        <Input 
-                          id="email" 
-                          type="email" 
-                          placeholder="user@ajryan.co.uk"
-                          value={newUser.email}
-                          onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                        />
-                        {newUser.email && !validateEmail(newUser.email) && (
-                          <p className="text-sm text-destructive mt-1">Must use @ajryan.co.uk domain</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="role">Role *</Label>
-                      <Select value={newUser.role} onValueChange={(role) => setNewUser({...newUser, role})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roles.map(role => (
-                            <SelectItem key={role} value={role}>
-                              <div className="flex items-center gap-2">
-                                {role.charAt(0).toUpperCase() + role.slice(1)}
-                                {requires2FA.includes(role) && <Shield className="h-3 w-3" />}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {newUser.role && requires2FA.includes(newUser.role) && (
-                        <p className="text-sm text-blue-600 mt-1">
-                          ⚡ This role requires 2FA - will be automatically enabled
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <Label>Assigned Projects *</Label>
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        {projects.map(project => (
-                          <div key={project} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={project}
-                              checked={newUser.assignedProjects.includes(project)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setNewUser({...newUser, assignedProjects: [...newUser.assignedProjects, project]});
-                                } else {
-                                  setNewUser({...newUser, assignedProjects: newUser.assignedProjects.filter(p => p !== project)});
-                                }
-                              }}
-                            />
-                            <Label htmlFor={project} className="text-sm">{project}</Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="bg-muted p-3 rounded-md">
-                      <h4 className="font-medium text-sm mb-2">Account Setup Process</h4>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>✅ Welcome email with setup instructions sent automatically</li>
-                        <li>🔐 User will set secure password on first login</li>
-                        <li>📱 2FA setup {requires2FA.includes(newUser.role) ? 'required' : 'optional'} for this role</li>
-                        <li>📋 Access limited to assigned projects only</li>
-                      </ul>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleCreateUser}
-                        disabled={validateUserCreation().length > 0}
-                        className="flex-1"
-                      >
-                        <Mail className="h-4 w-4 mr-2" />
-                        Create User & Send Welcome Email
-                      </Button>
-                      <Button variant="outline" onClick={() => setShowAddUserDialog(false)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {employmentStatuses.map(status => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Bulk Import
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={downloadCSVTemplate}>
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
-                    Download CSV Template
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => document.getElementById('csv-upload')?.click()}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload User CSV
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <input
-                id="csv-upload"
-                type="file"
-                accept=".csv"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) processBulkImport(file);
-                }}
-              />
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="show-inactive"
+                  checked={showInactive}
+                  onCheckedChange={setShowInactive}
+                />
+                <Label htmlFor="show-inactive" className="text-sm">
+                  Show Inactive
+                </Label>
+              </div>
             </div>
-          </CardTitle>
-          <CardDescription>
-            Manage user accounts, roles, and permissions across the SmartWork Hub - following AJ Ryan SOP protocols
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search users by name or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                {roles.map(role => (
-                  <SelectItem key={role} value={role}>
-                    {role.charAt(0).toUpperCase() + role.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Enhanced Bulk Actions */}
-          {selectedUsers.length > 0 && (
-            <div className="flex items-center gap-2 mb-4 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/20">
-              <Users className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">
-                {selectedUsers.length} user(s) selected
-              </span>
-              <Separator orientation="vertical" className="h-4" />
-              <Button size="sm" variant="outline" onClick={() => handleBulkAction("activate")}>
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Activate
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleBulkAction("suspend")}>
-                <Pause className="h-4 w-4 mr-1" />
-                Suspend
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleBulkAction("export")}>
-                <Download className="h-4 w-4 mr-1" />
-                Export CSV
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleBulkAction("export-compliance")}>
-                <FileText className="h-4 w-4 mr-1" />
-                Compliance Report
-              </Button>
-            </div>
-          )}
-
-          {/* Users Table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={selectedUsers.length === filteredUsers.length}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedUsers(filteredUsers.map(u => u.id));
-                        } else {
-                          setSelectedUsers([]);
-                        }
-                      }}
-                    />
-                  </TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>2FA</TableHead>
-                  <TableHead>Projects</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedUsers.includes(user.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedUsers([...selectedUsers, user.id]);
-                          } else {
-                            setSelectedUsers(selectedUsers.filter(id => id !== user.id));
-                          }
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getRoleBadge(user.role)}</TableCell>
-                    <TableCell>{getStatusBadge(user.status)}</TableCell>
-                    <TableCell className="text-sm">{user.lastLogin}</TableCell>
-                    <TableCell>{getTwoFactorBadge(user.twoFactorEnabled, user.role)}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {user.assignedProjects.length} project(s)
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingUser(user)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit User
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleUserAction(user.id, "reset-password")}>
-                            <Key className="h-4 w-4 mr-2" />
-                            Reset Password
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleUserAction(user.id, "reset-2fa")}>
-                            <Shield className="h-4 w-4 mr-2" />
-                            Reset 2FA
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {user.status === "active" && (
-                            <DropdownMenuItem onClick={() => handleUserAction(user.id, "suspend")}>
-                              <Pause className="h-4 w-4 mr-2" />
-                              Suspend User
-                            </DropdownMenuItem>
-                          )}
-                          {user.status === "suspended" && (
-                            <DropdownMenuItem onClick={() => handleUserAction(user.id, "activate")}>
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Activate User
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem 
-                            onClick={() => handleUserAction(user.id, "archive")}
-                            className="text-destructive"
-                          >
-                            <Archive className="h-4 w-4 mr-2" />
-                            Archive User
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           </div>
         </CardContent>
       </Card>
 
-      {/* Action Confirmation Dialog */}
-      <AlertDialog open={!!pendingAction} onOpenChange={() => setPendingAction(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-warning" />
-              Confirm User {pendingAction?.action.action === "suspend" ? "Suspension" : "Archive"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              This action will {pendingAction?.action.action} <strong>{pendingAction?.user.name}</strong>. 
-              Please provide a reason and follow SOP guidelines.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+      {/* Users Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Users ({filteredUsers.length})</CardTitle>
+          <CardDescription>
+            Manage user accounts and their access permissions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Project</TableHead>
+                    <TableHead>Last Sign In</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.whalesync_postgres_id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+                            {user.avatar_url ? (
+                              <img 
+                                src={user.avatar_url} 
+                                alt={user.fullname}
+                                className="w-8 h-8 rounded-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-accent font-medium text-sm">
+                                {user.firstname?.[0]}{user.lastname?.[0]}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">{user.fullname || `${user.firstname} ${user.lastname}`}</p>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleVariant(user.role)}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(user.employmentstatus)}>
+                          {user.employmentstatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {user.phone && (
+                            <div className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {user.phone}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {projects.find(p => p.whalesync_postgres_id === user.currentproject)?.projectname || '-'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm text-muted-foreground">
+                          {user.last_sign_in ? new Date(user.last_sign_in).toLocaleDateString() : 'Never'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => loadUserForEdit(user)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          
+                          {user.employmentstatus === 'Active' ? (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <UserX className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Deactivate User</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to deactivate {user.fullname}? This will revoke their access but preserve their data.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeactivateUser(user.whalesync_postgres_id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Deactivate
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleReactivateUser(user.whalesync_postgres_id)}
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create/Edit User Dialog */}
+      <Dialog open={isCreateDialogOpen || isEditDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsCreateDialogOpen(false);
+          setIsEditDialogOpen(false);
+          setSelectedUser(null);
+          resetForm();
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedUser ? 'Edit User' : 'Create New User'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedUser ? 'Update user information and settings' : 'Add a new user to the system'}
+            </DialogDescription>
+          </DialogHeader>
           
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="reason">Reason for {pendingAction?.action.action} *</Label>
-              <Textarea
-                id="reason"
-                placeholder={`Enter detailed reason for ${pendingAction?.action.action}...`}
-                value={actionForm.reason}
-                onChange={(e) => setActionForm({...actionForm, reason: e.target.value})}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstname">First Name *</Label>
+              <Input
+                id="firstname"
+                value={formData.firstname}
+                onChange={(e) => setFormData({ ...formData, firstname: e.target.value })}
+                placeholder="Enter first name"
               />
             </div>
             
-            {pendingAction?.action.action === "suspend" && (
-              <div>
-                <Label htmlFor="replacement">Replacement User (Optional)</Label>
-                <Select value={actionForm.replacementUser} onValueChange={(value) => setActionForm({...actionForm, replacementUser: value})}>
+            <div className="space-y-2">
+              <Label htmlFor="lastname">Last Name *</Label>
+              <Input
+                id="lastname"
+                value={formData.lastname}
+                onChange={(e) => setFormData({ ...formData, lastname: e.target.value })}
+                placeholder="Enter last name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="Enter email address"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="Enter phone number"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="role">Role *</Label>
+              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map(role => (
+                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="contracttype">Contract Type</Label>
+              <Select value={formData.contracttype} onValueChange={(value) => setFormData({ ...formData, contracttype: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {contractTypes.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="basehourlyrate">Base Hourly Rate (£)</Label>
+              <Input
+                id="basehourlyrate"
+                type="number"
+                step="0.01"
+                value={formData.basehourlyrate}
+                onChange={(e) => setFormData({ ...formData, basehourlyrate: parseFloat(e.target.value) || 0 })}
+                placeholder="0.00"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="currentproject">Current Project</Label>
+              <Select value={formData.currentproject} onValueChange={(value) => setFormData({ ...formData, currentproject: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Project</SelectItem>
+                  {projects.map(project => (
+                    <SelectItem key={project.whalesync_postgres_id} value={project.whalesync_postgres_id}>
+                      {project.projectname}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Enter full address"
+              />
+            </div>
+            
+            {selectedUser && (
+              <div className="space-y-2">
+                <Label htmlFor="employmentstatus">Employment Status</Label>
+                <Select value={formData.employmentstatus} onValueChange={(value) => setFormData({ ...formData, employmentstatus: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select replacement user" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {users.filter(u => u.status === "active" && u.id !== pendingAction?.user.id).map(user => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name} ({user.role})
-                      </SelectItem>
+                    {employmentStatuses.map(status => (
+                      <SelectItem key={status} value={status}>{status}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             )}
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="notify"
-                checked={actionForm.notifyStakeholders}
-                onCheckedChange={(checked) => setActionForm({...actionForm, notifyStakeholders: !!checked})}
-              />
-              <Label htmlFor="notify" className="text-sm">
-                Notify project managers and stakeholders
-              </Label>
-            </div>
-
-            <div className="bg-muted p-3 rounded-md">
-              <h4 className="font-medium text-sm mb-2">SOP Guidelines</h4>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                {sopGuidelines[pendingAction?.action.action || "suspension"].map((guideline, idx) => (
-                  <li key={idx}>• {guideline}</li>
-                ))}
-              </ul>
-            </div>
           </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={processUserAction}
-              disabled={!actionForm.reason.trim()}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {pendingAction?.action.action === "suspend" ? "Suspend User" : "Archive User"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Bulk Import Progress Dialog */}
-      <Dialog open={showBulkImportDialog} onOpenChange={setShowBulkImportDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Bulk User Import</DialogTitle>
-            <DialogDescription>
-              Processing user import file...
-            </DialogDescription>
-          </DialogHeader>
           
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>Processing users...</span>
-                <span>{bulkImportProgress}%</span>
-              </div>
-              <Progress value={bulkImportProgress} />
-            </div>
-            
-            {bulkImportResults && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-success/10 p-3 rounded border border-success/20">
-                    <div className="font-medium text-success">✅ Successful</div>
-                    <div className="text-2xl font-bold text-success">{bulkImportResults.successful}</div>
-                  </div>
-                  <div className="bg-destructive/10 p-3 rounded border border-destructive/20">
-                    <div className="font-medium text-destructive">❌ Failed</div>
-                    <div className="text-2xl font-bold text-destructive">{bulkImportResults.failed}</div>
-                  </div>
-                </div>
-                
-                {bulkImportResults.errors.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-sm mb-2">Import Errors:</h4>
-                    <ul className="text-sm text-destructive space-y-1">
-                      {bulkImportResults.errors.map((error, idx) => (
-                        <li key={idx}>• {error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                <Button onClick={() => {
-                  setShowBulkImportDialog(false);
-                  setBulkImportResults(null);
-                  setBulkImportProgress(0);
-                }} className="w-full">
-                  Complete Import
-                </Button>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* SOP Guide Dialog */}
-      <Dialog open={showSOPGuide} onOpenChange={setShowSOPGuide}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              Admin Onboarding SOP - Quick Reference
-            </DialogTitle>
-            <DialogDescription>
-              Standard Operating Procedures for secure user management
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Tabs defaultValue="creation" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="creation">User Creation</TabsTrigger>
-              <TabsTrigger value="roles">Role Changes</TabsTrigger>
-              <TabsTrigger value="suspension">Suspension</TabsTrigger>
-              <TabsTrigger value="archival">Archival</TabsTrigger>
-            </TabsList>
-            
-            {Object.entries(sopGuidelines).map(([key, guidelines]) => (
-              <TabsContent key={key} value={key} className="space-y-3">
-                <div className="bg-muted p-4 rounded-lg">
-                  <h3 className="font-semibold mb-3 capitalize">{key} Guidelines</h3>
-                  <ul className="space-y-2">
-                    {guidelines.map((guideline, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                        <span className="text-sm">{guideline}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-          
-          <div className="border-t pt-4">
-            <div className="text-sm text-muted-foreground">
-              <strong>Remember:</strong> All actions are logged in the audit trail. 
-              Always follow the principle of least privilege and maintain proper documentation.
-            </div>
-          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsCreateDialogOpen(false);
+              setIsEditDialogOpen(false);
+              setSelectedUser(null);
+              resetForm();
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={selectedUser ? handleUpdateUser : handleCreateUser}>
+              {selectedUser ? 'Update User' : 'Create User'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

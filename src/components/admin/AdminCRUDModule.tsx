@@ -17,11 +17,12 @@ import { BulkOperations } from "./crud/BulkOperations";
 import { OfflineSync } from "./crud/OfflineSync";
 import { UnifiedSearch } from "./UnifiedSearch";
 import { AuditLogsViewer } from "./AuditLogsViewer";
+import { UserManagement } from "./UserManagement";
 import { useOfflineStorage } from "@/hooks/useOfflineStorage";
 import { toast } from "sonner";
 
 const AdminCRUDModule = () => {
-  const [activeTab, setActiveTab] = useState("projects");
+  const [activeTab, setActiveTab] = useState("users");
   const [searchQuery, setSearchQuery] = useState("");
   const [aiEnabled, setAiEnabled] = useState(true);
   const [showUnifiedSearch, setShowUnifiedSearch] = useState(false);
@@ -44,6 +45,14 @@ const AdminCRUDModule = () => {
   }, [isOnline, pendingCount]);
 
   const crudTabs = [
+    {
+      id: "users",
+      label: "Users",
+      icon: "👥",
+      component: UserManagement,
+      description: "Manage user accounts, roles, and permissions",
+      badge: "Core"
+    },
     {
       id: "projects",
       label: "Projects",
