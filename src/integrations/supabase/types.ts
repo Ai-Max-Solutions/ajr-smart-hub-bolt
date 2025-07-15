@@ -1423,6 +1423,7 @@ export type Database = {
       }
       contractor_profiles: {
         Row: {
+          assigned_work_activities: string[] | null
           auth_user_id: string
           company_id: string
           created_at: string | null
@@ -1447,6 +1448,7 @@ export type Database = {
           vehicle_weight_category: string | null
         }
         Insert: {
+          assigned_work_activities?: string[] | null
           auth_user_id: string
           company_id: string
           created_at?: string | null
@@ -1471,6 +1473,7 @@ export type Database = {
           vehicle_weight_category?: string | null
         }
         Update: {
+          assigned_work_activities?: string[] | null
           auth_user_id?: string
           company_id?: string
           created_at?: string | null
@@ -1691,6 +1694,93 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      contractor_work_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          contractor_id: string | null
+          id: string
+          is_active: boolean | null
+          project_id: string | null
+          work_activity_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          contractor_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          project_id?: string | null
+          work_activity_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          contractor_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          project_id?: string | null
+          work_activity_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_work_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contractor_work_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contractor_work_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "contractor_work_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contractor_work_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "contractor_work_assignments_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_work_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "contractor_work_assignments_work_activity_id_fkey"
+            columns: ["work_activity_id"]
+            isOneToOne: false
+            referencedRelation: "work_activity_categories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -6876,9 +6966,11 @@ export type Database = {
           created_at: string
           document_id: string
           document_type: string
+          document_version: string | null
           file_size: number | null
           file_url: string | null
           id: string
+          is_current_version: boolean | null
           level_id: string | null
           mime_type: string | null
           plot_id: string | null
@@ -6891,6 +6983,7 @@ export type Database = {
           title: string
           updated_at: string
           uploaded_by: string
+          version_notes: string | null
           version_number: number
         }
         Insert: {
@@ -6900,9 +6993,11 @@ export type Database = {
           created_at?: string
           document_id: string
           document_type?: string
+          document_version?: string | null
           file_size?: number | null
           file_url?: string | null
           id?: string
+          is_current_version?: boolean | null
           level_id?: string | null
           mime_type?: string | null
           plot_id?: string | null
@@ -6915,6 +7010,7 @@ export type Database = {
           title: string
           updated_at?: string
           uploaded_by: string
+          version_notes?: string | null
           version_number?: number
         }
         Update: {
@@ -6924,9 +7020,11 @@ export type Database = {
           created_at?: string
           document_id?: string
           document_type?: string
+          document_version?: string | null
           file_size?: number | null
           file_url?: string | null
           id?: string
+          is_current_version?: boolean | null
           level_id?: string | null
           mime_type?: string | null
           plot_id?: string | null
@@ -6939,6 +7037,7 @@ export type Database = {
           title?: string
           updated_at?: string
           uploaded_by?: string
+          version_notes?: string | null
           version_number?: number
         }
         Relationships: [
@@ -7039,6 +7138,76 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      rams_signatures: {
+        Row: {
+          contractor_id: string | null
+          device_info: Json | null
+          document_version: string
+          id: string
+          invalidated_at: string | null
+          invalidated_reason: string | null
+          ip_address: unknown | null
+          is_valid: boolean | null
+          rams_document_id: string | null
+          reading_time_seconds: number | null
+          register_entry_id: string | null
+          signature_data: string
+          signed_at: string | null
+        }
+        Insert: {
+          contractor_id?: string | null
+          device_info?: Json | null
+          document_version: string
+          id?: string
+          invalidated_at?: string | null
+          invalidated_reason?: string | null
+          ip_address?: unknown | null
+          is_valid?: boolean | null
+          rams_document_id?: string | null
+          reading_time_seconds?: number | null
+          register_entry_id?: string | null
+          signature_data: string
+          signed_at?: string | null
+        }
+        Update: {
+          contractor_id?: string | null
+          device_info?: Json | null
+          document_version?: string
+          id?: string
+          invalidated_at?: string | null
+          invalidated_reason?: string | null
+          ip_address?: unknown | null
+          is_valid?: boolean | null
+          rams_document_id?: string | null
+          reading_time_seconds?: number | null
+          register_entry_id?: string | null
+          signature_data?: string
+          signed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rams_signatures_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rams_signatures_rams_document_id_fkey"
+            columns: ["rams_document_id"]
+            isOneToOne: false
+            referencedRelation: "rams_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rams_signatures_register_entry_id_fkey"
+            columns: ["register_entry_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_rams_register"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -8224,6 +8393,136 @@ export type Database = {
           total_orders?: number | null
         }
         Relationships: []
+      }
+      task_plan_rams_register: {
+        Row: {
+          contractor_id: string | null
+          created_at: string | null
+          created_by: string | null
+          date_issued: string | null
+          date_signed: string | null
+          id: string
+          project_id: string | null
+          project_name: string
+          rams_document_id: string | null
+          rams_name: string
+          responsible_person: string
+          signature_data: string | null
+          signed_by: string | null
+          status: string | null
+          subcontractor_company: string
+          updated_at: string | null
+          version: string
+          work_activity: string
+          work_activity_id: string | null
+        }
+        Insert: {
+          contractor_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_issued?: string | null
+          date_signed?: string | null
+          id?: string
+          project_id?: string | null
+          project_name: string
+          rams_document_id?: string | null
+          rams_name: string
+          responsible_person: string
+          signature_data?: string | null
+          signed_by?: string | null
+          status?: string | null
+          subcontractor_company: string
+          updated_at?: string | null
+          version: string
+          work_activity: string
+          work_activity_id?: string | null
+        }
+        Update: {
+          contractor_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_issued?: string | null
+          date_signed?: string | null
+          id?: string
+          project_id?: string | null
+          project_name?: string
+          rams_document_id?: string | null
+          rams_name?: string
+          responsible_person?: string
+          signature_data?: string | null
+          signed_by?: string | null
+          status?: string | null
+          subcontractor_company?: string
+          updated_at?: string | null
+          version?: string
+          work_activity?: string
+          work_activity_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_plan_rams_register_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_rams_document_id_fkey"
+            columns: ["rams_document_id"]
+            isOneToOne: false
+            referencedRelation: "rams_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_work_activity_id_fkey"
+            columns: ["work_activity_id"]
+            isOneToOne: false
+            referencedRelation: "work_activity_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_plan_sections: {
         Row: {
@@ -10074,6 +10373,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      work_activity_categories: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       work_packages: {
         Row: {

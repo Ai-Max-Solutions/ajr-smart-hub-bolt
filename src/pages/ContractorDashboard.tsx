@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 // import ContractorDeliveryForm from '@/components/contractor/ContractorDeliveryForm';
 import MyTrainingDocuments from '@/components/contractor/MyTrainingDocuments';
 import RAMSManager from '@/components/contractor/RAMSManager';
+import { EnhancedRAMSCompliance } from '@/components/contractor/EnhancedRAMSCompliance';
 import { Separator } from '@/components/ui/separator';
 
 interface ContractorProfile {
@@ -380,9 +381,9 @@ const ContractorDashboard = () => {
             <MyTrainingDocuments />
           </TabsContent>
 
-          <TabsContent value="rams" className="space-y-6">
-            <RAMSManager />
-          </TabsContent>
+            <TabsContent value="rams" className="space-y-6">
+              <EnhancedRAMSCompliance />
+            </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">
             <Card className="contractor-card">
