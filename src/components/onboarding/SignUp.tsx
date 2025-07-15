@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { OnboardingData } from '@/pages/OnboardingFlow';
+import { useAuth } from '@/components/auth/AuthContext';
 
 interface SignUpProps {
   data: OnboardingData;
@@ -17,9 +18,11 @@ interface SignUpProps {
 const SignUp = ({ data, updateData }: SignUpProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signUp } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -42,15 +45,46 @@ const SignUp = ({ data, updateData }: SignUpProps) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Create Supabase account with user metadata
+      const { error } = await signUp(data.email, data.password, {
+        first_name: data.firstName,
+        last_name: data.lastName,
+        full_name: `${data.firstName} ${data.lastName}`.trim()
+      });
+
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          setErrors({ email: 'An account with this email already exists' });
+        } else {
+          setErrors({ general: error.message });
+        }
+        return;
+      }
+
+      // Account created successfully
       toast({
         title: "Account Created Successfully",
         description: "Welcome to AJ Ryan SmartWork Hub. Let's complete your profile.",
       });
+      
+      // Navigate to personal details step
       navigate('/onboarding/personal-details');
+      
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      setErrors({ general: 'An unexpected error occurred. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -193,8 +227,17 @@ const SignUp = ({ data, updateData }: SignUpProps) => {
             )}
           </div>
 
-          <Button type="submit" className="w-full btn-primary">
-            Create Account & Continue
+          {errors.general && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-destructive text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {errors.general}
+              </p>
+            </div>
+          )}
+
+          <Button type="submit" className="w-full btn-primary" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating Account...' : 'Create Account & Continue'}
           </Button>
         </form>
       </CardContent>

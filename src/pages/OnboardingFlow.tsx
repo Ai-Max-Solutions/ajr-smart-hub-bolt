@@ -41,25 +41,37 @@ export interface OnboardingData {
 }
 
 const OnboardingFlow = () => {
-  const [onboardingData, setOnboardingData] = useState<OnboardingData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    agreedToTerms: false,
-    cscsCard: {
-      number: '',
-      expiryDate: '',
-      cardType: '',
-    },
-    emergencyContact: {
-      name: '',
-      relationship: '',
-      phone: '',
+  const [onboardingData, setOnboardingData] = useState<OnboardingData>(() => {
+    // Load existing data from localStorage if available
+    const savedData = localStorage.getItem('onboardingData');
+    if (savedData) {
+      try {
+        return JSON.parse(savedData);
+      } catch (error) {
+        console.error('Error parsing saved onboarding data:', error);
+      }
+    }
+    
+    return {
+      firstName: '',
+      lastName: '',
       email: '',
-    },
-    selectedWorkTypes: [],
-    signedRAMS: [],
+      password: '',
+      agreedToTerms: false,
+      cscsCard: {
+        number: '',
+        expiryDate: '',
+        cardType: '',
+      },
+      emergencyContact: {
+        name: '',
+        relationship: '',
+        phone: '',
+        email: '',
+      },
+      selectedWorkTypes: [],
+      signedRAMS: [],
+    };
   });
 
   const updateOnboardingData = (data: Partial<OnboardingData>) => {
