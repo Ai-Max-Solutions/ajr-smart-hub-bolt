@@ -73,28 +73,31 @@ const ContractorAuth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+    <div className="min-h-screen contractor-pattern bg-gradient-subtle flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* AJ Ryan Branding */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Building2 className="h-8 w-8 text-primary" />
+        {/* AJ Ryan Branding with Contractor Header */}
+        <div className="contractor-header text-center space-y-4 p-6 rounded-lg shadow-card">
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <Building2 className="h-10 w-10 text-white" />
             <div>
-              <h1 className="text-2xl font-bold text-primary">AJ Ryan</h1>
-              <p className="text-sm text-muted-foreground">Mechanical Services</p>
+              <h1 className="text-3xl font-bold text-white">AJ Ryan</h1>
+              <p className="text-sm text-white/90">Mechanical Services</p>
             </div>
           </div>
-          <h2 className="text-xl font-semibold text-foreground">
+          <div className="contractor-badge">
             External Contractor Portal
+          </div>
+          <h2 className="text-xl font-semibold text-white">
+            Welcome to Your Dedicated Portal
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/90">
             Secure access for approved subcontractors
           </p>
         </div>
 
-        <Card className="w-full shadow-card">
+        <Card className="contractor-card w-full shadow-elevated">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl font-semibold">
+            <CardTitle className="text-xl font-semibold contractor-accent-text">
               {isSignIn ? 'Sign In' : 'Register Your Company'}
             </CardTitle>
             <CardDescription>
@@ -209,7 +212,7 @@ const ContractorAuth = () => {
 
               <Button 
                 type="submit" 
-                className="w-full btn-primary"
+                className="w-full contractor-button"
                 disabled={loading}
               >
                 {loading ? 'Please wait...' : (isSignIn ? 'Sign In' : 'Create Account')}
@@ -252,10 +255,10 @@ const ContractorAuth = () => {
           </CardContent>
         </Card>
 
-        {/* Values footer */}
-        <div className="text-center text-xs text-muted-foreground">
-          <p className="font-medium">AJ Ryan Values:</p>
-          <p>Integrity | Teamwork | Passion | Inclusion | Quality | Accessibility</p>
+        {/* Values footer with contractor styling */}
+        <div className="text-center text-xs text-muted-foreground bg-contractor-alert-bg p-4 rounded-lg">
+          <p className="font-medium contractor-accent-text">AJ Ryan Values:</p>
+          <p className="contractor-accent-text">Integrity | Teamwork | Passion | Inclusion | Quality | Accessibility</p>
         </div>
       </div>
     </div>

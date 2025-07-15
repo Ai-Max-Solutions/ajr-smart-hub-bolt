@@ -21,28 +21,26 @@ import {
 import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import ContractorDeliveryForm from '@/components/contractor/ContractorDeliveryForm';
+// import ContractorDeliveryForm from '@/components/contractor/ContractorDeliveryForm';
+import MyTrainingDocuments from '@/components/contractor/MyTrainingDocuments';
 import { Separator } from '@/components/ui/separator';
 
 interface ContractorProfile {
   id: string;
+  auth_user_id: string;
+  company_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  job_role: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  vehicle_registration?: string;
+  vehicle_type?: string;
   company: {
-    name: string;
-    contact_email: string;
-    contact_phone: string;
-  };
-  job_role: {
-    name: string;
-  };
-  emergency_contact: {
-    name: string;
-    phone: string;
-    relationship: string;
-  };
-  vehicle_details: {
-    hasVehicle: boolean;
-    vehicleType: string;
-    weight: string;
+    company_name: string;
+    primary_contact_email: string;
+    primary_contact_phone: string;
   };
 }
 
@@ -85,24 +83,16 @@ const ContractorDashboard = () => {
         .from('contractor_profiles')
         .select(`
           *,
-          company:contractor_companies(*),
-          job_role:contractor_job_roles(*)
+          company:contractor_companies(*)
         `)
-        .eq('user_id', user?.id)
+        .eq('auth_user_id', user?.id)
         .single();
 
       if (profileError) throw profileError;
       setProfile(profileData);
 
-      // Load delivery requests
-      const { data: requestsData, error: requestsError } = await supabase
-        .from('delivery_requests')
-        .select('*')
-        .eq('contractor_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (requestsError) throw requestsError;
-      setDeliveryRequests(requestsData || []);
+      // Mock delivery requests for now (until we create the table)
+      setDeliveryRequests([]);
 
     } catch (error: any) {
       console.error('Error loading contractor data:', error);
@@ -154,39 +144,49 @@ const ContractorDashboard = () => {
   }
 
   if (showDeliveryForm) {
+    // Temporarily disabled until delivery form is fixed
     return (
-      <ContractorDeliveryForm 
-        onClose={() => setShowDeliveryForm(false)}
-        onSuccess={() => {
-          setShowDeliveryForm(false);
-          loadContractorData();
-        }}
-      />
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="text-center">
+          <p>Delivery form coming soon</p>
+          <Button onClick={() => setShowDeliveryForm(false)}>Go Back</Button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
-      <div className="bg-primary text-primary-foreground p-6 shadow-card">
+    <div className="min-h-screen contractor-pattern bg-gradient-subtle">
+      {/* Enhanced Contractor Header */}
+      <div className="contractor-header text-white p-6 shadow-elevated">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Building2 className="h-8 w-8" />
+              <Building2 className="h-10 w-10 text-white" />
               <div>
-                <h1 className="text-2xl font-bold">AJ Ryan Contractor Portal</h1>
-                <p className="text-primary-foreground/80">
-                  {profile?.company.name} • {profile?.job_role.name}
+                <div className="flex items-center gap-3 mb-1">
+                  <h1 className="text-2xl font-bold">AJ Ryan</h1>
+                  <div className="contractor-badge">
+                    External Contractor Portal
+                  </div>
+                </div>
+                <p className="text-white/90">
+                  Welcome, {profile?.company.company_name} • {profile?.job_role}
                 </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="text-right text-sm">
-                <p className="font-medium">{user?.email}</p>
-                <p className="text-primary-foreground/80">Contractor Access</p>
+              <div className="text-right text-sm text-white/90">
+                <p className="font-medium text-white">{user?.email}</p>
+                <p>Contractor Access</p>
               </div>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSignOut}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
@@ -197,22 +197,23 @@ const ContractorDashboard = () => {
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="deliveries">Delivery Requests</TabsTrigger>
+            <TabsTrigger value="training">My Training</TabsTrigger>
+            <TabsTrigger value="deliveries">Deliveries</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            {/* Quick Stats */}
+            {/* Enhanced Quick Stats with Contractor Styling */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
+              <Card className="contractor-card">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
                     <Clock className="h-5 w-5 text-warning" />
                     <div>
                       <p className="text-sm font-medium">Pending</p>
-                      <p className="text-2xl font-bold">
+                      <p className="text-2xl font-bold contractor-accent-text">
                         {deliveryRequests.filter(r => r.status === 'pending').length}
                       </p>
                     </div>
@@ -220,13 +221,13 @@ const ContractorDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="contractor-card">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="h-5 w-5 text-success" />
                     <div>
                       <p className="text-sm font-medium">Approved</p>
-                      <p className="text-2xl font-bold">
+                      <p className="text-2xl font-bold contractor-accent-text">
                         {deliveryRequests.filter(r => r.status === 'approved').length}
                       </p>
                     </div>
@@ -234,13 +235,13 @@ const ContractorDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="contractor-card">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
                     <AlertTriangle className="h-5 w-5 text-destructive" />
                     <div>
                       <p className="text-sm font-medium">Rejected</p>
-                      <p className="text-2xl font-bold">
+                      <p className="text-2xl font-bold contractor-accent-text">
                         {deliveryRequests.filter(r => r.status === 'rejected').length}
                       </p>
                     </div>
@@ -248,36 +249,36 @@ const ContractorDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="contractor-card">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
-                    <Truck className="h-5 w-5 text-accent" />
+                    <Truck className="h-5 w-5 text-contractor-accent" />
                     <div>
                       <p className="text-sm font-medium">Total</p>
-                      <p className="text-2xl font-bold">{deliveryRequests.length}</p>
+                      <p className="text-2xl font-bold contractor-accent-text">{deliveryRequests.length}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Quick Actions */}
-            <Card>
+            {/* Enhanced Quick Actions */}
+            <Card className="contractor-card">
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Common contractor tasks</CardDescription>
+                <CardTitle className="contractor-accent-text">Quick Actions</CardTitle>
+                <CardDescription>Common contractor tasks and services</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-4">
-                  <Button onClick={() => setShowDeliveryForm(true)} className="btn-primary">
+                  <Button onClick={() => setShowDeliveryForm(true)} className="contractor-button">
                     <Plus className="h-4 w-4 mr-2" />
                     Request New Delivery
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" className="border-contractor-accent text-contractor-accent hover:bg-contractor-alert-bg">
                     <FileText className="h-4 w-4 mr-2" />
                     View RAMS Documents
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" className="border-contractor-accent text-contractor-accent hover:bg-contractor-alert-bg">
                     <Calendar className="h-4 w-4 mr-2" />
                     Upcoming Deliveries
                   </Button>
@@ -285,10 +286,10 @@ const ContractorDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Recent Delivery Requests */}
-            <Card>
+            {/* Enhanced Recent Delivery Requests */}
+            <Card className="contractor-card">
               <CardHeader>
-                <CardTitle>Recent Delivery Requests</CardTitle>
+                <CardTitle className="contractor-accent-text">Recent Delivery Requests</CardTitle>
                 <CardDescription>Your latest delivery booking requests</CardDescription>
               </CardHeader>
               <CardContent>
@@ -298,7 +299,7 @@ const ContractorDashboard = () => {
                     <p className="text-muted-foreground">No delivery requests yet</p>
                     <Button 
                       onClick={() => setShowDeliveryForm(true)} 
-                      className="mt-4 btn-primary"
+                      className="mt-4 contractor-button"
                     >
                       Create Your First Request
                     </Button>
@@ -330,95 +331,14 @@ const ContractorDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="deliveries" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">Delivery Requests</h2>
-                <p className="text-muted-foreground">Manage your delivery bookings</p>
-              </div>
-              <Button onClick={() => setShowDeliveryForm(true)} className="btn-primary">
-                <Plus className="h-4 w-4 mr-2" />
-                New Request
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-0">
-                {deliveryRequests.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Truck className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No delivery requests</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Start by creating your first delivery request
-                    </p>
-                    <Button onClick={() => setShowDeliveryForm(true)} className="btn-primary">
-                      Create Delivery Request
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {deliveryRequests.map((request) => (
-                      <div key={request.id} className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <h3 className="font-semibold">#{request.request_number}</h3>
-                              {getStatusBadge(request.status)}
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <p className="font-medium text-muted-foreground">Project</p>
-                                <p>{request.project_name}</p>
-                              </div>
-                              <div>
-                                <p className="font-medium text-muted-foreground">Delivery Date</p>
-                                <p>{new Date(request.delivery_date).toLocaleDateString()}</p>
-                              </div>
-                              <div>
-                                <p className="font-medium text-muted-foreground">Time Slot</p>
-                                <p>{request.time_slot}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="mt-3">
-                              <p className="font-medium text-muted-foreground">Items ({request.total_items})</p>
-                              <div className="text-sm text-muted-foreground">
-                                {request.items.slice(0, 3).map((item: any, index: number) => (
-                                  <span key={index}>
-                                    {item.description} ({item.quantity})
-                                    {index < Math.min(request.items.length, 3) - 1 ? ', ' : ''}
-                                  </span>
-                                ))}
-                                {request.items.length > 3 && ` +${request.items.length - 3} more`}
-                              </div>
-                            </div>
-
-                            {request.admin_notes && (
-                              <div className="mt-3 p-3 bg-muted/50 rounded-lg">
-                                <p className="font-medium text-muted-foreground">Admin Notes</p>
-                                <p className="text-sm">{request.admin_notes}</p>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="text-right text-sm text-muted-foreground">
-                            <p>Submitted</p>
-                            <p>{new Date(request.created_at).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <TabsContent value="training" className="space-y-6">
+            <MyTrainingDocuments />
           </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">
-            <Card>
+            <Card className="contractor-card">
               <CardHeader>
-                <CardTitle>Contractor Profile</CardTitle>
+                <CardTitle className="contractor-accent-text">Contractor Profile</CardTitle>
                 <CardDescription>Your company and contact information</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -431,24 +351,24 @@ const ContractorDashboard = () => {
                     <div className="space-y-2">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Company Name</p>
-                        <p>{profile?.company.name}</p>
+                        <p>{profile?.company.company_name}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Job Role</p>
-                        <p>{profile?.job_role.name}</p>
+                        <p>{profile?.job_role}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Contact Email</p>
                         <p className="flex items-center">
                           <Mail className="h-4 w-4 mr-2" />
-                          {profile?.company.contact_email}
+                          {profile?.company.primary_contact_email}
                         </p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Contact Phone</p>
                         <p className="flex items-center">
                           <Phone className="h-4 w-4 mr-2" />
-                          {profile?.company.contact_phone}
+                          {profile?.company.primary_contact_phone}
                         </p>
                       </div>
                     </div>
@@ -462,24 +382,20 @@ const ContractorDashboard = () => {
                     <div className="space-y-2">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Name</p>
-                        <p>{profile?.emergency_contact.name}</p>
+                        <p>{profile?.emergency_contact_name || 'Not provided'}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Phone</p>
                         <p className="flex items-center">
                           <Phone className="h-4 w-4 mr-2" />
-                          {profile?.emergency_contact.phone}
+                          {profile?.emergency_contact_phone || 'Not provided'}
                         </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Relationship</p>
-                        <p>{profile?.emergency_contact.relationship}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {profile?.vehicle_details.hasVehicle && (
+                {profile?.vehicle_type && (
                   <>
                     <Separator />
                     <div className="space-y-4">
@@ -490,11 +406,11 @@ const ContractorDashboard = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Vehicle Type</p>
-                          <p>{profile.vehicle_details.vehicleType}</p>
+                          <p>{profile.vehicle_type}</p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-muted-foreground">Weight</p>
-                          <p>{profile.vehicle_details.weight} tonnes</p>
+                          <p className="text-sm font-medium text-muted-foreground">Registration</p>
+                          <p>{profile.vehicle_registration || 'Not provided'}</p>
                         </div>
                       </div>
                     </div>

@@ -1,0 +1,305 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { 
+  FileText, 
+  AlertTriangle, 
+  CheckCircle, 
+  Clock, 
+  Upload,
+  Calendar,
+  Award
+} from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface TrainingDocument {
+  id: string;
+  document_type: {
+    name: string;
+    is_mandatory: boolean;
+    description?: string;
+    icon_name?: string;
+  };
+  document_url: string;
+  file_name: string;
+  expiry_date: string | null;
+  issue_date: string | null;
+  status: 'active' | 'expired' | 'expiring_soon';
+  verified_at: string | null;
+  verified_by: string | null;
+}
+
+const MyTrainingDocuments = () => {
+  const [documents, setDocuments] = useState<TrainingDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [compliance, setCompliance] = useState<any>(null);
+  
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      loadTrainingDocuments();
+    }
+  }, [user]);
+
+  const loadTrainingDocuments = async () => {
+    try {
+      setLoading(true);
+
+      // Get contractor profile first
+      const { data: profileData } = await supabase
+        .from('contractor_profiles')
+        .select('id')
+        .eq('auth_user_id', user?.id)
+        .single();
+
+      if (!profileData) return;
+
+      // Load training documents with type information
+      const { data: docsData, error: docsError } = await supabase
+        .from('contractor_training_documents')
+        .select(`
+          *,
+          document_type:training_document_types(*)
+        `)
+        .eq('contractor_id', profileData.id);
+
+      if (docsError) throw docsError;
+
+      setDocuments((docsData as TrainingDocument[]) || []);
+
+      // Calculate compliance
+      const totalMandatory = docsData?.filter(doc => doc.document_type?.is_mandatory).length || 0;
+      const compliantMandatory = docsData?.filter(doc => 
+        doc.document_type?.is_mandatory && doc.status === 'active'
+      ).length || 0;
+      
+      const compliancePercentage = totalMandatory > 0 ? (compliantMandatory / totalMandatory) * 100 : 100;
+      
+      setCompliance({
+        total_mandatory: totalMandatory,
+        compliant: compliantMandatory,
+        percentage: compliancePercentage,
+        expired: docsData?.filter(doc => doc.status === 'expired').length || 0,
+        expiring_soon: docsData?.filter(doc => doc.status === 'expiring_soon').length || 0
+      });
+
+    } catch (error: any) {
+      console.error('Error loading training documents:', error);
+      toast({
+        title: "Error loading training documents",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (document: TrainingDocument) => {
+    switch (document.status) {
+      case 'active':
+        return (
+          <Badge variant="default" className="bg-success text-success-foreground">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Valid
+          </Badge>
+        );
+      case 'expiring_soon':
+        return (
+          <Badge variant="secondary" className="contractor-alert">
+            <Clock className="h-3 w-3 mr-1" />
+            Expiring Soon
+          </Badge>
+        );
+      case 'expired':
+        return (
+          <Badge variant="destructive">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Expired
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">{document.status}</Badge>;
+    }
+  };
+
+  const getDaysUntilExpiry = (expiryDate: string | null) => {
+    if (!expiryDate) return null;
+    const today = new Date();
+    const expiry = new Date(expiryDate);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-24 bg-muted rounded"></div>
+            ))}
+          </div>
+          <div className="h-64 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Compliance Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="contractor-card">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Compliance</p>
+                <p className="text-2xl font-bold contractor-accent-text">
+                  {Math.round(compliance?.percentage || 0)}%
+                </p>
+              </div>
+              <Award className="h-8 w-8 text-contractor-accent" />
+            </div>
+            <Progress 
+              value={compliance?.percentage || 0} 
+              className="mt-2" 
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="contractor-card">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Expiring Soon</p>
+                <p className="text-2xl font-bold text-warning">
+                  {compliance?.expiring_soon || 0}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-warning" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="contractor-card">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Expired</p>
+                <p className="text-2xl font-bold text-destructive">
+                  {compliance?.expired || 0}
+                </p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Training Documents List */}
+      <Card className="contractor-card">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="contractor-accent-text">Training Documents</CardTitle>
+              <CardDescription>
+                Your uploaded certificates and training records
+              </CardDescription>
+            </div>
+            <Button className="contractor-button">
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Document
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {documents.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No training documents uploaded yet</p>
+              <Button className="mt-4 contractor-button">
+                Upload Your First Document
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {documents.map((doc) => {
+                const daysUntilExpiry = getDaysUntilExpiry(doc.expiry_date);
+                
+                return (
+                  <div key={doc.id} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <FileText className="h-5 w-5 text-contractor-accent" />
+                        <div>
+                          <h4 className="font-medium">{doc.document_type?.name}</h4>
+                           <p className="text-sm text-muted-foreground">
+                            {doc.document_type?.description || 'Certificate'}
+                            {doc.document_type?.is_mandatory && (
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                Mandatory
+                              </Badge>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      {getStatusBadge(doc)}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      {doc.issue_date && (
+                        <div>
+                          <p className="font-medium text-muted-foreground">Issue Date</p>
+                          <p>{new Date(doc.issue_date).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                      {doc.expiry_date && (
+                        <div>
+                          <p className="font-medium text-muted-foreground">Expiry Date</p>
+                          <p className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-1" />
+                            {new Date(doc.expiry_date).toLocaleDateString()}
+                            {daysUntilExpiry !== null && daysUntilExpiry <= 60 && (
+                              <span className={`ml-2 text-xs ${
+                                daysUntilExpiry <= 30 ? 'text-destructive' : 'text-warning'
+                              }`}>
+                                ({daysUntilExpiry > 0 ? `${daysUntilExpiry} days left` : 'Expired'})
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium text-muted-foreground">File</p>
+                        <p className="text-contractor-accent hover:underline cursor-pointer">
+                          {doc.file_name}
+                        </p>
+                      </div>
+                    </div>
+
+                    {doc.verified_at && (
+                      <div className="contractor-alert p-2 rounded text-xs">
+                        <p>✓ Verified by AJ Ryan on {new Date(doc.verified_at).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default MyTrainingDocuments;
