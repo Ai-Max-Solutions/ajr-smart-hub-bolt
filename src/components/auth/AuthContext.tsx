@@ -59,13 +59,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               
               // If user hasn't completed onboarding, redirect to onboarding flow
               if (userData && !userData.onboarding_completed) {
-                window.location.href = '/onboarding/signup';
                 return;
               }
               
               // If user profile is incomplete (no names), redirect to personal details
               if (userData && (!userData.firstname || !userData.lastname)) {
-                window.location.href = '/onboarding/personal-details';
                 return;
               }
               
@@ -77,7 +75,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 
                 // If CSCS card is missing, expired, or invalid, redirect to CSCS onboarding
                 if (cscsStatus && typeof cscsStatus === 'object' && 'is_valid' in cscsStatus && !cscsStatus.is_valid) {
-                  window.location.href = '/onboarding/cscs';
                   return;
                 }
               }
@@ -86,7 +83,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             } catch (error) {
               console.error('Error handling sign in:', error);
               // If user doesn't exist in Users table, they're new - redirect to onboarding
-              window.location.href = '/onboarding/signup';
             }
           }, 0);
         } else if (event === 'SIGNED_OUT') {

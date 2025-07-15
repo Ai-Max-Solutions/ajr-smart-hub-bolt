@@ -83,56 +83,9 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
     return <Navigate to="/auth" replace />;
   }
 
-  // If CSCS is invalid, show access denied or redirect
+  // If CSCS is invalid, redirect to CSCS onboarding
   if (cscsStatus && !cscsStatus.is_valid) {
-    if (fallback) {
-      return <>{fallback}</>;
-    }
-
-    return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center px-4">
-        <div className="max-w-md w-full space-y-6">
-          <div className="text-center">
-            <Shield className="mx-auto h-16 w-16 text-destructive" />
-            <h1 className="mt-4 text-3xl font-bold text-aj-navy-deep">Access Denied</h1>
-            <p className="mt-2 text-muted-foreground">
-              Valid CSCS card required for site access
-            </p>
-          </div>
-
-          <Alert variant="destructive" className="border-aj-yellow/50">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Access Denied:</strong> You must upload your valid CSCS Card before you can access site details.
-              <br />
-              <span className="text-sm mt-1 block">
-                Reason: {cscsStatus.reason}
-              </span>
-            </AlertDescription>
-          </Alert>
-
-          <div className="space-y-3">
-            <Button 
-              onClick={() => window.location.href = '/onboarding/cscs'}
-              className="w-full bg-aj-yellow text-aj-navy-deep hover:bg-aj-yellow/90"
-            >
-              Upload CSCS Card
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => window.location.href = '/auth'}
-              className="w-full"
-            >
-              Sign Out
-            </Button>
-          </div>
-
-          <div className="text-center text-sm text-muted-foreground">
-            <p>Your CSCS card is required for health & safety compliance.</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <Navigate to="/onboarding/cscs" replace />;
   }
 
   // Show warning for cards expiring soon
