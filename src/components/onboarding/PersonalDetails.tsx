@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Phone, AlertCircle } from 'lucide-react';
+import { Phone, AlertCircle, CheckCircle } from 'lucide-react';
 import { OnboardingData } from '@/pages/OnboardingFlow';
 import { CSCSCardUploader } from '@/components/ui/cscs-card-uploader';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PersonalDetailsProps {
   data: OnboardingData;
@@ -18,11 +20,64 @@ interface PersonalDetailsProps {
 const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, session } = useAuth();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [existingCSCSCard, setExistingCSCSCard] = useState<any>(null);
+  const [isLoadingCSCS, setIsLoadingCSCS] = useState(true);
 
   const relationships = [
     'Partner', 'Spouse', 'Parent', 'Child', 'Sibling', 'Friend', 'Other'
   ];
+
+  // Check for existing CSCS card on component mount
+  useEffect(() => {
+    const checkExistingCSCSCard = async () => {
+      const authUserId = session?.user?.id;
+      if (!authUserId) return;
+      
+      setIsLoadingCSCS(true);
+      try {
+        console.log('[PersonalDetails] Checking for existing CSCS card for user:', authUserId);
+        
+        // Query CSCS cards using the current user's auth ID
+        const { data: cscsCard, error } = await supabase
+          .from('cscs_cards')
+          .select('*')
+          .eq('user_id', authUserId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        console.log('[PersonalDetails] CSCS card query result:', { cscsCard, error });
+        
+        if (cscsCard && !error) {
+          setExistingCSCSCard(cscsCard);
+          // Auto-populate form data from existing card
+          updateData({
+            cscsCard: {
+              ...data.cscsCard,
+              number: cscsCard.card_number || '',
+              expiryDate: cscsCard.expiry_date || '',
+              cardType: cscsCard.cscs_card_type || '',
+              // Don't require frontImage if card exists in database
+              frontImage: data.cscsCard.frontImage || null
+            }
+          });
+          
+          toast({
+            title: "CSCS Card Found",
+            description: "Your previously uploaded CSCS card has been loaded.",
+          });
+        }
+      } catch (error) {
+        console.error('[PersonalDetails] Error checking CSCS card:', error);
+      } finally {
+        setIsLoadingCSCS(false);
+      }
+    };
+
+    checkExistingCSCSCard();
+  }, [session?.user?.id]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -46,7 +101,11 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
     }
     
     if (!data.cscsCard.cardType) newErrors.cscsType = 'Card type is required';
-    if (!data.cscsCard.frontImage) newErrors.cscsFrontImage = 'Front image of CSCS card is required';
+    
+    // Only require front image if no existing CSCS card is found in database
+    if (!data.cscsCard.frontImage && !existingCSCSCard) {
+      newErrors.cscsFrontImage = 'Front image of CSCS card is required';
+    }
 
     // Emergency contact validation
     if (!data.emergencyContact.name.trim()) newErrors.emergencyName = 'Emergency contact name is required';
@@ -85,12 +144,37 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
 
   return (
     <div className="space-y-6">
-      <CSCSCardUploader
-        data={data.cscsCard}
-        updateData={(cscsData) => updateData({ cscsCard: { ...data.cscsCard, ...cscsData } })}
-        onAnalysisComplete={handleAnalysisComplete}
-        required={true}
-      />
+      {isLoadingCSCS ? (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              <span>Checking for existing CSCS card...</span>
+            </div>
+          </CardContent>
+        </Card>
+      ) : existingCSCSCard ? (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-green-700">
+              <CheckCircle className="w-5 h-5" />
+              <div>
+                <p className="font-medium">CSCS Card Already Verified</p>
+                <p className="text-sm text-green-600">
+                  {existingCSCSCard.cscs_card_type} - Expires: {new Date(existingCSCSCard.expiry_date).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <CSCSCardUploader
+          data={data.cscsCard}
+          updateData={(cscsData) => updateData({ cscsCard: { ...data.cscsCard, ...cscsData } })}
+          onAnalysisComplete={handleAnalysisComplete}
+          required={true}
+        />
+      )}
       
       {Object.entries(errors).filter(([key]) => key.startsWith('cscs')).map(([key, error]) => (
         <p key={key} className="text-sm text-destructive flex items-center gap-1">
