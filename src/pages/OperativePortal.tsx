@@ -34,7 +34,7 @@ const OperativeDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, session } = useAuth();
-  const [userData, setUserData] = useState<{ firstname?: string; lastname?: string } | null>(null);
+  const [userData, setUserData] = useState<{ firstname?: string; lastname?: string; avatar_url?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ const OperativeDashboard = () => {
       try {
         const { data, error } = await supabase
           .from('Users')
-          .select('firstname, lastname')
+          .select('firstname, lastname, avatar_url')
           .eq('supabase_auth_id', session.user.id)
           .single();
 
@@ -69,7 +69,7 @@ const OperativeDashboard = () => {
                 lastname: session.user.user_metadata?.last_name || '',
                 role: 'Operative'
               })
-              .select('firstname, lastname')
+              .select('firstname, lastname, avatar_url')
               .single();
             
             if (insertError) {
@@ -185,15 +185,26 @@ const OperativeDashboard = () => {
               <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                 <div className="text-center lg:text-left">
                   <CardTitle className="text-2xl lg:text-3xl font-bold text-aj-yellow mb-2">
-                    {loading ? `${getGreeting()}...` : `${getGreeting()}, ${userData?.firstname || (user as any)?.user_metadata?.first_name || user?.email?.split('@')[0] || 'User'}`}
+                    {loading ? `${getGreeting()}...` : `${getGreeting()}, ${userData?.firstname || 'User'}`}
                   </CardTitle>
                   <p className="text-base text-white/80">
                     Welcome to your AJ Ryan workspace
                   </p>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 rounded-full bg-aj-yellow/20 flex items-center justify-center">
-                    <User className="w-8 h-8 text-aj-yellow" />
+                  <div className="w-16 h-16 rounded-full bg-aj-yellow/20 flex items-center justify-center overflow-hidden">
+                    {userData?.avatar_url ? (
+                      <img 
+                        src={userData.avatar_url} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <User className={`w-8 h-8 text-aj-yellow ${userData?.avatar_url ? 'hidden' : ''}`} />
                   </div>
                   <Badge className="bg-aj-yellow text-aj-navy-deep text-sm px-3 py-1">
                     Site Operative
