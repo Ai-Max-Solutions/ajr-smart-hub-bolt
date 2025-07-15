@@ -25,8 +25,9 @@ export const CSCSOnboardingFlow: React.FC = () => {
   const [cscsData, setCSCSData] = useState<CSCSCardData>({
     number: '',
     expiryDate: '',
-    cardType: ''
+    cardType: 'Operative' // Default to Operative
   });
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateCSCSData = (updates: Partial<CSCSCardData>) => {
@@ -89,46 +90,53 @@ export const CSCSOnboardingFlow: React.FC = () => {
   };
 
   const handleSubmitCSCS = async () => {
-    if (!validateCSCSData() || !user) return;
+    // Check if we have a valid analysis result from the AI
+    if (!analysisResult || !analysisResult.card_number) {
+      // Fallback manual validation if no AI analysis
+      if (!validateCSCSData()) return;
+    }
 
     setIsSubmitting(true);
     try {
-      // Directly insert/update CSCS card record
-      const { error: upsertError } = await supabase
+      // Check if the AI analysis has already saved the card
+      const { data: existingCard, error: checkError } = await supabase
         .from('cscs_cards')
-        .upsert({
-          user_id: user.id,
-          card_number: cscsData.number.replace(/\D/g, ''), // Clean card number
-          expiry_date: cscsData.expiryDate,
-          cscs_card_type: cscsData.cardType,
-          file_url: 'placeholder', // Required field - will be updated when actual file is uploaded
-          created_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        });
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-      if (upsertError) {
-        throw upsertError;
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw checkError;
       }
 
-      setCurrentStep(3); // Move to success step
-      
+      // If card exists and has valid data from AI analysis, just proceed
+      if (existingCard && existingCard.card_number && existingCard.expiry_date) {
+        setCurrentStep(3); // Move to success step
+        toast({
+          title: "CSCS Verification Complete",
+          description: "Your CSCS card has been successfully analyzed and verified.",
+        });
+        
+        // Redirect to dashboard after a brief delay
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+        return;
+      }
+
+      // If no valid card exists, something went wrong with the upload process
       toast({
-        title: "CSCS Card Uploaded Successfully",
-        description: "Your CSCS card has been verified and you now have access to the system.",
+        title: "Upload Required",
+        description: "Please upload your CSCS card image to complete verification.",
+        variant: "destructive",
       });
-
-      // Redirect to dashboard after a brief delay
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
-
+      
     } catch (error) {
-      console.error('Error updating CSCS status:', error);
+      console.error('Error checking CSCS status:', error);
       toast({
-        title: "Upload Failed",
-        description: "Failed to update your CSCS card details. Please try again.",
-        variant: "destructive"
+        title: "Error",
+        description: "Failed to verify CSCS status. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -230,12 +238,13 @@ export const CSCSOnboardingFlow: React.FC = () => {
               updateData={updateCSCSData}
               onAnalysisComplete={(analysis) => {
                 console.log('Analysis completed:', analysis);
-                // Optionally auto-fill data from analysis
+                setAnalysisResult(analysis);
+                // Auto-fill data from analysis
                 if (analysis.card_number && analysis.card_number.length >= 8) {
                   updateCSCSData({
                     number: analysis.card_number,
                     expiryDate: analysis.expiry_date || '',
-                    cardType: `${analysis.card_color} - ${analysis.card_type}` || ''
+                    cardType: analysis.card_type || 'Operative'
                   });
                 }
               }}
@@ -252,10 +261,10 @@ export const CSCSOnboardingFlow: React.FC = () => {
               </Button>
               <Button 
                 onClick={handleSubmitCSCS}
-                disabled={!cscsData.number || !cscsData.expiryDate || !cscsData.cardType || isSubmitting}
+                disabled={!analysisResult && (!cscsData.number || !cscsData.expiryDate || !cscsData.cardType) || isSubmitting}
                 className="bg-aj-yellow text-aj-navy-deep hover:bg-aj-yellow/90"
               >
-                {isSubmitting ? "Verifying..." : "Complete Setup"}
+                {isSubmitting ? "Verifying..." : analysisResult ? "Complete Setup" : "Upload CSCS Card First"}
               </Button>
             </div>
           </div>

@@ -252,66 +252,8 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
     return null;
   };
 
-  const handleSaveCard = async () => {
-    try {
-      const validationError = validateForm();
-      if (validationError) {
-        toast({
-          title: "Validation Error",
-          description: validationError,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Get color hex based on card type
-      const cardTypeObj = cardTypes.find(type => type.value === data.cardType);
-      const colourHex = cardTypeObj?.color || '#666666';
-
-      // Insert into cscs_cards table
-      const { error } = await supabase
-        .from('cscs_cards')
-        .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          file_url: data.frontImage ? URL.createObjectURL(data.frontImage) : '',
-          cscs_card_type: data.cardType,
-          colour: colourHex,
-          custom_card_type: isCustomType ? data.cardType : null,
-          expiry_date: data.expiryDate || null,
-          card_number: data.number ? data.number.replace(/[^A-Za-z0-9]/g, '') : null // Strip spaces and special chars
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Success",
-        description: "Card added successfully.",
-      });
-
-      // Reset form
-      updateData({
-        number: '',
-        expiryDate: '',
-        cardType: '',
-        frontImage: undefined,
-        backImage: undefined
-      });
-      setIsCustomType(false);
-      setShowGoldSubtype(false);
-      setGoldSubtype('');
-      setCardNumberError('');
-
-    } catch (error) {
-      console.error('Error saving card:', error);
-      toast({
-        title: "Upload Failed",
-        description: "Upload failed, please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+  // Remove the handleSaveCard function - AI analysis already saves the data
+  // This was causing "Upload Failed" errors when the AI analysis was actually succeeding
 
   const handleCardNumberChange = (value: string) => {
     const formatted = formatCardNumber(value);
@@ -504,16 +446,15 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           </div>
         </div>
 
-        {/* Save Card Button */}
-        <div className="flex justify-end pt-4">
-          <Button 
-            onClick={handleSaveCard}
-            className="bg-accent text-primary hover:bg-accent/90"
-            disabled={isAnalyzing}
-          >
-            {isAnalyzing ? 'Processing...' : 'Save Card'}
-          </Button>
-        </div>
+        {/* Analysis Status */}
+        {analysisResult && (
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              <strong>Upload Complete!</strong> Your CSCS card has been successfully analyzed and saved.
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );
