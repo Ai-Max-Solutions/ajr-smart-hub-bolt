@@ -158,11 +158,11 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
             <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
             <div>
               <h3 className="font-semibold text-warning mb-2">Important Notice</h3>
-              <p className="text-sm text-muted-foreground mb-3">
+              <p className="text-sm text-foreground/80 mb-3">
                 Your account is pending final approval. You'll be notified via email once the verification process is complete. 
                 Please ensure you have access to the email address you provided.
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-foreground/80">
                 If you need to update any information, please contact our support team.
               </p>
             </div>
@@ -187,7 +187,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
         <CardContent className="pt-6">
           <div className="text-center">
             <h3 className="font-semibold mb-2">Need Help?</h3>
-            <p className="text-sm text-muted-foreground mb-3">
+            <p className="text-sm text-foreground/80 mb-3">
               Our support team is here to assist you with any questions.
             </p>
             <div className="flex justify-center gap-4 text-sm">
