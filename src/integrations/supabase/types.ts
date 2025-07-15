@@ -10823,6 +10823,10 @@ export type Database = {
           calloutrate: number | null
           clientfeedback: string | null
           contracttype: string | null
+          cscs_last_validated: string | null
+          cscs_upload_required: boolean | null
+          cscs_uploaded_at: string | null
+          cscs_validation_status: string | null
           cscscardnumber: string | null
           cscsexpirydate: string | null
           currentproject: string | null
@@ -10900,6 +10904,10 @@ export type Database = {
           calloutrate?: number | null
           clientfeedback?: string | null
           contracttype?: string | null
+          cscs_last_validated?: string | null
+          cscs_upload_required?: boolean | null
+          cscs_uploaded_at?: string | null
+          cscs_validation_status?: string | null
           cscscardnumber?: string | null
           cscsexpirydate?: string | null
           currentproject?: string | null
@@ -10977,6 +10985,10 @@ export type Database = {
           calloutrate?: number | null
           clientfeedback?: string | null
           contracttype?: string | null
+          cscs_last_validated?: string | null
+          cscs_upload_required?: boolean | null
+          cscs_uploaded_at?: string | null
+          cscs_validation_status?: string | null
           cscscardnumber?: string | null
           cscsexpirydate?: string | null
           currentproject?: string | null
@@ -12254,6 +12266,10 @@ export type Database = {
         }
         Returns: Json
       }
+      check_user_cscs_status: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       check_user_profile_exists: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -12835,6 +12851,14 @@ export type Database = {
           p_old_version_id: string
           p_new_version_id: string
           p_superseded_by: string
+        }
+        Returns: boolean
+      }
+      update_user_cscs_status: {
+        Args: {
+          p_user_id: string
+          p_card_number: string
+          p_expiry_date: string
         }
         Returns: boolean
       }

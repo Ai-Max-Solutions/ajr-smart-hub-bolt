@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import DocumentStatusChecker from "./pages/DocumentStatusChecker";
 import OnboardingFlow from "./pages/OnboardingFlow";
 import OperativePortal from "./pages/OperativePortal";
+import { CSCSOnboardingFlow } from "./components/onboarding/CSCSOnboardingFlow";
 import ProjectsManagement from "./pages/ProjectsManagement";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminReports from "./pages/AdminReports";
@@ -44,6 +45,7 @@ function App() {
               <Route path="/contractor/dashboard" element={<ContractorDashboard />} />
               <Route path="/check/:docId" element={<DocumentStatusChecker />} />
               <Route path="/beta/*" element={<InductionDemo />} />
+              <Route path="/onboarding/cscs" element={<CSCSOnboardingFlow />} />
               
               {/* Protected routes with navigation */}
               <Route path="/" element={
@@ -55,7 +57,7 @@ function App() {
               <Route 
                 path="/onboarding/*" 
                 element={
-                  <RouteProtection requiredResource="onboarding">
+                  <RouteProtection requiredResource="onboarding" requireCSCS={false}>
                     <AppLayout>
                       <OnboardingFlow />
                     </AppLayout>

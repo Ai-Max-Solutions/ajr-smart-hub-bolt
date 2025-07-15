@@ -6,6 +6,7 @@ import { RBACService } from '@/lib/security';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Shield, ArrowLeft, Loader2 } from 'lucide-react';
+import { CSCSAccessGate } from '@/components/auth/CSCSAccessGate';
 
 interface RouteProtectionProps {
   children: ReactNode;
@@ -14,6 +15,7 @@ interface RouteProtectionProps {
   requiredAction?: string;
   fallbackPath?: string;
   showAccessDenied?: boolean;
+  requireCSCS?: boolean;
 }
 
 // User interface imported from userContext
@@ -24,7 +26,8 @@ export const RouteProtection = ({
   requiredResource,
   requiredAction = 'read',
   fallbackPath = '/auth',
-  showAccessDenied = true
+  showAccessDenied = true,
+  requireCSCS = true
 }: RouteProtectionProps) => {
   const location = useLocation();
   const { user, session, loading } = useAuth();
@@ -64,6 +67,11 @@ export const RouteProtection = ({
   }
 
   const hasAccess = hasRequiredRole && hasResourceAccess && hasDashboardAccess;
+
+  // Skip CSCS check for onboarding, auth, and CSCS routes
+  const skipCSCSCheck = location.pathname.startsWith('/onboarding') || 
+                       location.pathname.startsWith('/auth') ||
+                       location.pathname === '/onboarding/cscs';
 
   // If access is denied, show access denied page or redirect
   if (!hasAccess) {
@@ -117,6 +125,15 @@ export const RouteProtection = ({
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Wrap children with CSCS access gate if required
+  if (requireCSCS && !skipCSCSCheck) {
+    return (
+      <CSCSAccessGate>
+        {children}
+      </CSCSAccessGate>
     );
   }
 

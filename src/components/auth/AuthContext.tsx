@@ -69,6 +69,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 return;
               }
               
+              // Check CSCS card status
+              if (userData) {
+                const { data: cscsStatus } = await supabase.rpc('check_user_cscs_status', {
+                  p_user_id: userData.whalesync_postgres_id
+                });
+                
+                // If CSCS card is missing, expired, or invalid, redirect to CSCS onboarding
+                if (cscsStatus && typeof cscsStatus === 'object' && 'is_valid' in cscsStatus && !cscsStatus.is_valid) {
+                  window.location.href = '/onboarding/cscs';
+                  return;
+                }
+              }
+              
               toast.success('Successfully signed in!');
             } catch (error) {
               console.error('Error handling sign in:', error);
