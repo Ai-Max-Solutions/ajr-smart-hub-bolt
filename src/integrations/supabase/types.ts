@@ -554,6 +554,69 @@ export type Database = {
           },
         ]
       }
+      api_rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          request_count: number | null
+          user_id: string | null
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          request_count?: number | null
+          user_id?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          request_count?: number | null
+          user_id?: string | null
+          window_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_rate_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "api_rate_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "api_rate_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "api_rate_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "api_rate_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       approval_queue: {
         Row: {
           assigned_to: string | null
@@ -11325,6 +11388,15 @@ export type Database = {
         Args: { p_contractor_id: string; p_project_id?: string }
         Returns: Json
       }
+      check_enhanced_rate_limit: {
+        Args: {
+          p_user_id: string
+          p_endpoint: string
+          p_max_requests?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
       check_index_health: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -11480,6 +11552,10 @@ export type Database = {
       }
       debug_user_metadata: {
         Args: { p_email: string }
+        Returns: Json
+      }
+      detect_suspicious_activity: {
+        Args: { p_user_id?: string }
         Returns: Json
       }
       execute_smart_prompt: {
@@ -11835,6 +11911,10 @@ export type Database = {
         Returns: string
       }
       sanitize_ai_input: {
+        Args: { input_text: string }
+        Returns: string
+      }
+      sanitize_user_input: {
         Args: { input_text: string }
         Returns: string
       }

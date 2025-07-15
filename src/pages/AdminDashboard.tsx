@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AdminCRUDModule from "@/components/admin/AdminCRUDModule";
 import { TaskPlanRAMSRegister } from "@/components/admin/TaskPlanRAMSRegister";
+import { SecurityDashboard } from "@/components/admin/SecurityDashboard";
 import { 
   Settings, 
   Users, 
@@ -29,7 +30,7 @@ import {
 } from "lucide-react";
 
 const AdminDashboard = () => {
-  const [activeView, setActiveView] = useState<"dashboard" | "crud" | "rams-register">("dashboard");
+  const [activeView, setActiveView] = useState<"dashboard" | "crud" | "rams-register" | "security">("dashboard");
   const [isLoading, setIsLoading] = useState(false);
 
   // Mock data for dashboard components
@@ -198,6 +199,10 @@ const AdminDashboard = () => {
     return <TaskPlanRAMSRegister />;
   }
 
+  if (activeView === "security") {
+    return <SecurityDashboard />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <PageHeader
@@ -228,6 +233,15 @@ const AdminDashboard = () => {
             >
               <Shield className="w-5 h-5 mr-2" />
               Task Plan / RAMS Register
+            </Button>
+            <Button 
+              variant="outline" 
+              size="touch" 
+              onClick={() => setActiveView("security")}
+              className="font-poppins"
+            >
+              <Shield className="w-5 h-5 mr-2" />
+              Security Dashboard
             </Button>
             <Button 
               variant="outline" 
