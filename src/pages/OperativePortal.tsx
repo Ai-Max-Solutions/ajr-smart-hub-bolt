@@ -68,6 +68,14 @@ const OperativeDashboard = () => {
     };
 
     fetchUserData();
+    
+    // Listen for focus events to refresh data when user returns from other pages
+    const handleFocus = () => {
+      fetchUserData();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [session]);
 
   const quickActions = [
