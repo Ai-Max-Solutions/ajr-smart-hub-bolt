@@ -76,7 +76,18 @@ serve(async (req) => {
     }
 
     const imageArrayBuffer = await imageResponse.arrayBuffer();
-    const imageBase64 = btoa(String.fromCharCode(...new Uint8Array(imageArrayBuffer)));
+    
+    // Convert to base64 using a more memory-efficient approach
+    const uint8Array = new Uint8Array(imageArrayBuffer);
+    let binaryString = '';
+    const chunkSize = 0x8000; // 32KB chunks to avoid stack overflow
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, i + chunkSize);
+      binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    
+    const imageBase64 = btoa(binaryString);
     const imageType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
     // Call OpenRouter API with Claude 3.5 Sonnet
