@@ -1504,6 +1504,196 @@ export type Database = {
           },
         ]
       }
+      contractor_project_assignments: {
+        Row: {
+          assigned_by: string | null
+          contractor_id: string
+          created_at: string | null
+          id: string
+          job_role: string
+          project_id: string
+          rams_signature_data: string | null
+          rams_signed_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_by?: string | null
+          contractor_id: string
+          created_at?: string | null
+          id?: string
+          job_role: string
+          project_id: string
+          rams_signature_data?: string | null
+          rams_signed_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_by?: string | null
+          contractor_id?: string
+          created_at?: string | null
+          id?: string
+          job_role?: string
+          project_id?: string
+          rams_signature_data?: string | null
+          rams_signed_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_project_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contractor_project_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contractor_project_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "contractor_project_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contractor_project_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "contractor_project_assignments_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      contractor_training_documents: {
+        Row: {
+          contractor_id: string
+          created_at: string | null
+          document_type_id: string
+          document_url: string
+          expiry_date: string | null
+          file_name: string
+          file_size: number | null
+          id: string
+          issue_date: string | null
+          notes: string | null
+          status: string | null
+          updated_at: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          contractor_id: string
+          created_at?: string | null
+          document_type_id: string
+          document_url: string
+          expiry_date?: string | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          issue_date?: string | null
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          contractor_id?: string
+          created_at?: string | null
+          document_type_id?: string
+          document_url?: string
+          expiry_date?: string | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          issue_date?: string | null
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_training_documents_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_training_documents_document_type_id_fkey"
+            columns: ["document_type_id"]
+            isOneToOne: false
+            referencedRelation: "training_document_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_training_documents_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contractor_training_documents_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contractor_training_documents_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "contractor_training_documents_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contractor_training_documents_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       cost_tracking: {
         Row: {
           amount: number
@@ -8968,6 +9158,39 @@ export type Database = {
           trade_category?: string
           updated_at?: string | null
           usage_frequency?: number | null
+        }
+        Relationships: []
+      }
+      training_document_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon_name: string | null
+          id: string
+          is_mandatory: boolean | null
+          name: string
+          requires_expiry: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon_name?: string | null
+          id?: string
+          is_mandatory?: boolean | null
+          name: string
+          requires_expiry?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon_name?: string | null
+          id?: string
+          is_mandatory?: boolean | null
+          name?: string
+          requires_expiry?: boolean | null
         }
         Relationships: []
       }
