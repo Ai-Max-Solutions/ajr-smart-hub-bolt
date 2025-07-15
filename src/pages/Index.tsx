@@ -8,11 +8,73 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { getPersonalizedGreeting, getWelcomeMessage } from "@/utils/greetings";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { user, session } = useAuth();
   const [activityOpen, setActivityOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  // Check onboarding status and redirect if needed
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (!user || !session) {
+        setProfileLoading(false);
+        return;
+      }
+
+      try {
+        const { data: userData, error } = await supabase
+          .from('Users')
+          .select('onboarding_completed, firstname, lastname')
+          .eq('supabase_auth_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user profile:', error);
+          setProfileLoading(false);
+          return;
+        }
+
+        setUserProfile(userData);
+
+        // Check if onboarding is complete
+        if (!userData.onboarding_completed) {
+          // Redirect to signup onboarding
+          window.location.href = '/onboarding/signup';
+          return;
+        }
+
+        // Check if names are missing
+        if (!userData.firstname || !userData.lastname) {
+          window.location.href = '/onboarding/personal-details';
+          return;
+        }
+
+        setProfileLoading(false);
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+        setProfileLoading(false);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [user, session]);
+
+  // Show loading while checking onboarding status
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Mock activity data
   const recentActivity = [
