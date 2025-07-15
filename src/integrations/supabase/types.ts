@@ -1974,6 +1974,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cscs_cards: {
+        Row: {
+          created_at: string | null
+          cscs_card_type: string
+          custom_card_type: string | null
+          expiry_date: string | null
+          file_url: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          cscs_card_type: string
+          custom_card_type?: string | null
+          expiry_date?: string | null
+          file_url: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          cscs_card_type?: string
+          custom_card_type?: string | null
+          expiry_date?: string | null
+          file_url?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       delivery_bookings: {
         Row: {
           block_id: string | null
