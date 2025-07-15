@@ -43,22 +43,9 @@ const Index = () => {
 
         // Check if onboarding is complete
         if (!userData.onboarding_completed) {
-          // Check if user has started onboarding by looking at localStorage
-          const savedOnboardingData = localStorage.getItem('onboardingData');
-          if (savedOnboardingData) {
-            try {
-              const data = JSON.parse(savedOnboardingData);
-              // If they've filled out basic info, continue to personal details
-              if (data.firstName && data.lastName && data.email) {
-                window.location.href = '/onboarding/personal-details';
-                return;
-              }
-            } catch (e) {
-              // If parsing fails, start from beginning
-            }
-          }
-          // Start onboarding from the beginning
-          window.location.href = '/onboarding/signup';
+          // If user already has an account (they're authenticated), skip signup
+          // and go directly to personal details to continue onboarding
+          window.location.href = '/onboarding/personal-details';
           return;
         }
 
