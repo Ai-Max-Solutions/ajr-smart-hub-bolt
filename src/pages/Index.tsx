@@ -29,7 +29,7 @@ const Index = () => {
       try {
         const { data: userData, error } = await supabase
           .from('Users')
-          .select('onboarding_completed, firstname, lastname')
+          .select('onboarding_completed, firstname, lastname, whalesync_postgres_id, employmentstatus')
           .eq('supabase_auth_id', user.id)
           .single();
 
@@ -41,10 +41,41 @@ const Index = () => {
 
         setUserProfile(userData);
 
-        // Check if onboarding is complete
-        if (!userData.onboarding_completed) {
-          // If user already has an account (they're authenticated), skip signup
-          // and go directly to personal details to continue onboarding
+        // Smart onboarding completion check
+        if (!userData.onboarding_completed && userData.firstname && userData.lastname && userData.employmentstatus === 'Active') {
+          console.log('[Index] User has profile data but onboarding_completed is false. Checking CSCS cards...');
+          
+          // Check if user has valid CSCS cards
+          const { data: cscsCards, error: cscsError } = await supabase
+            .from('cscs_cards')
+            .select('*')
+            .or(`user_id.eq.${user.id},user_id.eq.${userData.whalesync_postgres_id}`)
+            .gte('expiry_date', new Date().toISOString().split('T')[0]); // Cards that haven't expired
+
+          if (!cscsError && cscsCards && cscsCards.length > 0) {
+            console.log('[Index] Found valid CSCS cards. Auto-completing onboarding...');
+            
+            // User has valid CSCS cards and complete profile - auto-complete onboarding
+            const { error: updateError } = await supabase
+              .from('Users')
+              .update({ onboarding_completed: true })
+              .eq('supabase_auth_id', user.id);
+
+            if (updateError) {
+              console.error('Error updating onboarding status:', updateError);
+            } else {
+              console.log('[Index] Onboarding marked as completed');
+              setUserProfile(prev => ({ ...prev, onboarding_completed: true }));
+            }
+          } else {
+            // No valid CSCS cards, redirect to onboarding
+            window.location.href = '/onboarding/personal-details';
+            return;
+          }
+        }
+
+        // Check if onboarding is still incomplete after smart check
+        if (!userData.onboarding_completed && !userData.firstname) {
           window.location.href = '/onboarding/personal-details';
           return;
         }
