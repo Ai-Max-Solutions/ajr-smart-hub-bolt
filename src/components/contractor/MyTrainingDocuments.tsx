@@ -3,6 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   FileText, 
   AlertTriangle, 
@@ -10,7 +14,10 @@ import {
   Clock, 
   Upload,
   Calendar,
-  Award
+  Award,
+  RefreshCw,
+  Download,
+  Bell
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,6 +44,9 @@ const MyTrainingDocuments = () => {
   const [documents, setDocuments] = useState<TrainingDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [compliance, setCompliance] = useState<any>(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [renewalAlerts, setRenewalAlerts] = useState<TrainingDocument[]>([]);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -71,7 +81,12 @@ const MyTrainingDocuments = () => {
 
       if (docsError) throw docsError;
 
-      setDocuments((docsData as TrainingDocument[]) || []);
+      // Map and type the documents properly
+      const typedDocs: TrainingDocument[] = (docsData || []).map(doc => ({
+        ...doc,
+        status: doc.status as 'active' | 'expired' | 'expiring_soon'
+      }));
+      setDocuments(typedDocs);
 
       // Calculate compliance
       const totalMandatory = docsData?.filter(doc => doc.document_type?.is_mandatory).length || 0;
@@ -88,6 +103,18 @@ const MyTrainingDocuments = () => {
         expired: docsData?.filter(doc => doc.status === 'expired').length || 0,
         expiring_soon: docsData?.filter(doc => doc.status === 'expiring_soon').length || 0
       });
+
+      // Set renewal alerts for documents expiring in next 60 days
+      const alertDocs = docsData?.filter(doc => {
+        if (!doc.expiry_date) return false;
+        const daysUntilExpiry = getDaysUntilExpiry(doc.expiry_date);
+        return daysUntilExpiry !== null && daysUntilExpiry <= 60 && daysUntilExpiry > 0;
+      }) || [];
+      const typedAlertDocs: TrainingDocument[] = alertDocs.map(doc => ({
+        ...doc,
+        status: doc.status as 'active' | 'expired' | 'expiring_soon'
+      }));
+      setRenewalAlerts(typedAlertDocs);
 
     } catch (error: any) {
       console.error('Error loading training documents:', error);
@@ -138,6 +165,90 @@ const MyTrainingDocuments = () => {
     return diffDays;
   };
 
+  const handleFileUpload = async (file: File, documentId?: string) => {
+    try {
+      setUploading(true);
+      
+      // Get contractor profile
+      const { data: profileData } = await supabase
+        .from('contractor_profiles')
+        .select('id')
+        .eq('auth_user_id', user?.id)
+        .single();
+
+      if (!profileData) throw new Error('Contractor profile not found');
+
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${profileData.id}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('training-documents')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('training-documents')
+        .getPublicUrl(fileName);
+
+      // Update or create document record
+      if (documentId) {
+        // Re-upload for existing document
+        const { error: updateError } = await supabase
+          .from('contractor_training_documents')
+          .update({
+            document_url: publicUrl,
+            file_name: file.name,
+            file_size: file.size,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', documentId);
+
+        if (updateError) throw updateError;
+      }
+
+      toast({
+        title: "Document uploaded successfully",
+        description: documentId ? "Document has been updated" : "New document has been uploaded",
+      });
+
+      loadTrainingDocuments();
+      setUploadDialogOpen(false);
+      
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const getExpiryColor = (document: TrainingDocument) => {
+    const daysUntilExpiry = getDaysUntilExpiry(document.expiry_date);
+    if (!daysUntilExpiry) return 'text-foreground';
+    if (daysUntilExpiry <= 0) return 'text-destructive';
+    if (daysUntilExpiry <= 30) return 'text-destructive';
+    if (daysUntilExpiry <= 60) return 'text-warning';
+    return 'text-success';
+  };
+
+  const getExpiryProgress = (document: TrainingDocument) => {
+    if (!document.expiry_date || !document.issue_date) return 100;
+    
+    const issued = new Date(document.issue_date);
+    const expires = new Date(document.expiry_date);
+    const now = new Date();
+    
+    const totalDuration = expires.getTime() - issued.getTime();
+    const remaining = expires.getTime() - now.getTime();
+    
+    return Math.max(0, Math.min(100, (remaining / totalDuration) * 100));
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -156,6 +267,26 @@ const MyTrainingDocuments = () => {
 
   return (
     <div className="space-y-6">
+      {/* Renewal Alerts */}
+      {renewalAlerts.length > 0 && (
+        <Alert className="contractor-alert border-l-4 border-l-warning">
+          <Bell className="h-4 w-4" />
+          <AlertDescription>
+            <div className="font-medium mb-2">Renewal Reminders</div>
+            <div className="space-y-1">
+              {renewalAlerts.map(doc => {
+                const days = getDaysUntilExpiry(doc.expiry_date);
+                return (
+                  <div key={doc.id} className="text-sm">
+                    <strong>{doc.document_type?.name}</strong> expires in {days} days
+                  </div>
+                );
+              })}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Compliance Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="contractor-card">
@@ -215,10 +346,43 @@ const MyTrainingDocuments = () => {
                 Your uploaded certificates and training records
               </CardDescription>
             </div>
-            <Button className="contractor-button">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Document
-            </Button>
+            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="contractor-button">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Document
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Upload Training Document</DialogTitle>
+                  <DialogDescription>
+                    Upload a new certificate or training document
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="document-file">Select File</Label>
+                    <Input
+                      id="document-file"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                      disabled={uploading}
+                    />
+                  </div>
+                  {uploading && (
+                    <div className="flex items-center space-x-2">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Uploading...</span>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -226,9 +390,42 @@ const MyTrainingDocuments = () => {
             <div className="text-center py-8">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">No training documents uploaded yet</p>
-              <Button className="mt-4 contractor-button">
-                Upload Your First Document
-              </Button>
+              <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="mt-4 contractor-button">
+                    Upload Your First Document
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Upload Training Document</DialogTitle>
+                    <DialogDescription>
+                      Upload your first certificate or training document
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="document-file-first">Select File</Label>
+                      <Input
+                        id="document-file-first"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file);
+                        }}
+                        disabled={uploading}
+                      />
+                    </div>
+                    {uploading && (
+                      <div className="flex items-center space-x-2">
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <span>Uploading...</span>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           ) : (
             <div className="space-y-4">
@@ -236,23 +433,38 @@ const MyTrainingDocuments = () => {
                 const daysUntilExpiry = getDaysUntilExpiry(doc.expiry_date);
                 
                 return (
-                  <div key={doc.id} className="p-4 border rounded-lg space-y-3">
+                  <div key={doc.id} className="p-4 border rounded-lg space-y-3 contractor-card">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <FileText className="h-5 w-5 text-contractor-accent" />
-                        <div>
-                          <h4 className="font-medium">{doc.document_type?.name}</h4>
-                           <p className="text-sm text-muted-foreground">
-                            {doc.document_type?.description || 'Certificate'}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium">{doc.document_type?.name}</h4>
                             {doc.document_type?.is_mandatory && (
-                              <Badge variant="outline" className="ml-2 text-xs">
+                              <Badge variant="outline" className="text-xs">
                                 Mandatory
                               </Badge>
                             )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {doc.document_type?.description || 'Certificate'}
                           </p>
+                          {doc.expiry_date && (
+                            <div className="mt-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs text-muted-foreground">Valid until</span>
+                                <span className={`text-xs font-medium ${getExpiryColor(doc)}`}>
+                                  {new Date(doc.expiry_date).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <Progress value={getExpiryProgress(doc)} className="h-1" />
+                            </div>
+                          )}
                         </div>
                       </div>
-                      {getStatusBadge(doc)}
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(doc)}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -278,19 +490,75 @@ const MyTrainingDocuments = () => {
                           </p>
                         </div>
                       )}
-                      <div>
+                       <div>
                         <p className="font-medium text-muted-foreground">File</p>
-                        <p className="text-contractor-accent hover:underline cursor-pointer">
-                          {doc.file_name}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-contractor-accent hover:underline cursor-pointer">
+                            {doc.file_name}
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={() => window.open(doc.document_url, '_blank')}
+                          >
+                            <Download className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
-                    {doc.verified_at && (
-                      <div className="contractor-alert p-2 rounded text-xs">
-                        <p>✓ Verified by AJ Ryan on {new Date(doc.verified_at).toLocaleDateString()}</p>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      {doc.verified_at ? (
+                        <div className="contractor-alert p-2 rounded text-xs">
+                          <p>✓ Verified by AJ Ryan on {new Date(doc.verified_at).toLocaleDateString()}</p>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground">
+                          Pending verification
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" variant="outline" className="contractor-button-outline">
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                              Re-upload
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Re-upload {doc.document_type?.name}</DialogTitle>
+                              <DialogDescription>
+                                Upload a new version of this document
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor={`reupload-${doc.id}`}>Select New File</Label>
+                                <Input
+                                  id={`reupload-${doc.id}`}
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleFileUpload(file, doc.id);
+                                  }}
+                                  disabled={uploading}
+                                />
+                              </div>
+                              {uploading && (
+                                <div className="flex items-center space-x-2">
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                  <span>Uploading...</span>
+                                </div>
+                              )}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
