@@ -5,7 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, FileText, PenTool, AlertTriangle } from 'lucide-react';
+import { 
+  Wrench, 
+  Thermometer, 
+  Fan, 
+  Settings, 
+  Zap as Pipe, 
+  Droplets, 
+  ShieldCheck, 
+  Factory, 
+  Cog, 
+  ClipboardList, 
+  HardHat, 
+  FileText,
+  PenTool
+} from 'lucide-react';
 import { OnboardingData } from '@/pages/OnboardingFlow';
 import RAMSViewer from './RAMSViewer';
 
@@ -15,42 +29,57 @@ interface WorkTypeSelectionProps {
 }
 
 const workTypes = [
-  { id: 'testing', name: 'Testing & Commissioning', icon: Settings },
-  { id: 'installations', name: 'Installations', icon: Settings },
-  { id: 'first-fix', name: '1st Fix Electrical', icon: Settings },
-  { id: 'second-fix', name: '2nd Fix Electrical', icon: Settings },
-  { id: 'fault-finding', name: 'Fault Finding', icon: Settings },
-  { id: 'maintenance', name: 'Maintenance', icon: Settings },
-  { id: 'fire-alarms', name: 'Fire Alarm Systems', icon: AlertTriangle },
-  { id: 'security', name: 'Security Systems', icon: Settings },
+  { id: 'plumbing', name: 'Plumbing', icon: Wrench },
+  { id: 'heating-cooling', name: 'Heating & Cooling', icon: Thermometer },
+  { id: 'ventilation-ac', name: 'Ventilation & Air Conditioning', icon: Fan },
+  { id: 'testing-commissioning', name: 'Testing & Commissioning', icon: Settings },
+  { id: 'pipe-fitting', name: 'Pipe Fitting', icon: Pipe },
+  { id: 'sprinkler-fire', name: 'Sprinkler / Fire Suppression', icon: Droplets },
+  { id: 'insulation', name: 'Insulation', icon: ShieldCheck },
+  { id: 'tank-plant-room', name: 'Tank / Plant Room Work', icon: Factory },
+  { id: 'mechanical-engineering', name: 'Mechanical Engineering', icon: Cog },
+  { id: 'project-management', name: 'Project & Site Management', icon: ClipboardList },
+  { id: 'general-labour', name: 'General Labour', icon: HardHat },
+  { id: 'admin-contracts', name: 'Admin / Contracts Support', icon: FileText },
 ];
 
 // Mock RAMS documents for each work type
 const ramsDocuments = {
-  'testing': [
-    { id: 'rams-test-1', title: 'High Voltage Testing Procedures', version: '2.1' },
-    { id: 'rams-test-2', title: 'Electrical Safety Testing', version: '1.5' },
+  'plumbing': [
+    { id: 'rams-plumb-1', title: 'Plumbing Safety Procedures', version: '2.1' },
   ],
-  'installations': [
-    { id: 'rams-inst-1', title: 'Electrical Installation Safety', version: '3.0' },
+  'heating-cooling': [
+    { id: 'rams-hvac-1', title: 'HVAC System Safety Guidelines', version: '1.8' },
   ],
-  'first-fix': [
-    { id: 'rams-1fix-1', title: '1st Fix Electrical Safety Plan', version: '2.3' },
+  'ventilation-ac': [
+    { id: 'rams-vent-1', title: 'Ventilation & AC Safety Plan', version: '2.3' },
   ],
-  'second-fix': [
-    { id: 'rams-2fix-1', title: '2nd Fix Electrical Safety Plan', version: '2.1' },
+  'testing-commissioning': [
+    { id: 'rams-test-1', title: 'Testing & Commissioning Safety', version: '3.0' },
   ],
-  'fault-finding': [
-    { id: 'rams-fault-1', title: 'Fault Finding Safety Procedures', version: '1.8' },
+  'pipe-fitting': [
+    { id: 'rams-pipe-1', title: 'Pipe Fitting Safety Procedures', version: '1.9' },
   ],
-  'maintenance': [
-    { id: 'rams-maint-1', title: 'Maintenance Safety Guidelines', version: '2.0' },
+  'sprinkler-fire': [
+    { id: 'rams-fire-1', title: 'Fire Suppression System Safety', version: '2.2' },
   ],
-  'fire-alarms': [
-    { id: 'rams-fire-1', title: 'Fire Alarm System Safety', version: '3.1' },
+  'insulation': [
+    { id: 'rams-insul-1', title: 'Insulation Work Safety Plan', version: '1.7' },
   ],
-  'security': [
-    { id: 'rams-sec-1', title: 'Security System Installation', version: '1.9' },
+  'tank-plant-room': [
+    { id: 'rams-tank-1', title: 'Plant Room Safety Guidelines', version: '2.0' },
+  ],
+  'mechanical-engineering': [
+    { id: 'rams-mech-1', title: 'Mechanical Engineering Safety', version: '2.4' },
+  ],
+  'project-management': [
+    { id: 'rams-pm-1', title: 'Site Management Safety Plan', version: '1.6' },
+  ],
+  'general-labour': [
+    { id: 'rams-labour-1', title: 'General Labour Safety Guidelines', version: '2.1' },
+  ],
+  'admin-contracts': [
+    { id: 'rams-admin-1', title: 'Office & Admin Safety Procedures', version: '1.5' },
   ],
 };
 
@@ -153,12 +182,27 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
       {/* Work Type Selection */}
       <Card className="card-hover">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Settings className="w-5 h-5" />
-            Select Your Work Types
+          <CardTitle className="text-2xl font-bold text-primary mb-2">
+            Choose the type of work you do — so we can get it right every time!
           </CardTitle>
-          <CardDescription>
-            Choose the types of work you'll be performing. This determines which safety documents you need to review.
+          <CardDescription className="text-base leading-relaxed">
+            <div className="space-y-3">
+              <p>
+                At A&J Ryan, we cover a range of specialist trades and roles.
+                Select the main work type that best describes what you do day-to-day.
+                This helps us match you with the right tasks, rates, and compliance checks.
+              </p>
+              
+              <div className="bg-success/10 border border-success/20 rounded-lg p-3">
+                <p className="text-sm font-medium text-success-foreground">
+                  ✅ Our streamlined work types
+                </p>
+              </div>
+              
+              <p className="text-sm text-muted-foreground italic">
+                <strong>Tip:</strong> Pick the one that fits most of your work — you'll still be able to log different tasks under your projects.
+              </p>
+            </div>
           </CardDescription>
         </CardHeader>
         
@@ -298,7 +342,7 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
           disabled={!canProceed()}
           className="w-full btn-primary"
         >
-          Complete Onboarding
+          Next: Add Your Skills
         </Button>
       </div>
     </div>
