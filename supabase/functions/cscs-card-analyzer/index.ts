@@ -181,20 +181,21 @@ Return only valid JSON. If information is not clearly visible, use null for that
 
     // Store the analysis result in the database
     const { data: storedAnalysis, error: dbError } = await supabase
-      .from('cscs_card_analysis')
+      .from('cscs_cards')
       .insert({
         user_id: user.id,
-        image_url: imageUrl,
-        card_number: analysisResult.card_number,
+        file_url: imageUrl,
+        cscs_card_type: analysisResult.card_type || 'Other',
+        custom_card_type: analysisResult.card_type && !['Labourer', 'Skilled Worker', 'Supervisor', 'Trainee', 'Manager'].includes(analysisResult.card_type) ? analysisResult.card_type : null,
         expiry_date: analysisResult.expiry_date,
+        card_number: analysisResult.card_number,
         card_color: analysisResult.card_color,
-        card_type: analysisResult.card_type,
         qualifications: analysisResult.qualifications,
         confidence_score: analysisResult.confidence_score,
         raw_ai_response: aiResponse
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (dbError) {
       console.error('Database error:', dbError);

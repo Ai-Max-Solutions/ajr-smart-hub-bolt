@@ -1976,30 +1976,45 @@ export type Database = {
       }
       cscs_cards: {
         Row: {
+          card_color: string | null
+          card_number: string | null
+          confidence_score: number | null
           created_at: string | null
           cscs_card_type: string
           custom_card_type: string | null
           expiry_date: string | null
           file_url: string
           id: string
+          qualifications: Json | null
+          raw_ai_response: Json | null
           user_id: string
         }
         Insert: {
+          card_color?: string | null
+          card_number?: string | null
+          confidence_score?: number | null
           created_at?: string | null
           cscs_card_type: string
           custom_card_type?: string | null
           expiry_date?: string | null
           file_url: string
           id?: string
+          qualifications?: Json | null
+          raw_ai_response?: Json | null
           user_id: string
         }
         Update: {
+          card_color?: string | null
+          card_number?: string | null
+          confidence_score?: number | null
           created_at?: string | null
           cscs_card_type?: string
           custom_card_type?: string | null
           expiry_date?: string | null
           file_url?: string
           id?: string
+          qualifications?: Json | null
+          raw_ai_response?: Json | null
           user_id?: string
         }
         Relationships: []
