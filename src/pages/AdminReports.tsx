@@ -22,7 +22,10 @@ import {
   GraduationCap,
   Loader2,
   MessageSquare,
-  CheckCircle
+  CheckCircle,
+  Brain,
+  AlertTriangle,
+  TrendingUp
 } from "lucide-react";
 import { format, subDays, startOfWeek, startOfMonth } from "date-fns";
 
@@ -83,6 +86,7 @@ interface ReportData {
   testCerts: TestCertRecord[];
   training: TrainingRecord[];
   totalCount: number;
+  aiInsights?: string;
 }
 
 const AdminReports = () => {
@@ -107,6 +111,8 @@ const AdminReports = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiInsights, setAiInsights] = useState<string>("");
 
   // Check user permissions
   const hasFullAccess = profile?.role === "Document Controller";
@@ -209,6 +215,9 @@ const AdminReports = () => {
       } else if (reportType === "training") {
         await generateTrainingReport(startDate, endDate);
       }
+
+      // Generate AI insights after data is loaded
+      await generateAIInsights();
       
       toast.success("Report generated successfully");
     } catch (error) {
@@ -216,6 +225,48 @@ const AdminReports = () => {
       toast.error("Failed to generate report");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const generateAIInsights = async () => {
+    const currentData = getCurrentReportData();
+    if (currentData.length === 0) return;
+
+    setIsAnalyzing(true);
+    try {
+      const projectName = selectedProject !== "all" 
+        ? projects.find(p => p.whalesync_postgres_id === selectedProject)?.projectname 
+        : "Multiple Projects";
+
+      const { data, error } = await supabase.functions.invoke('ai-reports-analyzer', {
+        body: {
+          reportType,
+          data: currentData,
+          dateRange,
+          projectName
+        }
+      });
+
+      if (error) throw error;
+
+      setAiInsights(data.insights || "AI analysis unavailable");
+      setReportData(prev => ({ ...prev, aiInsights: data.insights }));
+    } catch (error) {
+      console.error("Error generating AI insights:", error);
+      setAiInsights("AI analysis failed. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const getCurrentReportData = () => {
+    switch (reportType) {
+      case "drawings": return reportData.drawings;
+      case "rams": return reportData.rams;
+      case "rfis": return reportData.rfis;
+      case "testCerts": return reportData.testCerts;
+      case "training": return reportData.training;
+      default: return [];
     }
   };
 
@@ -470,8 +521,56 @@ const AdminReports = () => {
         color: rgb(0.3, 0.3, 0.3),
       });
 
+      // Executive Summary section if AI insights available
+      let currentYPosition = height - 160;
+      if (aiInsights) {
+        page.drawText("Executive Summary - AI Quality Insights", {
+          x: 21,
+          y: currentYPosition,
+          size: 12,
+          font: boldFont,
+          color: black,
+        });
+        
+        currentYPosition -= 20;
+        
+        // Split insights into lines for PDF
+        const maxLineLength = 80;
+        const insightLines = aiInsights.split('\n').flatMap(line => {
+          if (line.length <= maxLineLength) return [line];
+          const words = line.split(' ');
+          const lines = [];
+          let currentLine = '';
+          
+          words.forEach(word => {
+            if ((currentLine + word).length <= maxLineLength) {
+              currentLine += (currentLine ? ' ' : '') + word;
+            } else {
+              if (currentLine) lines.push(currentLine);
+              currentLine = word;
+            }
+          });
+          if (currentLine) lines.push(currentLine);
+          return lines;
+        });
+        
+        // Draw insight lines
+        for (const line of insightLines.slice(0, 8)) { // Limit to 8 lines to fit on page
+          page.drawText(line, {
+            x: 21,
+            y: currentYPosition,
+            size: 9,
+            font: font,
+            color: rgb(0.2, 0.2, 0.2),
+          });
+          currentYPosition -= 14;
+        }
+        
+        currentYPosition -= 10; // Extra space before table
+      }
+
       // Table setup
-      const tableY = height - 170;
+      const tableY = currentYPosition;
       const rowHeight = 25;
       
       // Get headers and data based on report type
@@ -575,16 +674,6 @@ const AdminReports = () => {
     }
   };
 
-  const getCurrentReportData = () => {
-    switch (reportType) {
-      case "drawings": return reportData.drawings;
-      case "rams": return reportData.rams;
-      case "rfis": return reportData.rfis;
-      case "testCerts": return reportData.testCerts;
-      case "training": return reportData.training;
-      default: return [];
-    }
-  };
 
   const getTableConfig = (type: string, data: any[]) => {
     switch (type) {
@@ -963,6 +1052,45 @@ const AdminReports = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* AI Insights & Executive Summary */}
+        {aiInsights && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-poppins flex items-center gap-2">
+                <Brain className="w-5 h-5 text-accent" />
+                AI Quality Insights
+                {isAnalyzing && <Loader2 className="w-4 h-4 animate-spin ml-2" />}
+              </CardTitle>
+              <p className="text-muted-foreground">
+                AI-powered analysis and recommendations for {reportType} data
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="bg-accent/20 p-2 rounded-lg">
+                    <TrendingUp className="w-5 h-5 text-accent" />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <h4 className="font-poppins font-semibold">Executive Summary</h4>
+                    <div className="text-sm leading-relaxed whitespace-pre-line">
+                      {aiInsights}
+                    </div>
+                    {aiInsights.toLowerCase().includes('overdue') && (
+                      <div className="flex items-center gap-2 mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <AlertTriangle className="w-4 h-4 text-destructive" />
+                        <span className="text-sm text-destructive font-medium">
+                          Critical items requiring immediate attention identified
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Report Results */}
         {getCurrentReportData().length > 0 && (
