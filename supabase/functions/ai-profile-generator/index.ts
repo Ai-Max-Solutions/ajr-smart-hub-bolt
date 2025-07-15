@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
@@ -49,8 +50,8 @@ serve(async (req) => {
   }
 
   try {
-    const { userName, userRole, customStyle } = await req.json();
-    console.log('Received request:', { userName, userRole, customStyle });
+    const { userName, userRole, customStyle, userId } = await req.json();
+    console.log('Received request:', { userName, userRole, customStyle, userId });
     
     if (!openAIApiKey) {
       console.error('OpenAI API key not found in environment variables');
@@ -59,6 +60,19 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
+
+    if (!userId) {
+      console.error('User ID is required');
+      return new Response(
+        JSON.stringify({ error: 'User ID is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Pick a random AI mood
     const selectedMood = AI_MOODS[Math.floor(Math.random() * AI_MOODS.length)];
@@ -111,10 +125,80 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
+
+    const openAIImageUrl = data.data[0].url;
+    console.log('OpenAI generated image URL:', openAIImageUrl);
+
+    // Fetch the image from OpenAI (server-side, no CORS issues)
+    console.log('Fetching image from OpenAI...');
+    const imageResponse = await fetch(openAIImageUrl);
+    
+    if (!imageResponse.ok) {
+      console.error('Failed to fetch image from OpenAI:', imageResponse.status, imageResponse.statusText);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch generated image from OpenAI' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    const imageBlob = await imageResponse.blob();
+    console.log('Image blob size:', imageBlob.size, 'type:', imageBlob.type);
+
+    if (imageBlob.size === 0) {
+      console.error('Generated image is empty');
+      return new Response(
+        JSON.stringify({ error: 'Generated image is empty' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    // Upload to Supabase storage
+    const fileName = `${userId}/ai-avatar-${Date.now()}.png`;
+    console.log('Uploading to storage as:', fileName);
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, imageBlob, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      return new Response(
+        JSON.stringify({ error: `Storage upload failed: ${uploadError.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    console.log('Upload successful:', uploadData);
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName);
+
+    console.log('Public URL generated:', publicUrl);
+
+    // Update user's avatar URL in database
+    const { error: updateError } = await supabase
+      .from('Users')
+      .update({ avatar_url: publicUrl })
+      .eq('supabase_auth_id', userId);
+
+    if (updateError) {
+      console.error('Database update error:', updateError);
+      return new Response(
+        JSON.stringify({ error: `Database update failed: ${updateError.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    console.log('Avatar updated successfully');
     
     return new Response(
       JSON.stringify({ 
-        imageUrl: data.data[0].url,
+        avatarUrl: publicUrl,
         aiMood: selectedMood.name,
         aiPersonality: selectedMood.personality,
         prompt: finalPrompt

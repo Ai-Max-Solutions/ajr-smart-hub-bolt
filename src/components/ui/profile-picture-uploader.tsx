@@ -126,12 +126,13 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
     setAiPersonality('');
 
     try {
-      console.log('Starting AI avatar generation for:', { userName, userRole });
+      console.log('Starting AI avatar generation for:', { userName, userRole, userId: user.id });
       
       const { data, error } = await supabase.functions.invoke('ai-profile-generator', {
         body: {
           userName: userName || '',
           userRole: userRole || 'Site Worker',
+          userId: user.id,
         },
       });
 
@@ -146,87 +147,19 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
         throw new Error('No data returned from AI generator');
       }
 
-      if (!data.imageUrl) {
-        console.error('No image URL in response:', data);
-        throw new Error('AI generator did not return an image URL');
+      if (!data.avatarUrl) {
+        console.error('No avatar URL in response:', data);
+        throw new Error('AI generator did not return an avatar URL');
       }
 
-      console.log('Generated image URL:', data.imageUrl);
+      console.log('Generated avatar URL:', data.avatarUrl);
 
       // Set the AI mood and personality for display
       setAiMood(data.aiMood || 'Creative');
       setAiPersonality(data.aiPersonality || 'AI generated your professional headshot!');
 
-      // Convert image URL to blob and upload to our storage
-      console.log('Fetching generated image...');
-      
-      let response;
-      try {
-        response = await fetch(data.imageUrl, {
-          mode: 'cors',
-          method: 'GET',
-          headers: {
-            'Accept': 'image/*'
-          }
-        });
-      } catch (fetchError) {
-        console.error('Fetch error:', fetchError);
-        throw new Error(`Failed to fetch generated image: Network error`);
-      }
-      
-      if (!response.ok) {
-        console.error('Response not ok:', response.status, response.statusText);
-        throw new Error(`Failed to fetch generated image: ${response.status} ${response.statusText}`);
-      }
-      
-      const blob = await response.blob();
-      console.log('Image blob size:', blob.size, 'type:', blob.type);
-      
-      if (blob.size === 0) {
-        throw new Error('Generated image is empty');
-      }
-      
-      if (!blob.type.startsWith('image/')) {
-        throw new Error('Generated content is not an image');
-      }
-      
-      const fileName = `${user.id}/ai-avatar-${Date.now()}.png`;
-      console.log('Uploading to storage as:', fileName);
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, blob, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        throw new Error(`Storage upload failed: ${uploadError.message}`);
-      }
-
-      console.log('Upload successful:', uploadData);
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      console.log('Public URL generated:', publicUrl);
-
-      // Update user's avatar URL in database
-      const { error: updateError } = await supabase
-        .from('Users')
-        .update({ avatar_url: publicUrl })
-        .eq('supabase_auth_id', user.id);
-
-      if (updateError) {
-        console.error('Database update error:', updateError);
-        throw new Error(`Database update failed: ${updateError.message}`);
-      }
-
-      console.log('Avatar updated successfully');
-      onAvatarUpdate(publicUrl);
+      // Avatar is already uploaded and database is updated by the edge function
+      onAvatarUpdate(data.avatarUrl);
       
       toast({
         title: "AI Avatar Generated! 🎨",
