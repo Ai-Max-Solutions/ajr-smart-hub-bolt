@@ -37,6 +37,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
   const [isCustomType, setIsCustomType] = useState(false);
   const [showGoldSubtype, setShowGoldSubtype] = useState(false);
   const [goldSubtype, setGoldSubtype] = useState('');
+  const [cardNumberError, setCardNumberError] = useState('');
   
   // CSCS card type options with colors
   const cardTypes = [
@@ -192,10 +193,26 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
   };
 
   const formatCardNumber = (value: string) => {
-    // Remove all non-digits and format as groups of 4
-    const digits = value.replace(/\D/g, '');
-    const formatted = digits.replace(/(\d{4})(?=\d)/g, '$1 ');
-    return formatted.substring(0, 19); // Max 16 digits + 3 spaces
+    // Remove all non-alphanumeric characters for display
+    const cleaned = value.replace(/[^A-Za-z0-9]/g, '');
+    // Add spaces every 4 characters for display only
+    const formatted = cleaned.replace(/(.{4})/g, '$1 ').trim();
+    return formatted.substring(0, 19); // Max 16 chars + 3 spaces
+  };
+
+  const validateCardNumber = (value: string): string | null => {
+    // Remove spaces and non-alphanumeric for validation
+    const cleaned = value.replace(/[^A-Za-z0-9]/g, '');
+    
+    if (cleaned.length < 8) {
+      return 'Card number must be at least 8 characters.';
+    }
+    
+    if (cleaned.length > 16) {
+      return 'Card number must be no more than 16 characters.';
+    }
+    
+    return null;
   };
 
   const handleCardTypeChange = (value: string) => {
@@ -226,6 +243,11 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
     if (isCustomType && !data.cardType.trim()) return 'Please enter a custom card type.';
     if (showGoldSubtype && !goldSubtype) return 'Please select Advanced Craft or Supervisor for Gold card.';
     if (!data.number) return 'Please enter the card number.';
+    
+    // Validate card number
+    const cardNumberValidation = validateCardNumber(data.number);
+    if (cardNumberValidation) return cardNumberValidation;
+    
     if (!data.expiryDate) return 'Please enter the expiry date.';
     return null;
   };
@@ -256,7 +278,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           colour: colourHex,
           custom_card_type: isCustomType ? data.cardType : null,
           expiry_date: data.expiryDate || null,
-          card_number: data.number || null
+          card_number: data.number ? data.number.replace(/[^A-Za-z0-9]/g, '') : null // Strip spaces and special chars
         });
 
       if (error) {
@@ -279,6 +301,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
       setIsCustomType(false);
       setShowGoldSubtype(false);
       setGoldSubtype('');
+      setCardNumberError('');
 
     } catch (error) {
       console.error('Error saving card:', error);
@@ -287,6 +310,20 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
         description: "Upload failed, please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleCardNumberChange = (value: string) => {
+    const formatted = formatCardNumber(value);
+    updateData({ number: formatted });
+    
+    // Clear previous error and validate
+    setCardNumberError('');
+    if (value.trim()) {
+      const error = validateCardNumber(formatted);
+      if (error) {
+        setCardNumberError(error);
+      }
     }
   };
 
@@ -440,11 +477,18 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
             </Label>
             <Input
               id="card-number"
-              placeholder="1234 5678 9012 3456"
+              placeholder="12345678 (8-16 characters)"
               value={data.number}
-              onChange={(e) => updateData({ number: formatCardNumber(e.target.value) })}
-              maxLength={19}
+              onChange={(e) => handleCardNumberChange(e.target.value)}
+              maxLength={19} // 16 chars + 3 spaces
+              className={cardNumberError ? 'border-destructive' : ''}
             />
+            <p className="text-xs text-muted-foreground">
+              Your CSCS card number is usually 8–16 digits — check the front of your card
+            </p>
+            {cardNumberError && (
+              <p className="text-xs text-destructive">{cardNumberError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
