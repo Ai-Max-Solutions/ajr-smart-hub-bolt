@@ -34,6 +34,9 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  
+  // Get current user ID
+  const userId = supabase.auth.getUser().then(({ data }) => data.user?.id);
 
   const cardTypes = [
     'Green - Labourer',
@@ -48,6 +51,12 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
     try {
       setUploadProgress(0);
       
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('User not authenticated');
+      }
+      
       // Update the form data
       updateData({ [`${side}Image`]: file });
       
@@ -55,32 +64,42 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
       if (side === 'front') {
         setIsAnalyzing(true);
         
-        // Upload to Supabase Storage
+        // Upload to Supabase Storage with proper user folder structure
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-front.${fileExt}`;
-        const filePath = `${Date.now()}/${fileName}`;
+        const filePath = `${user.id}/${fileName}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('cscs-cards')
           .upload(filePath, file);
           
         if (uploadError) {
-          throw uploadError;
+          console.error('Upload error:', uploadError);
+          throw new Error(`Upload failed: ${uploadError.message}`);
         }
         
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
+        // Get signed URL for private bucket
+        const { data: signedUrlData, error: urlError } = await supabase.storage
           .from('cscs-cards')
-          .getPublicUrl(filePath);
+          .createSignedUrl(filePath, 60 * 60); // 1 hour expiry
+          
+        if (urlError) {
+          console.error('Signed URL error:', urlError);
+          throw new Error(`Failed to create signed URL: ${urlError.message}`);
+        }
+        
+        const imageUrl = signedUrlData.signedUrl;
           
         // Call AI analysis function
+        console.log('Calling CSCS card analyzer with URL:', imageUrl);
         const { data: analysis, error: analysisError } = await supabase.functions
           .invoke('cscs-card-analyzer', {
-            body: { imageUrl: publicUrl }
+            body: { imageUrl }
           });
           
         if (analysisError) {
-          throw analysisError;
+          console.error('Analysis error:', analysisError);
+          throw new Error(`Analysis failed: ${analysisError.message}`);
         }
         
         if (analysis?.success) {
@@ -106,9 +125,10 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
       setUploadProgress(100);
     } catch (error) {
       console.error('Error analyzing CSCS card:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Analysis Failed",
-        description: "Failed to analyze the card. Please enter details manually.",
+        description: `Failed to analyze the card: ${errorMessage}. Please enter details manually.`,
         variant: "destructive",
       });
     } finally {

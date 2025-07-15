@@ -34,10 +34,22 @@ export const CSCSOnboardingFlow: React.FC = () => {
   };
 
   const validateCSCSData = () => {
-    if (!cscsData.number.trim()) {
+    // Clean card number (remove spaces and non-digits for validation)
+    const cleanCardNumber = cscsData.number.replace(/\D/g, '');
+    
+    if (!cleanCardNumber) {
       toast({
         title: "Validation Error",
         description: "Please enter your CSCS card number",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (cleanCardNumber.length < 8) {
+      toast({
+        title: "Validation Error",
+        description: "Your CSCS number must be at least 8 digits long",
         variant: "destructive"
       });
       return false;
@@ -220,6 +232,17 @@ export const CSCSOnboardingFlow: React.FC = () => {
             <CSCSCardUploader
               data={cscsData}
               updateData={updateCSCSData}
+              onAnalysisComplete={(analysis) => {
+                console.log('Analysis completed:', analysis);
+                // Optionally auto-fill data from analysis
+                if (analysis.card_number && analysis.card_number.length >= 8) {
+                  updateCSCSData({
+                    number: analysis.card_number,
+                    expiryDate: analysis.expiry_date || '',
+                    cardType: `${analysis.card_color} - ${analysis.card_type}` || ''
+                  });
+                }
+              }}
               required={true}
             />
 
