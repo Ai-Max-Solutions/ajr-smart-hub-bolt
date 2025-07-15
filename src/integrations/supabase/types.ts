@@ -10983,6 +10983,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      check_contractor_compliance: {
+        Args: { p_contractor_id: string; p_project_id?: string }
+        Returns: Json
+      }
       check_index_health: {
         Args: Record<PropertyKey, never>
         Returns: {
