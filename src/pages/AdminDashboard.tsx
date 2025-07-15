@@ -9,6 +9,7 @@ import { BarChart } from "@/components/dashboard/BarChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import AdminCRUDModule from "@/components/admin/AdminCRUDModule";
 import { TaskPlanRAMSRegister } from "@/components/admin/TaskPlanRAMSRegister";
 import { SecurityDashboard } from "@/components/admin/SecurityDashboard";
@@ -30,6 +31,7 @@ import {
 } from "lucide-react";
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [activeView, setActiveView] = useState<"dashboard" | "crud" | "rams-register" | "security">("dashboard");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -242,6 +244,15 @@ const AdminDashboard = () => {
             >
               <Shield className="w-5 h-5 mr-2" />
               Security Dashboard
+            </Button>
+            <Button 
+              variant="outline" 
+              size="touch" 
+              onClick={() => navigate("/admin/reports")}
+              className="font-poppins"
+            >
+              <FileText className="w-5 h-5 mr-2" />
+              Admin Reports
             </Button>
             <Button 
               variant="outline" 

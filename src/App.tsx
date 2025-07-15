@@ -13,6 +13,7 @@ import OnboardingFlow from "./pages/OnboardingFlow";
 import OperativePortal from "./pages/OperativePortal";
 import ProjectsManagement from "./pages/ProjectsManagement";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminReports from "./pages/AdminReports";
 import DirectorDashboard from "./pages/DirectorDashboard";
 import AIAssistant from "./pages/AIAssistant";
 import { Auth } from "./pages/Auth";
@@ -89,6 +90,17 @@ function App() {
                   <RouteProtection requiredRole={['admin', 'dpo']}>
                     <AppLayout>
                       <AdminDashboard />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/admin/reports" 
+                element={
+                  <RouteProtection requiredRole={['admin', 'dpo', 'pm']}>
+                    <AppLayout>
+                      <AdminReports />
                     </AppLayout>
                   </RouteProtection>
                 } 
