@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { AJIcon } from "@/components/ui/aj-icon";
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useAuth } from "@/components/auth/AuthContext";
 
 interface NavigationItem {
   id: string;
@@ -137,6 +138,7 @@ export function RoleBasedNavigation({
 }: RoleBasedNavigationProps) {
   const location = useLocation();
   const { profile } = useUserProfile();
+  const { signOut } = useAuth();
   const userRole = profile?.role || "operative";
 
   // Filter navigation items based on user role
@@ -257,16 +259,39 @@ export function RoleBasedNavigation({
 
       {/* Footer */}
       <div className={cn(
-        "p-lg border-t border-border",
+        "p-lg border-t border-border space-y-3",
         collapsed && !isMobile ? "text-center" : ""
       )}>
         {(!collapsed || isMobile) && (
           <div className="text-center">
             <p className="text-xs text-muted-foreground font-poppins">
-              Role: <span className="text-accent font-medium capitalize">{userRole}</span>
+              Role: <span className="bg-aj-yellow text-aj-navy-deep px-2 py-1 rounded font-medium capitalize">{userRole}</span>
             </p>
           </div>
         )}
+        
+        {/* Logout Button */}
+        <div className={cn("flex", collapsed && !isMobile ? "justify-center" : "justify-center")}>
+          <Button 
+            variant="ghost" 
+            size={collapsed && !isMobile ? "icon" : "sm"}
+            onClick={signOut}
+            className="text-muted-foreground hover:text-destructive transition-colors"
+          >
+            {!collapsed || isMobile ? (
+              <>
+                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+              </>
+            ) : (
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1" />
+              </svg>
+            )}
+          </Button>
+        </div>
       </div>
     </>
   );

@@ -72,11 +72,11 @@ export const AIDashboard: React.FC = () => {
 
   const getRoleColor = (role: string) => {
     const colors = {
-      'Operative': 'text-blue-600 border-blue-200 bg-blue-50',
+      'Operative': 'text-aj-navy-deep border-aj-yellow bg-aj-yellow/10',
       'Supervisor': 'text-green-600 border-green-200 bg-green-50',
       'Project Manager': 'text-purple-600 border-purple-200 bg-purple-50',
       'Admin': 'text-red-600 border-red-200 bg-red-50',
-      'Document Controller': 'text-yellow-600 border-yellow-200 bg-yellow-50',
+      'Document Controller': 'text-aj-navy-deep border-aj-yellow bg-aj-yellow/10',
       'Director': 'text-indigo-600 border-indigo-200 bg-indigo-50'
     };
     return colors[role as keyof typeof colors] || 'text-gray-600 border-gray-200 bg-gray-50';

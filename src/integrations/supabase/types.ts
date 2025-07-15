@@ -10855,6 +10855,7 @@ export type Database = {
           lastperformancereview: string | null
           maxhoursperweek: number | null
           medicalrestrictions: string | null
+          onboarding_completed: boolean | null
           othercertifications: string | null
           overtimerate: number | null
           performance_rating: number | null
@@ -10931,6 +10932,7 @@ export type Database = {
           lastperformancereview?: string | null
           maxhoursperweek?: number | null
           medicalrestrictions?: string | null
+          onboarding_completed?: boolean | null
           othercertifications?: string | null
           overtimerate?: number | null
           performance_rating?: number | null
@@ -11007,6 +11009,7 @@ export type Database = {
           lastperformancereview?: string | null
           maxhoursperweek?: number | null
           medicalrestrictions?: string | null
+          onboarding_completed?: boolean | null
           othercertifications?: string | null
           overtimerate?: number | null
           performance_rating?: number | null

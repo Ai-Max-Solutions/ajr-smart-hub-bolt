@@ -262,14 +262,14 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
 
   const getRoleColor = (role: string) => {
     const colors = {
-      'Operative': 'bg-blue-500',
-      'Supervisor': 'bg-green-500', 
-      'Project Manager': 'bg-purple-500',
-      'Admin': 'bg-red-500',
-      'Document Controller': 'bg-yellow-500',
-      'Director': 'bg-indigo-500'
+      'Operative': 'bg-aj-yellow text-aj-navy-deep',
+      'Supervisor': 'bg-green-500 text-white', 
+      'Project Manager': 'bg-purple-500 text-white',
+      'Admin': 'bg-red-500 text-white',
+      'Document Controller': 'bg-aj-yellow text-aj-navy-deep',
+      'Director': 'bg-indigo-500 text-white'
     };
-    return colors[role as keyof typeof colors] || 'bg-gray-500';
+    return colors[role as keyof typeof colors] || 'bg-gray-500 text-white';
   };
 
   // Register mobile gestures
@@ -362,7 +362,7 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
             <CardTitle className="text-lg">AJ Ryan AI Assistant</CardTitle>
           </div>
           {userProfile && (
-            <Badge className={`${getRoleColor(userProfile.role)} text-white`}>
+            <Badge className={getRoleColor(userProfile.role)}>
               {userProfile.role}
             </Badge>
           )}

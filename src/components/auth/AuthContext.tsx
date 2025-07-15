@@ -44,10 +44,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Handle user data asynchronously without blocking
           setTimeout(async () => {
             try {
-              // Check if user exists in Users table, if not redirect to onboarding
+              // Check if user exists in Users table and onboarding status
               const { data: userData } = await supabase
                 .from('Users')
-                .select('whalesync_postgres_id, firstname, lastname')
+                .select('whalesync_postgres_id, firstname, lastname, onboarding_completed')
                 .eq('supabase_auth_id', session.user.id)
                 .single();
               
@@ -57,7 +57,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 .update({ last_sign_in: new Date().toISOString() })
                 .eq('supabase_auth_id', session.user.id);
               
-              // If user profile is incomplete (no names), redirect to onboarding
+              // If user hasn't completed onboarding, redirect to onboarding flow
+              if (userData && !userData.onboarding_completed) {
+                window.location.href = '/onboarding/signup';
+                return;
+              }
+              
+              // If user profile is incomplete (no names), redirect to personal details
               if (userData && (!userData.firstname || !userData.lastname)) {
                 window.location.href = '/onboarding/personal-details';
                 return;

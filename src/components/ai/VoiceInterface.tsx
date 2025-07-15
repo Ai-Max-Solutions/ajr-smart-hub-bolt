@@ -270,11 +270,11 @@ export const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange
 
   const getRoleColor = (role: string) => {
     const colors = {
-      'Operative': 'border-blue-500 text-blue-600',
+      'Operative': 'border-aj-yellow text-aj-navy-deep',
       'Supervisor': 'border-green-500 text-green-600',
       'Project Manager': 'border-purple-500 text-purple-600',
       'Admin': 'border-red-500 text-red-600',
-      'Document Controller': 'border-yellow-500 text-yellow-600',
+      'Document Controller': 'border-aj-yellow text-aj-navy-deep',
       'Director': 'border-indigo-500 text-indigo-600'
     };
     return colors[role as keyof typeof colors] || 'border-gray-500 text-gray-600';
