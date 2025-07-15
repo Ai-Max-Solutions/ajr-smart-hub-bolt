@@ -1343,6 +1343,167 @@ export type Database = {
           },
         ]
       }
+      contractor_companies: {
+        Row: {
+          accreditations: string[] | null
+          address_line_1: string | null
+          address_line_2: string | null
+          city: string | null
+          company_name: string
+          company_type: string | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          health_safety_policy_url: string | null
+          id: string
+          insurance_expiry: string | null
+          phone: string | null
+          postal_code: string | null
+          preferred_work_types: string[] | null
+          primary_contact_email: string | null
+          primary_contact_name: string | null
+          primary_contact_phone: string | null
+          registration_number: string | null
+          status: string | null
+          updated_at: string | null
+          vat_number: string | null
+          website: string | null
+        }
+        Insert: {
+          accreditations?: string[] | null
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
+          company_name: string
+          company_type?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          health_safety_policy_url?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          preferred_work_types?: string[] | null
+          primary_contact_email?: string | null
+          primary_contact_name?: string | null
+          primary_contact_phone?: string | null
+          registration_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vat_number?: string | null
+          website?: string | null
+        }
+        Update: {
+          accreditations?: string[] | null
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
+          company_name?: string
+          company_type?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          health_safety_policy_url?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          preferred_work_types?: string[] | null
+          primary_contact_email?: string | null
+          primary_contact_name?: string | null
+          primary_contact_phone?: string | null
+          registration_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vat_number?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      contractor_profiles: {
+        Row: {
+          auth_user_id: string
+          company_id: string
+          created_at: string | null
+          email: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          first_name: string
+          fors_level: string | null
+          id: string
+          job_role: string
+          last_name: string
+          onboarding_completed: boolean | null
+          onboarding_completed_at: string | null
+          phone: string | null
+          rams_signature_data: string | null
+          rams_signed_at: string | null
+          terms_accepted: boolean | null
+          terms_accepted_at: string | null
+          updated_at: string | null
+          vehicle_registration: string | null
+          vehicle_type: string | null
+          vehicle_weight_category: string | null
+        }
+        Insert: {
+          auth_user_id: string
+          company_id: string
+          created_at?: string | null
+          email: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          first_name: string
+          fors_level?: string | null
+          id?: string
+          job_role: string
+          last_name: string
+          onboarding_completed?: boolean | null
+          onboarding_completed_at?: string | null
+          phone?: string | null
+          rams_signature_data?: string | null
+          rams_signed_at?: string | null
+          terms_accepted?: boolean | null
+          terms_accepted_at?: string | null
+          updated_at?: string | null
+          vehicle_registration?: string | null
+          vehicle_type?: string | null
+          vehicle_weight_category?: string | null
+        }
+        Update: {
+          auth_user_id?: string
+          company_id?: string
+          created_at?: string | null
+          email?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          first_name?: string
+          fors_level?: string | null
+          id?: string
+          job_role?: string
+          last_name?: string
+          onboarding_completed?: boolean | null
+          onboarding_completed_at?: string | null
+          phone?: string | null
+          rams_signature_data?: string | null
+          rams_signed_at?: string | null
+          terms_accepted?: boolean | null
+          terms_accepted_at?: string | null
+          updated_at?: string | null
+          vehicle_registration?: string | null
+          vehicle_type?: string | null
+          vehicle_weight_category?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_tracking: {
         Row: {
           amount: number
