@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -22,11 +22,11 @@ serve(async (req) => {
     console.log('Request method:', req.method);
     console.log('Request headers:', Object.fromEntries(req.headers.entries()));
 
-    if (!anthropicApiKey) {
-      console.error('Anthropic API key not found in environment variables');
+    if (!openRouterApiKey) {
+      console.error('OpenRouter API key not found in environment variables');
       console.error('Available env vars:', Object.keys(Deno.env.toObject()));
       return new Response(
-        JSON.stringify({ error: 'Anthropic API key not configured' }),
+        JSON.stringify({ error: 'OpenRouter API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -63,7 +63,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Analyzing CSCS card with Claude Vision API');
+    console.log('Analyzing CSCS card with OpenRouter (Claude 3.5 Sonnet)');
 
     // First, we need to get the image as base64
     const imageResponse = await fetch(imageUrl);
@@ -79,17 +79,17 @@ serve(async (req) => {
     const imageBase64 = btoa(String.fromCharCode(...new Uint8Array(imageArrayBuffer)));
     const imageType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
-    // Call Claude Vision API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Call OpenRouter API with Claude 3.5 Sonnet
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': anthropicApiKey,
+        'Authorization': `Bearer ${openRouterApiKey}`,
         'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01'
+        'HTTP-Referer': 'https://ajryan.smartwork.lovable.app',
+        'X-Title': 'AJ Ryan SmartWork CSCS Card Analyzer'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 1000,
+        model: 'anthropic/claude-3.5-sonnet',
         messages: [
           {
             role: 'user',
@@ -132,22 +132,22 @@ Common CSCS card colors:
 Return only valid JSON. If information is not clearly visible, use null for that field.`
               },
               {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: imageType,
-                  data: imageBase64
+                type: 'image_url',
+                image_url: {
+                  url: `data:${imageType};base64,${imageBase64}`
                 }
               }
             ]
           }
-        ]
+        ],
+        max_tokens: 1000,
+        temperature: 0.1
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Claude API error:', errorText);
+      console.error('OpenRouter API error:', errorText);
       return new Response(
         JSON.stringify({ error: 'Failed to analyze image' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -155,16 +155,16 @@ Return only valid JSON. If information is not clearly visible, use null for that
     }
 
     const aiResponse = await response.json();
-    console.log('Claude response:', aiResponse);
+    console.log('OpenRouter response:', aiResponse);
 
-    if (!aiResponse.content || !aiResponse.content[0]) {
+    if (!aiResponse.choices || !aiResponse.choices[0]) {
       return new Response(
         JSON.stringify({ error: 'Invalid response from AI' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const aiContent = aiResponse.content[0].text;
+    const aiContent = aiResponse.choices[0].message.content;
     console.log('AI analysis result:', aiContent);
 
     let analysisResult;
