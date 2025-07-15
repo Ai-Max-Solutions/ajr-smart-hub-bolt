@@ -154,7 +154,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -166,6 +166,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           toast.error(error.message);
         }
         return { error };
+      }
+
+      // Check if user has a record in Users table, create if missing
+      if (data.user) {
+        const { data: existingUser, error: userError } = await supabase
+          .from('Users')
+          .select('whalesync_postgres_id')
+          .eq('supabase_auth_id', data.user.id)
+          .single();
+
+        if (userError && userError.code === 'PGRST116') {
+          // User doesn't exist in Users table, create record
+          const { error: createError } = await supabase
+            .from('Users')
+            .insert({
+              supabase_auth_id: data.user.id,
+              email: data.user.email,
+              firstname: '',
+              lastname: '',
+              fullname: '',
+              role: 'Operative',
+              employmentstatus: 'Active',
+              auth_provider: 'supabase',
+              system_role: 'Worker',
+              onboarding_completed: false,
+              cscs_upload_required: true,
+              cscs_validation_status: 'pending'
+            });
+
+          if (createError) {
+            console.error('Error creating user profile:', createError);
+            toast.error('Error setting up user profile');
+            return { error: createError };
+          }
+        }
       }
 
       return { error: null };
