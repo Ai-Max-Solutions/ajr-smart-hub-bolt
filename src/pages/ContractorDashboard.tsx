@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 // import ContractorDeliveryForm from '@/components/contractor/ContractorDeliveryForm';
 import MyTrainingDocuments from '@/components/contractor/MyTrainingDocuments';
+import RAMSManager from '@/components/contractor/RAMSManager';
 import { Separator } from '@/components/ui/separator';
 
 interface ContractorProfile {
@@ -197,14 +198,54 @@ const ContractorDashboard = () => {
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="training">My Training</TabsTrigger>
+            <TabsTrigger value="training">Training</TabsTrigger>
+            <TabsTrigger value="rams">RAMS</TabsTrigger>
             <TabsTrigger value="deliveries">Deliveries</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
+            {/* RAMS Compliance Status */}
+            <Card className="contractor-card border-l-4 border-l-contractor-accent">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 contractor-accent-text">
+                  <FileText className="w-5 h-5" />
+                  RAMS Compliance Status
+                </CardTitle>
+                <CardDescription>
+                  Risk Assessment and Method Statement documents - Required for site access
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold contractor-accent-text">0%</div>
+                      <div className="text-sm text-muted-foreground">Complete</div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <div>• 2 documents required</div>
+                      <div>• 0 documents signed</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate('/contractor/dashboard?tab=rams')}
+                    >
+                      View RAMS
+                    </Button>
+                    <Badge variant="destructive" className="bg-warning/10 text-warning border-warning">
+                      Action Required
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Enhanced Quick Stats with Contractor Styling */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card className="contractor-card">
@@ -274,7 +315,11 @@ const ContractorDashboard = () => {
                     <Plus className="h-4 w-4 mr-2" />
                     Request New Delivery
                   </Button>
-                  <Button variant="outline" className="border-contractor-accent text-contractor-accent hover:bg-contractor-alert-bg">
+                  <Button 
+                    variant="outline" 
+                    className="border-contractor-accent text-contractor-accent hover:bg-contractor-alert-bg"
+                    onClick={() => navigate('/contractor/dashboard?tab=rams')}
+                  >
                     <FileText className="h-4 w-4 mr-2" />
                     View RAMS Documents
                   </Button>
@@ -333,6 +378,10 @@ const ContractorDashboard = () => {
 
           <TabsContent value="training" className="space-y-6">
             <MyTrainingDocuments />
+          </TabsContent>
+
+          <TabsContent value="rams" className="space-y-6">
+            <RAMSManager />
           </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">
