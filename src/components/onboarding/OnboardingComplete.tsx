@@ -53,7 +53,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
               <CheckCircle className="w-5 h-5 text-success" />
               <div>
                 <h3 className="font-medium">Personal Details</h3>
-                <p className="text-sm text-muted-foreground">Profile information verified</p>
+                <p className="text-sm text-foreground/90">Profile information verified</p>
               </div>
             </div>
             <Badge variant="secondary" className="bg-success/10 text-success">
@@ -67,7 +67,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
               <CheckCircle className="w-5 h-5 text-success" />
               <div>
                 <h3 className="font-medium">Emergency Contact</h3>
-                <p className="text-sm text-muted-foreground">Contact information added</p>
+                <p className="text-sm text-foreground/90">Contact information added</p>
               </div>
             </div>
             <Badge variant="secondary" className="bg-success/10 text-success">
@@ -81,7 +81,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
               <Clock className="w-5 h-5 text-warning" />
               <div>
                 <h3 className="font-medium">CSCS Card</h3>
-                <p className="text-sm text-muted-foreground">Pending verification</p>
+                <p className="text-sm text-foreground/90">Pending verification</p>
               </div>
             </div>
             <Badge variant="secondary" className="bg-warning/10 text-warning">
@@ -95,7 +95,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
               <CheckCircle className="w-5 h-5 text-success" />
               <div>
                 <h3 className="font-medium">Safety Documents (RAMS)</h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-foreground/90">
                   {data.signedRAMS.length} documents signed for {data.selectedWorkTypes.length} work types
                 </p>
               </div>
@@ -119,7 +119,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
             </div>
             <div>
               <h3 className="font-medium">Admin Review</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-foreground/90">
                 Our compliance team will verify your CSCS card and documents within 24 hours.
               </p>
             </div>
@@ -131,7 +131,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
             </div>
             <div>
               <h3 className="font-medium">Account Activation</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-foreground/90">
                 You'll receive an email confirmation once your account is fully activated.
               </p>
             </div>
@@ -143,7 +143,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
             </div>
             <div>
               <h3 className="font-medium">Start Working</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-foreground/90">
                 Access your dashboard to view assigned projects and submit timesheets.
               </p>
             </div>
@@ -158,11 +158,11 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
             <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
             <div>
               <h3 className="font-semibold text-warning mb-2">Important Notice</h3>
-              <p className="text-sm text-foreground/80 mb-3">
+              <p className="text-sm text-foreground mb-3">
                 Your account is pending final approval. You'll be notified via email once the verification process is complete. 
                 Please ensure you have access to the email address you provided.
               </p>
-              <p className="text-sm text-foreground/80">
+              <p className="text-sm text-foreground">
                 If you need to update any information, please contact our support team.
               </p>
             </div>
@@ -187,7 +187,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
         <CardContent className="pt-6">
           <div className="text-center">
             <h3 className="font-semibold mb-2">Need Help?</h3>
-            <p className="text-sm text-foreground/80 mb-3">
+            <p className="text-sm text-foreground mb-3">
               Our support team is here to assist you with any questions.
             </p>
             <div className="flex justify-center gap-4 text-sm">
