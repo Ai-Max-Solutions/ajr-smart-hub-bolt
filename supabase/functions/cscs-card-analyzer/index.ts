@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -22,11 +22,11 @@ serve(async (req) => {
     console.log('Request method:', req.method);
     console.log('Request headers:', Object.fromEntries(req.headers.entries()));
 
-    if (!openAIApiKey) {
-      console.error('OpenAI API key not found in environment variables');
+    if (!anthropicApiKey) {
+      console.error('Anthropic API key not found in environment variables');
       console.error('Available env vars:', Object.keys(Deno.env.toObject()));
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ error: 'Anthropic API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -63,27 +63,46 @@ serve(async (req) => {
       );
     }
 
-    console.log('Analyzing CSCS card with OpenAI Vision API');
+    console.log('Analyzing CSCS card with Claude Vision API');
 
-    // Call OpenAI Vision API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // First, we need to get the image as base64
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      console.error('Failed to fetch image:', imageResponse.status);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch image' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const imageArrayBuffer = await imageResponse.arrayBuffer();
+    const imageBase64 = btoa(String.fromCharCode(...new Uint8Array(imageArrayBuffer)));
+    const imageType = imageResponse.headers.get('content-type') || 'image/jpeg';
+
+    // Call Claude Vision API
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'x-api-key': anthropicApiKey,
         'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
         messages: [
           {
-            role: 'system',
-            content: `You are an expert at analyzing CSCS (Construction Skills Certification Scheme) cards. Analyze the provided CSCS card image and extract the following information in JSON format:
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `You are an expert at analyzing CSCS (Construction Skills Certification Scheme) cards. Analyze the provided CSCS card image and extract the following information in JSON format:
 
 {
   "card_number": "16-digit card number (if visible)",
   "expiry_date": "expiry date in YYYY-MM-DD format (if visible)",
   "card_color": "main color of the card (Green, Blue, Yellow, White, Black, Gold, etc.)",
-  "card_type": "specific card type (e.g., Labourer, Skilled Worker, Supervisor, Trainee, Manager, etc.)",
+  "card_type": "EXACT text shown on the card for qualification/role (e.g., Mate, Labourer, Skilled Worker, Supervisor, Trainee, Manager, etc.)",
   "qualifications": {
     "primary_qualification": "main qualification shown",
     "additional_qualifications": ["list of any additional qualifications shown"],
@@ -93,15 +112,17 @@ serve(async (req) => {
   "extracted_text": "any other relevant text visible on the card"
 }
 
+IMPORTANT: For card_type, use the EXACT text that appears on the card, not a generic category. For example, if the card says "Mate" then use "Mate", not "Labourer". Be very precise with the text extraction.
+
 Focus on:
 - Card color (this determines the skill level)
-- Any text indicating qualifications or job roles
+- EXACT text indicating qualifications or job roles as written on the card
 - Expiry date
 - Card number if clearly visible
 - Work categories the holder is qualified for
 
-Common CSCS card types by color:
-- Green: Labourer
+Common CSCS card colors:
+- Green: Often for Labourer/Mate roles
 - Blue: Skilled Worker (various trades)
 - Yellow: Supervisor
 - White: Trainee
@@ -109,31 +130,24 @@ Common CSCS card types by color:
 - Gold: Academically Qualified
 
 Return only valid JSON. If information is not clearly visible, use null for that field.`
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Please analyze this CSCS card and extract all relevant information.'
               },
               {
-                type: 'image_url',
-                image_url: {
-                  url: imageUrl
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: imageType,
+                  data: imageBase64
                 }
               }
             ]
           }
-        ],
-        max_tokens: 1000,
-        temperature: 0.1
+        ]
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', errorText);
+      console.error('Claude API error:', errorText);
       return new Response(
         JSON.stringify({ error: 'Failed to analyze image' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -141,16 +155,16 @@ Return only valid JSON. If information is not clearly visible, use null for that
     }
 
     const aiResponse = await response.json();
-    console.log('OpenAI response:', aiResponse);
+    console.log('Claude response:', aiResponse);
 
-    if (!aiResponse.choices || !aiResponse.choices[0]) {
+    if (!aiResponse.content || !aiResponse.content[0]) {
       return new Response(
         JSON.stringify({ error: 'Invalid response from AI' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const aiContent = aiResponse.choices[0].message.content;
+    const aiContent = aiResponse.content[0].text;
     console.log('AI analysis result:', aiContent);
 
     let analysisResult;

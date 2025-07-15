@@ -38,14 +38,16 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
   // Get current user ID
   const userId = supabase.auth.getUser().then(({ data }) => data.user?.id);
 
-  const cardTypes = [
-    'Green - Labourer',
-    'Blue - Skilled Worker',
-    'Yellow - Supervisor', 
-    'White - Trainee',
-    'Black - Manager',
-    'Gold - Academically Qualified'
+  const cardColors = [
+    'Green',
+    'Blue', 
+    'Yellow',
+    'White',
+    'Black',
+    'Gold'
   ];
+
+  const [customType, setCustomType] = useState(false);
 
   const handleImageUpload = useCallback(async (file: File, side: 'front' | 'back') => {
     try {
@@ -107,9 +109,9 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
             code: analysisError.code
           });
           
-          // Check if it's an OpenAI API key issue
-          if (analysisError.message?.includes('OpenAI API key')) {
-            throw new Error('OpenAI API key not configured. Please check your Supabase edge function secrets.');
+          // Check if it's an API key issue
+          if (analysisError.message?.includes('API key')) {
+            throw new Error('AI API key not configured. Please check your Supabase edge function secrets.');
           }
           
           throw new Error(`Analysis failed: ${analysisError.message}`);
@@ -123,7 +125,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           updateData({
             number: result.card_number || data.number,
             expiryDate: result.expiry_date ? formatDateForInput(result.expiry_date) : data.expiryDate,
-            cardType: mapColorToType(result.card_color, result.card_type) || data.cardType
+            cardType: result.card_type || data.cardType
           });
           
           onAnalysisComplete?.(result);
@@ -159,19 +161,6 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
     }
   };
 
-  const mapColorToType = (color: string, type: string) => {
-    if (!color) return type;
-    
-    const colorLower = color.toLowerCase();
-    if (colorLower.includes('green')) return 'Green - Labourer';
-    if (colorLower.includes('blue')) return 'Blue - Skilled Worker';
-    if (colorLower.includes('yellow')) return 'Yellow - Supervisor';
-    if (colorLower.includes('white')) return 'White - Trainee';
-    if (colorLower.includes('black')) return 'Black - Manager';
-    if (colorLower.includes('gold')) return 'Gold - Academically Qualified';
-    
-    return type;
-  };
 
   const formatCardNumber = (value: string) => {
     // Remove all non-digits and format as groups of 4
@@ -281,7 +270,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
         )}
 
         {/* Manual Input Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="card-number">
               Card Number {required && <span className="text-destructive">*</span>}
@@ -306,23 +295,82 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
               onChange={(e) => updateData({ expiryDate: e.target.value })}
             />
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="card-type">
-              Card Type {required && <span className="text-destructive">*</span>}
+            <Label htmlFor="card-color">
+              Card Color {required && <span className="text-destructive">*</span>}
             </Label>
-            <Select value={data.cardType} onValueChange={(value) => updateData({ cardType: value })}>
+            <Select value={data.cardType?.split(' - ')[0] || ''} onValueChange={(color) => {
+              if (!customType) {
+                // Auto-map to common types
+                const typeMap: { [key: string]: string } = {
+                  'Green': 'Green - Labourer',
+                  'Blue': 'Blue - Skilled Worker',
+                  'Yellow': 'Yellow - Supervisor',
+                  'White': 'White - Trainee',
+                  'Black': 'Black - Manager',
+                  'Gold': 'Gold - Academically Qualified'
+                };
+                updateData({ cardType: typeMap[color] || `${color} - Custom` });
+              } else {
+                updateData({ cardType: `${color} - ${data.cardType?.split(' - ')[1] || 'Custom'}` });
+              }
+            }}>
               <SelectTrigger>
-                <SelectValue placeholder="Select card type" />
+                <SelectValue placeholder="Select card color" />
               </SelectTrigger>
               <SelectContent>
-                {cardTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
+                {cardColors.map((color) => (
+                  <SelectItem key={color} value={color}>
+                    {color}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="card-type">
+                Card Type {required && <span className="text-destructive">*</span>}
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCustomType(!customType)}
+              >
+                {customType ? 'Use Standard' : 'Custom Type'}
+              </Button>
+            </div>
+            {customType ? (
+              <Input
+                id="card-type"
+                placeholder="Enter exact text from card (e.g., Mate, Labourer, etc.)"
+                value={data.cardType?.split(' - ')[1] || ''}
+                onChange={(e) => {
+                  const color = data.cardType?.split(' - ')[0] || 'Green';
+                  updateData({ cardType: `${color} - ${e.target.value}` });
+                }}
+              />
+            ) : (
+              <Select value={data.cardType} onValueChange={(value) => updateData({ cardType: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select card type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Green - Labourer">Green - Labourer</SelectItem>
+                  <SelectItem value="Green - Mate">Green - Mate</SelectItem>
+                  <SelectItem value="Blue - Skilled Worker">Blue - Skilled Worker</SelectItem>
+                  <SelectItem value="Yellow - Supervisor">Yellow - Supervisor</SelectItem>
+                  <SelectItem value="White - Trainee">White - Trainee</SelectItem>
+                  <SelectItem value="Black - Manager">Black - Manager</SelectItem>
+                  <SelectItem value="Gold - Academically Qualified">Gold - Academically Qualified</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
