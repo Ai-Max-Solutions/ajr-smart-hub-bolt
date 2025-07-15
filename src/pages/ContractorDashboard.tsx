@@ -16,15 +16,17 @@ import {
   User,
   Phone,
   Mail,
-  LogOut
+  LogOut,
+  Settings,
+  HelpCircle
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-// import ContractorDeliveryForm from '@/components/contractor/ContractorDeliveryForm';
 import MyTrainingDocuments from '@/components/contractor/MyTrainingDocuments';
 import RAMSManager from '@/components/contractor/RAMSManager';
 import { EnhancedRAMSCompliance } from '@/components/contractor/EnhancedRAMSCompliance';
+import { ContractorDeliveryPortal } from '@/components/contractor/ContractorDeliveryPortal';
 import { Separator } from '@/components/ui/separator';
 
 interface ContractorProfile {
@@ -146,15 +148,7 @@ const ContractorDashboard = () => {
   }
 
   if (showDeliveryForm) {
-    // Temporarily disabled until delivery form is fixed
-    return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
-        <div className="text-center">
-          <p>Delivery form coming soon</p>
-          <Button onClick={() => setShowDeliveryForm(false)}>Go Back</Button>
-        </div>
-      </div>
-    );
+    return <ContractorDeliveryPortal />;
   }
 
   return (
@@ -199,12 +193,13 @@ const ContractorDashboard = () => {
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="training">Training</TabsTrigger>
             <TabsTrigger value="rams">RAMS</TabsTrigger>
             <TabsTrigger value="deliveries">Deliveries</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
@@ -381,9 +376,13 @@ const ContractorDashboard = () => {
             <MyTrainingDocuments />
           </TabsContent>
 
-            <TabsContent value="rams" className="space-y-6">
-              <EnhancedRAMSCompliance />
-            </TabsContent>
+          <TabsContent value="rams" className="space-y-6">
+            <EnhancedRAMSCompliance />
+          </TabsContent>
+
+          <TabsContent value="deliveries" className="space-y-6">
+            <ContractorDeliveryPortal />
+          </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">
             <Card className="contractor-card">
