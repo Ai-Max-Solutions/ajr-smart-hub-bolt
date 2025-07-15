@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,7 @@ import MyProfile from '@/components/operative/MyProfile';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, session } = useAuth();
   const [userData, setUserData] = useState<{ firstname?: string; lastname?: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,15 +69,7 @@ const OperativeDashboard = () => {
     };
 
     fetchUserData();
-    
-    // Listen for focus events to refresh data when user returns from other pages
-    const handleFocus = () => {
-      fetchUserData();
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [session]);
+  }, [session, location.pathname]); // Re-fetch when returning to dashboard route
 
   const quickActions = [
     {

@@ -122,6 +122,8 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
     setAiPersonality('');
 
     try {
+      console.log('Starting AI avatar generation for:', { userName, userRole });
+      
       const { data, error } = await supabase.functions.invoke('ai-profile-generator', {
         body: {
           userName: userName || '',
@@ -129,59 +131,91 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
         },
       });
 
+      console.log('Edge function response:', { data, error });
+
       if (error) {
-        throw error;
+        console.error('Edge function error:', error);
+        throw new Error(`Edge function failed: ${error.message || 'Unknown error'}`);
       }
 
-      if (data.imageUrl) {
-        // Set the AI mood and personality for display
-        setAiMood(data.aiMood);
-        setAiPersonality(data.aiPersonality);
+      if (!data) {
+        throw new Error('No data returned from AI generator');
+      }
 
-        // Convert image URL to blob and upload to our storage
-        const response = await fetch(data.imageUrl);
-        const blob = await response.blob();
-        
-        const fileName = `${user.id}/ai-avatar-${Date.now()}.png`;
+      if (!data.imageUrl) {
+        console.error('No image URL in response:', data);
+        throw new Error('AI generator did not return an image URL');
+      }
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, blob, {
-            cacheControl: '3600',
-            upsert: true
-          });
+      console.log('Generated image URL:', data.imageUrl);
 
-        if (uploadError) {
-          throw uploadError;
-        }
+      // Set the AI mood and personality for display
+      setAiMood(data.aiMood || 'Creative');
+      setAiPersonality(data.aiPersonality || 'AI generated your professional headshot!');
 
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName);
+      // Convert image URL to blob and upload to our storage
+      console.log('Fetching generated image...');
+      
+      const response = await fetch(data.imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch generated image: ${response.status} ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      console.log('Image blob size:', blob.size);
+      
+      if (blob.size === 0) {
+        throw new Error('Generated image is empty');
+      }
+      
+      const fileName = `${user.id}/ai-avatar-${Date.now()}.png`;
+      console.log('Uploading to storage as:', fileName);
 
-        // Update user's avatar URL in database
-        const { error: updateError } = await supabase
-          .from('Users')
-          .update({ avatar_url: publicUrl })
-          .eq('supabase_auth_id', user.id);
-
-        if (updateError) {
-          throw updateError;
-        }
-
-        onAvatarUpdate(publicUrl);
-        
-        toast({
-          title: "AI Avatar Generated! 🎨",
-          description: data.aiPersonality || "Your new AI-generated profile picture is ready!",
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, blob, {
+          cacheControl: '3600',
+          upsert: true
         });
+
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(`Storage upload failed: ${uploadError.message}`);
       }
+
+      console.log('Upload successful:', uploadData);
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      console.log('Public URL generated:', publicUrl);
+
+      // Update user's avatar URL in database
+      const { error: updateError } = await supabase
+        .from('Users')
+        .update({ avatar_url: publicUrl })
+        .eq('supabase_auth_id', user.id);
+
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw new Error(`Database update failed: ${updateError.message}`);
+      }
+
+      console.log('Avatar updated successfully');
+      onAvatarUpdate(publicUrl);
+      
+      toast({
+        title: "AI Avatar Generated! 🎨",
+        description: data.aiPersonality || "Your new AI-generated profile picture is ready!",
+      });
     } catch (error) {
       console.error('Error generating AI avatar:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Generation Failed",
-        description: "The AI got a bit too creative this time! Please try again.",
+        description: `AI generation failed: ${errorMessage}. Please try again.`,
         variant: "destructive",
       });
     } finally {
