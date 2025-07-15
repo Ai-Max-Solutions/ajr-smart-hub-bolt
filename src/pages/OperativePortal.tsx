@@ -57,12 +57,43 @@ const OperativeDashboard = () => {
 
         if (error) {
           console.error('Error fetching user data:', error);
+          // If user not found in database, create a basic user record
+          if (error.code === 'PGRST116') {
+            console.log('User not found in database, creating basic record...');
+            const { data: insertData, error: insertError } = await supabase
+              .from('Users')
+              .insert({
+                supabase_auth_id: session.user.id,
+                email: session.user.email,
+                firstname: session.user.user_metadata?.first_name || 'User',
+                lastname: session.user.user_metadata?.last_name || '',
+                role: 'Operative'
+              })
+              .select('firstname, lastname')
+              .single();
+            
+            if (insertError) {
+              console.error('Error creating user record:', insertError);
+              // Fallback to auth metadata
+              setUserData({
+                firstname: session.user.user_metadata?.first_name || session.user.email?.split('@')[0] || 'User',
+                lastname: session.user.user_metadata?.last_name || ''
+              });
+            } else {
+              setUserData(insertData);
+            }
+          }
         } else {
           console.log('Setting userData:', data);
           setUserData(data);
         }
       } catch (err) {
         console.error('Error:', err);
+        // Final fallback
+        setUserData({
+          firstname: session.user.email?.split('@')[0] || 'User',
+          lastname: ''
+        });
       } finally {
         setLoading(false);
       }

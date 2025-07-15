@@ -31,9 +31,13 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const [aiMood, setAiMood] = useState<string>('');
   const [aiPersonality, setAiPersonality] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -156,16 +160,34 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
       // Convert image URL to blob and upload to our storage
       console.log('Fetching generated image...');
       
-      const response = await fetch(data.imageUrl);
+      let response;
+      try {
+        response = await fetch(data.imageUrl, {
+          mode: 'cors',
+          method: 'GET',
+          headers: {
+            'Accept': 'image/*'
+          }
+        });
+      } catch (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw new Error(`Failed to fetch generated image: Network error`);
+      }
+      
       if (!response.ok) {
+        console.error('Response not ok:', response.status, response.statusText);
         throw new Error(`Failed to fetch generated image: ${response.status} ${response.statusText}`);
       }
       
       const blob = await response.blob();
-      console.log('Image blob size:', blob.size);
+      console.log('Image blob size:', blob.size, 'type:', blob.type);
       
       if (blob.size === 0) {
         throw new Error('Generated image is empty');
+      }
+      
+      if (!blob.type.startsWith('image/')) {
+        throw new Error('Generated content is not an image');
       }
       
       const fileName = `${user.id}/ai-avatar-${Date.now()}.png`;
@@ -223,6 +245,103 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
     }
   };
 
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user' // Front camera for selfies
+        }
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsCameraActive(true);
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      toast({
+        title: "Camera Access Failed",
+        description: "Unable to access your camera. Please try file upload instead.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const capturePhoto = async () => {
+    if (!videoRef.current || !canvasRef.current || !user) return;
+
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Draw video frame to canvas
+    ctx.drawImage(video, 0, 0);
+    
+    // Convert canvas to blob
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      
+      setIsUploading(true);
+      stopCamera();
+      
+      try {
+        const fileName = `${user.id}/camera-avatar-${Date.now()}.jpg`;
+        
+        const { data, error } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, blob, {
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+        const { error: updateError } = await supabase
+          .from('Users')
+          .update({ avatar_url: publicUrl })
+          .eq('supabase_auth_id', user.id);
+
+        if (updateError) throw updateError;
+
+        onAvatarUpdate(publicUrl);
+        toast({
+          title: "Selfie Captured! 📸",
+          description: "Your new profile picture has been saved successfully!",
+        });
+      } catch (error) {
+        console.error('Error uploading camera photo:', error);
+        toast({
+          title: "Upload Failed",
+          description: "Failed to save your photo. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    }, 'image/jpeg', 0.9);
+  };
+
   const getUserInitials = () => {
     if (userName) {
       return userName.split(' ')
@@ -238,24 +357,38 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
     <Card className="w-full">
       <CardContent className="p-6">
         <div className="flex flex-col items-center space-y-6">
-          {/* Avatar Display */}
-          <div className="relative">
-            <Avatar className="w-32 h-32 border-4 border-border">
-              <AvatarImage 
-                src={currentAvatarUrl} 
-                alt="Profile picture"
-                className="object-cover"
+          {/* Camera View or Avatar Display */}
+          {isCameraActive ? (
+            <div className="relative">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-80 h-60 bg-black rounded-lg object-cover"
               />
-              <AvatarFallback className="text-2xl bg-accent/20 text-accent">
-                {getUserInitials()}
-              </AvatarFallback>
-            </Avatar>
-            
-            {/* Camera icon overlay */}
-            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-accent rounded-full flex items-center justify-center border-4 border-background">
-              <Camera className="w-5 h-5 text-accent-foreground" />
+              <div className="absolute inset-0 border-4 border-accent rounded-lg"></div>
+              <canvas ref={canvasRef} className="hidden" />
             </div>
-          </div>
+          ) : (
+            <div className="relative">
+              <Avatar className="w-32 h-32 border-4 border-border">
+                <AvatarImage 
+                  src={currentAvatarUrl} 
+                  alt="Profile picture"
+                  className="object-cover"
+                />
+                <AvatarFallback className="text-2xl bg-accent/20 text-accent">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+              
+              {/* Camera icon overlay */}
+              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-accent rounded-full flex items-center justify-center border-4 border-background">
+                <Camera className="w-5 h-5 text-accent-foreground" />
+              </div>
+            </div>
+          )}
 
           {/* AI Mood Display */}
           {aiMood && aiPersonality && (
@@ -281,43 +414,86 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
               className="hidden"
             />
             
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading || isGenerating}
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Your Selfie
-                </>
-              )}
-            </Button>
+            {!isCameraActive ? (
+              <>
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || isGenerating}
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Photo
+                    </>
+                  )}
+                </Button>
 
-            {/* AI Generation Button */}
-            <Button
-              onClick={handleGenerateAI}
-              disabled={isUploading || isGenerating}
-              variant="outline"
-              className="w-full border-accent/50 hover:bg-accent/10"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  AI is being creative...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Let AI Surprise Me! ✨
-                </>
-              )}
-            </Button>
+                {/* Camera Button */}
+                <Button
+                  onClick={startCamera}
+                  disabled={isUploading || isGenerating}
+                  variant="outline"
+                  className="w-full border-accent/50 hover:bg-accent/10"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Take Selfie 📸
+                </Button>
+
+                {/* AI Generation Button */}
+                <Button
+                  onClick={handleGenerateAI}
+                  disabled={isUploading || isGenerating}
+                  variant="outline"
+                  className="w-full border-accent/50 hover:bg-accent/10"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      AI is being creative...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Let AI Surprise Me! ✨
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={capturePhoto}
+                  disabled={isUploading}
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-4 h-4 mr-2" />
+                      Capture Photo
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={stopCamera}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Fun Helper Text */}
