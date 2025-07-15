@@ -20,7 +20,9 @@ import {
   Shield,
   Award,
   GraduationCap,
-  Loader2
+  Loader2,
+  MessageSquare,
+  CheckCircle
 } from "lucide-react";
 import { format, subDays, startOfWeek, startOfMonth } from "date-fns";
 
@@ -34,8 +36,52 @@ interface DrawingRecord {
   trade?: string;
 }
 
+interface RAMSRecord {
+  id: string;
+  work_activity: string;
+  contractor_name?: string;
+  status: string;
+  date_signed?: string;
+  project_name?: string;
+  responsible_person?: string;
+}
+
+interface RFIRecord {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  date_opened: string;
+  date_closed?: string;
+  project_name?: string;
+  raised_by?: string;
+}
+
+interface TestCertRecord {
+  id: string;
+  system_tested: string;
+  certificate_type: string;
+  test_date: string;
+  result: string;
+  project_name?: string;
+  tested_by?: string;
+}
+
+interface TrainingRecord {
+  id: string;
+  document_type: string;
+  contractor_name?: string;
+  status: string;
+  expiry_date?: string;
+  project_name?: string;
+}
+
 interface ReportData {
   drawings: DrawingRecord[];
+  rams: RAMSRecord[];
+  rfis: RFIRecord[];
+  testCerts: TestCertRecord[];
+  training: TrainingRecord[];
   totalCount: number;
 }
 
@@ -47,8 +93,18 @@ const AdminReports = () => {
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [selectedProject, setSelectedProject] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [systemFilter, setSystemFilter] = useState<string>("all");
   const [projects, setProjects] = useState<any[]>([]);
-  const [reportData, setReportData] = useState<ReportData>({ drawings: [], totalCount: 0 });
+  const [workActivities, setWorkActivities] = useState<any[]>([]);
+  const [reportData, setReportData] = useState<ReportData>({ 
+    drawings: [], 
+    rams: [], 
+    rfis: [], 
+    testCerts: [], 
+    training: [], 
+    totalCount: 0 
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
@@ -62,6 +118,7 @@ const AdminReports = () => {
       return;
     }
     loadProjects();
+    loadWorkActivities();
   }, [hasFullAccess, hasSiteAccess]);
 
   const loadProjects = async () => {
@@ -117,6 +174,20 @@ const AdminReports = () => {
     return { startDate, endDate };
   };
 
+  const loadWorkActivities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("work_activity_categories")
+        .select("*")
+        .order("display_order");
+      
+      if (error) throw error;
+      setWorkActivities(data || []);
+    } catch (error) {
+      console.error("Error loading work activities:", error);
+    }
+  };
+
   const generateReport = async () => {
     if (!hasFullAccess && !hasSiteAccess) {
       toast.error("Unauthorized to generate reports");
@@ -129,6 +200,14 @@ const AdminReports = () => {
       
       if (reportType === "drawings") {
         await generateDrawingsReport(startDate, endDate);
+      } else if (reportType === "rams") {
+        await generateRAMSReport(startDate, endDate);
+      } else if (reportType === "rfis") {
+        await generateRFIsReport(startDate, endDate);
+      } else if (reportType === "testCerts") {
+        await generateTestCertsReport(startDate, endDate);
+      } else if (reportType === "training") {
+        await generateTrainingReport(startDate, endDate);
       }
       
       toast.success("Report generated successfully");
@@ -176,14 +255,140 @@ const AdminReports = () => {
       trade: item.trade
     }));
 
-    setReportData({
+    setReportData(prev => ({
+      ...prev,
       drawings: formattedData,
       totalCount: count || formattedData.length
-    });
+    }));
+  };
+
+  const generateRAMSReport = async (startDate: Date, endDate: Date) => {
+    let query = supabase
+      .from("task_plan_rams_register")
+      .select(`
+        id,
+        work_activity,
+        status,
+        date_signed,
+        responsible_person,
+        contractor_profiles!inner(first_name, last_name),
+        Projects!inner(projectname)
+      `)
+      .gte("date_signed", format(startDate, "yyyy-MM-dd"))
+      .lte("date_signed", format(endDate, "yyyy-MM-dd"))
+      .order("date_signed", { ascending: false });
+
+    // Apply filters
+    if (selectedProject !== "all") {
+      query = query.eq("project_id", selectedProject);
+    } else if (!hasFullAccess && hasSiteAccess && profile?.currentproject) {
+      query = query.eq("project_id", profile.currentproject);
+    }
+
+    if (statusFilter !== "all") {
+      query = query.eq("status", statusFilter);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const formattedData = (data || []).map(item => ({
+      id: item.id,
+      work_activity: item.work_activity,
+      contractor_name: `${item.contractor_profiles?.first_name || ""} ${item.contractor_profiles?.last_name || ""}`.trim(),
+      status: item.status,
+      date_signed: item.date_signed,
+      project_name: item.Projects?.projectname,
+      responsible_person: item.responsible_person
+    }));
+
+    setReportData(prev => ({
+      ...prev,
+      rams: formattedData,
+      totalCount: formattedData.length
+    }));
+  };
+
+  const generateRFIsReport = async (startDate: Date, endDate: Date) => {
+    // Note: This would need an RFIs table in the database
+    // For now, creating a placeholder structure
+    const mockRFIs = [
+      {
+        id: "rfi-001",
+        title: "Foundation Requirements Clarification",
+        description: "Need clarification on concrete grade for foundations",
+        status: "open",
+        date_opened: format(startDate, "yyyy-MM-dd"),
+        project_name: "Sample Project",
+        raised_by: "Site Engineer"
+      }
+    ];
+
+    setReportData(prev => ({
+      ...prev,
+      rfis: mockRFIs,
+      totalCount: mockRFIs.length
+    }));
+  };
+
+  const generateTestCertsReport = async (startDate: Date, endDate: Date) => {
+    // Note: This would need a test certificates table
+    // For now, creating a placeholder structure
+    const mockTestCerts = [
+      {
+        id: "tc-001",
+        system_tested: "Electrical Installation",
+        certificate_type: "Installation Certificate",
+        test_date: format(startDate, "yyyy-MM-dd"),
+        result: "Pass",
+        project_name: "Sample Project",
+        tested_by: "Qualified Electrician"
+      }
+    ];
+
+    setReportData(prev => ({
+      ...prev,
+      testCerts: mockTestCerts,
+      totalCount: mockTestCerts.length
+    }));
+  };
+
+  const generateTrainingReport = async (startDate: Date, endDate: Date) => {
+    let query = supabase
+      .from("contractor_training_documents")
+      .select(`
+        id,
+        status,
+        expiry_date,
+        training_document_types!inner(name),
+        contractor_profiles!inner(first_name, last_name, company:contractor_companies(company_name))
+      `)
+      .gte("created_at", format(startDate, "yyyy-MM-dd"))
+      .lte("created_at", format(endDate, "yyyy-MM-dd"))
+      .order("created_at", { ascending: false });
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const formattedData = (data || []).map(item => ({
+      id: item.id,
+      document_type: item.training_document_types?.name || "Unknown",
+      contractor_name: `${item.contractor_profiles?.first_name || ""} ${item.contractor_profiles?.last_name || ""}`.trim(),
+      status: item.status,
+      expiry_date: item.expiry_date,
+      project_name: item.contractor_profiles?.company?.company_name || "N/A"
+    }));
+
+    setReportData(prev => ({
+      ...prev,
+      training: formattedData,
+      totalCount: formattedData.length
+    }));
   };
 
   const generatePDF = async () => {
-    if (!reportData.drawings.length) {
+    const currentData = getCurrentReportData();
+    if (!currentData.length) {
       toast.error("No data to export");
       return;
     }
@@ -200,91 +405,128 @@ const AdminReports = () => {
       let page = pdfDoc.addPage([595, 842]); // A4 size
       const { width, height } = page.getSize();
       
-      // Header
+      // AJ Ryan Dark Blue color
+      const ajRyanBlue = rgb(0.11, 0.12, 0.24); // #1d1e3d
+      const white = rgb(1, 1, 1);
+      const black = rgb(0, 0, 0);
+      const lightGray = rgb(0.95, 0.95, 0.95);
+      
+      // Header background (dark blue)
+      page.drawRectangle({
+        x: 0,
+        y: height - 80,
+        width: width,
+        height: 80,
+        color: ajRyanBlue,
+      });
+      
+      // Project name
       const projectName = selectedProject !== "all" 
         ? projects.find(p => p.whalesync_postgres_id === selectedProject)?.projectname 
         : "All Projects";
       
-      // AJ Ryan Logo placeholder (7.5mm = ~21 points from edge)
+      // AJ Ryan Logo in header (white text on blue background)
       page.drawText("AJ RYAN", {
         x: 21,
         y: height - 40,
         size: 16,
         font: boldFont,
-        color: rgb(0.1, 0.1, 0.4), // Dark blue
+        color: white,
       });
       
-      // Project title
+      // Project title in header
       page.drawText(`Project: ${projectName || "Multiple Projects"}`, {
         x: 21,
-        y: height - 70,
-        size: 14,
+        y: height - 60,
+        size: 12,
         font: boldFont,
-        color: rgb(0, 0, 0),
+        color: white,
       });
       
-      // Report title
-      page.drawText("Drawings Register Report", {
+      // Report title below header
+      const reportTitles = {
+        drawings: "Drawings Register Report",
+        rams: "RAMS Sign-Off Status Report", 
+        rfis: "RFIs Log Report",
+        testCerts: "Test Certificates Report",
+        training: "Training Matrix Report"
+      };
+      
+      page.drawText(reportTitles[reportType as keyof typeof reportTitles] || "Report", {
         x: 21,
-        y: height - 100,
+        y: height - 110,
         size: 18,
         font: boldFont,
-        color: rgb(0, 0, 0),
+        color: black,
       });
       
       // Date range
       const { startDate, endDate } = getDateRange();
       page.drawText(`Period: ${format(startDate, "dd/MM/yyyy")} - ${format(endDate, "dd/MM/yyyy")}`, {
         x: 21,
-        y: height - 130,
+        y: height - 135,
         size: 11,
         font: font,
         color: rgb(0.3, 0.3, 0.3),
       });
 
-      // Table headers
+      // Table setup
       const tableY = height - 170;
-      const rowHeight = 20;
-      const colWidths = [100, 200, 60, 80, 130];
-      const headers = ["Drawing No", "Title", "Rev", "Date", "Trade"];
+      const rowHeight = 25;
       
+      // Get headers and data based on report type
+      const { headers, colWidths, tableData } = getTableConfig(reportType, currentData);
+      
+      // Table header background (dark blue)
+      page.drawRectangle({
+        x: 21,
+        y: tableY - 5,
+        width: colWidths.reduce((sum, width) => sum + width, 0),
+        height: rowHeight,
+        color: ajRyanBlue,
+      });
+      
+      // Table headers (white text on blue background)
       let currentX = 21;
       headers.forEach((header, index) => {
         page.drawText(header, {
-          x: currentX,
-          y: tableY,
+          x: currentX + 5,
+          y: tableY + 5,
           size: 10,
           font: boldFont,
-          color: rgb(0, 0, 0),
+          color: white,
         });
         currentX += colWidths[index];
       });
 
       // Table data
       let currentY = tableY - rowHeight;
-      reportData.drawings.forEach((drawing, index) => {
+      tableData.forEach((rowData, rowIndex) => {
         if (currentY < 100) {
           // Add new page if needed
           page = pdfDoc.addPage([595, 842]);
           currentY = height - 50;
         }
 
-        currentX = 21;
-        const rowData = [
-          drawing.drawingnumber || "N/A",
-          (drawing.drawingdescription || "").substring(0, 30),
-          drawing.currentrevision || "N/A",
-          drawing.lastupdateddate ? format(new Date(drawing.lastupdateddate), "dd/MM/yy") : "N/A",
-          drawing.trade || "N/A"
-        ];
+        // Alternate row shading
+        if (rowIndex % 2 === 1) {
+          page.drawRectangle({
+            x: 21,
+            y: currentY - 5,
+            width: colWidths.reduce((sum, width) => sum + width, 0),
+            height: rowHeight,
+            color: lightGray,
+          });
+        }
 
+        currentX = 21;
         rowData.forEach((data, colIndex) => {
           page.drawText(data, {
-            x: currentX,
-            y: currentY,
+            x: currentX + 5,
+            y: currentY + 5,
             size: 9,
             font: font,
-            color: rgb(0, 0, 0),
+            color: black,
           });
           currentX += colWidths[colIndex];
         });
@@ -305,7 +547,14 @@ const AdminReports = () => {
       const period = dateRange === "custom" 
         ? `${format(new Date(customStartDate), "ddMMyy")}-${format(new Date(customEndDate), "ddMMyy")}`
         : dateRange;
-      const filename = `${projectName?.replace(/\s+/g, "")}-${period}-DrawingReport.pdf`;
+      const reportNames = {
+        drawings: "DrawingReport",
+        rams: "RAMSReport", 
+        rfis: "RFIsReport",
+        testCerts: "TestCertsReport",
+        training: "TrainingReport"
+      };
+      const filename = `${projectName?.replace(/\s+/g, "")}-${period}-${reportNames[reportType as keyof typeof reportNames]}.pdf`;
 
       // Download
       const pdfBytes = await pdfDoc.save();
@@ -323,6 +572,196 @@ const AdminReports = () => {
       toast.error("Failed to generate PDF");
     } finally {
       setIsGeneratingPDF(false);
+    }
+  };
+
+  const getCurrentReportData = () => {
+    switch (reportType) {
+      case "drawings": return reportData.drawings;
+      case "rams": return reportData.rams;
+      case "rfis": return reportData.rfis;
+      case "testCerts": return reportData.testCerts;
+      case "training": return reportData.training;
+      default: return [];
+    }
+  };
+
+  const getTableConfig = (type: string, data: any[]) => {
+    switch (type) {
+      case "drawings":
+        return {
+          headers: ["Drawing No", "Title", "Rev", "Date", "Trade"],
+          colWidths: [100, 200, 60, 80, 130],
+          tableData: data.map((item: DrawingRecord) => [
+            item.drawingnumber || "N/A",
+            (item.drawingdescription || "").substring(0, 30),
+            item.currentrevision || "N/A",
+            item.lastupdateddate ? format(new Date(item.lastupdateddate), "dd/MM/yy") : "N/A",
+            item.trade || "N/A"
+          ])
+        };
+      case "rams":
+        return {
+          headers: ["Work Activity", "Contractor", "Status", "Date Signed", "Responsible"],
+          colWidths: [120, 100, 80, 90, 110],
+          tableData: data.map((item: RAMSRecord) => [
+            item.work_activity.substring(0, 20),
+            item.contractor_name || "N/A",
+            item.status,
+            item.date_signed ? format(new Date(item.date_signed), "dd/MM/yy") : "N/A",
+            (item.responsible_person || "").substring(0, 15)
+          ])
+        };
+      case "rfis":
+        return {
+          headers: ["Title", "Status", "Date Opened", "Raised By", "Description"],
+          colWidths: [150, 80, 90, 100, 150],
+          tableData: data.map((item: RFIRecord) => [
+            item.title.substring(0, 25),
+            item.status,
+            format(new Date(item.date_opened), "dd/MM/yy"),
+            item.raised_by || "N/A",
+            (item.description || "").substring(0, 25)
+          ])
+        };
+      case "testCerts":
+        return {
+          headers: ["System", "Certificate Type", "Test Date", "Result", "Tested By"],
+          colWidths: [120, 120, 90, 80, 100],
+          tableData: data.map((item: TestCertRecord) => [
+            item.system_tested.substring(0, 20),
+            item.certificate_type.substring(0, 20),
+            format(new Date(item.test_date), "dd/MM/yy"),
+            item.result,
+            (item.tested_by || "").substring(0, 15)
+          ])
+        };
+      case "training":
+        return {
+          headers: ["Document Type", "Contractor", "Status", "Expiry Date", "Company"],
+          colWidths: [120, 100, 80, 90, 120],
+          tableData: data.map((item: TrainingRecord) => [
+            item.document_type.substring(0, 20),
+            item.contractor_name || "N/A",
+            item.status,
+            item.expiry_date ? format(new Date(item.expiry_date), "dd/MM/yy") : "N/A",
+            (item.project_name || "").substring(0, 20)
+          ])
+        };
+      default:
+        return { headers: [], colWidths: [], tableData: [] };
+    }
+  };
+
+
+  const getTableHeaders = () => {
+    switch (reportType) {
+      case "drawings":
+        return hasFullAccess 
+          ? ["Drawing No", "Title", "Rev", "Date", "Trade", "Project"]
+          : ["Drawing No", "Title", "Rev", "Date", "Trade"];
+      case "rams":
+        return hasFullAccess
+          ? ["Work Activity", "Contractor", "Status", "Date Signed", "Responsible", "Project"]
+          : ["Work Activity", "Contractor", "Status", "Date Signed", "Responsible"];
+      case "rfis":
+        return hasFullAccess
+          ? ["Title", "Status", "Date Opened", "Raised By", "Project"]
+          : ["Title", "Status", "Date Opened", "Raised By"];
+      case "testCerts":
+        return hasFullAccess
+          ? ["System", "Certificate Type", "Test Date", "Result", "Tested By", "Project"]
+          : ["System", "Certificate Type", "Test Date", "Result", "Tested By"];
+      case "training":
+        return ["Document Type", "Contractor", "Status", "Expiry Date", "Company"];
+      default:
+        return [];
+    }
+  };
+
+  const renderTableRow = (record: any, type: string) => {
+    switch (type) {
+      case "drawings":
+        return (
+          <>
+            <td className="p-3 font-mono text-sm">{record.drawingnumber || "N/A"}</td>
+            <td className="p-3">{record.drawingdescription || "N/A"}</td>
+            <td className="p-3">
+              <Badge variant="outline">{record.currentrevision || "N/A"}</Badge>
+            </td>
+            <td className="p-3 text-sm">
+              {record.lastupdateddate ? format(new Date(record.lastupdateddate), "dd/MM/yyyy") : "N/A"}
+            </td>
+            <td className="p-3">
+              <Badge variant="secondary">{record.trade || "N/A"}</Badge>
+            </td>
+            {hasFullAccess && <td className="p-3 text-sm">{record.project_name || "N/A"}</td>}
+          </>
+        );
+      case "rams":
+        return (
+          <>
+            <td className="p-3">{record.work_activity}</td>
+            <td className="p-3">{record.contractor_name || "N/A"}</td>
+            <td className="p-3">
+              <Badge variant={record.status === "signed" ? "default" : "secondary"}>
+                {record.status}
+              </Badge>
+            </td>
+            <td className="p-3 text-sm">
+              {record.date_signed ? format(new Date(record.date_signed), "dd/MM/yyyy") : "N/A"}
+            </td>
+            <td className="p-3">{record.responsible_person || "N/A"}</td>
+            {hasFullAccess && <td className="p-3 text-sm">{record.project_name || "N/A"}</td>}
+          </>
+        );
+      case "rfis":
+        return (
+          <>
+            <td className="p-3">{record.title}</td>
+            <td className="p-3">
+              <Badge variant={record.status === "closed" ? "default" : "secondary"}>
+                {record.status}
+              </Badge>
+            </td>
+            <td className="p-3 text-sm">{format(new Date(record.date_opened), "dd/MM/yyyy")}</td>
+            <td className="p-3">{record.raised_by || "N/A"}</td>
+            {hasFullAccess && <td className="p-3 text-sm">{record.project_name || "N/A"}</td>}
+          </>
+        );
+      case "testCerts":
+        return (
+          <>
+            <td className="p-3">{record.system_tested}</td>
+            <td className="p-3">{record.certificate_type}</td>
+            <td className="p-3 text-sm">{format(new Date(record.test_date), "dd/MM/yyyy")}</td>
+            <td className="p-3">
+              <Badge variant={record.result === "Pass" ? "default" : "destructive"}>
+                {record.result}
+              </Badge>
+            </td>
+            <td className="p-3">{record.tested_by || "N/A"}</td>
+            {hasFullAccess && <td className="p-3 text-sm">{record.project_name || "N/A"}</td>}
+          </>
+        );
+      case "training":
+        return (
+          <>
+            <td className="p-3">{record.document_type}</td>
+            <td className="p-3">{record.contractor_name || "N/A"}</td>
+            <td className="p-3">
+              <Badge variant={record.status === "active" ? "default" : "secondary"}>
+                {record.status}
+              </Badge>
+            </td>
+            <td className="p-3 text-sm">
+              {record.expiry_date ? format(new Date(record.expiry_date), "dd/MM/yyyy") : "N/A"}
+            </td>
+            <td className="p-3 text-sm">{record.project_name || "N/A"}</td>
+          </>
+        );
+      default:
+        return null;
     }
   };
 
@@ -380,22 +819,28 @@ const AdminReports = () => {
                         Drawings Register
                       </div>
                     </SelectItem>
-                    <SelectItem value="rams" disabled>
+                    <SelectItem value="rams">
                       <div className="flex items-center gap-2">
                         <Shield className="w-4 h-4" />
-                        RAMS Sign-offs (Coming Soon)
+                        RAMS Sign-Off Status
                       </div>
                     </SelectItem>
-                    <SelectItem value="certificates" disabled>
+                    <SelectItem value="rfis">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        RFIs Log
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="testCerts">
                       <div className="flex items-center gap-2">
                         <Award className="w-4 h-4" />
-                        Test Certificates (Coming Soon)
+                        Test Certificates
                       </div>
                     </SelectItem>
-                    <SelectItem value="training" disabled>
+                    <SelectItem value="training">
                       <div className="flex items-center gap-2">
                         <GraduationCap className="w-4 h-4" />
-                        Training Matrix (Coming Soon)
+                        Training Matrix
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -431,6 +876,45 @@ const AdminReports = () => {
                       {projects.map((project) => (
                         <SelectItem key={project.whalesync_postgres_id} value={project.whalesync_postgres_id}>
                           {project.projectname}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Dynamic Filters based on Report Type */}
+              {(reportType === "rams" || reportType === "rfis" || reportType === "testCerts") && (
+                <div className="space-y-2">
+                  <Label className="font-poppins">
+                    {reportType === "rams" && "Status Filter"}
+                    {reportType === "rfis" && "Status Filter"}
+                    {reportType === "testCerts" && "System Filter"}
+                  </Label>
+                  <Select value={reportType === "testCerts" ? systemFilter : statusFilter} 
+                          onValueChange={reportType === "testCerts" ? setSystemFilter : setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All {reportType === "testCerts" ? "Systems" : "Statuses"}</SelectItem>
+                      {reportType === "rams" && (
+                        <>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="signed">Signed</SelectItem>
+                          <SelectItem value="expired">Expired</SelectItem>
+                        </>
+                      )}
+                      {reportType === "rfis" && (
+                        <>
+                          <SelectItem value="open">Open</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="closed">Closed</SelectItem>
+                        </>
+                      )}
+                      {reportType === "testCerts" && workActivities.map((activity) => (
+                        <SelectItem key={activity.id} value={activity.code}>
+                          {activity.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -481,13 +965,13 @@ const AdminReports = () => {
         </Card>
 
         {/* Report Results */}
-        {reportData.drawings.length > 0 && (
+        {getCurrentReportData().length > 0 && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="font-poppins">Report Results</CardTitle>
                 <p className="text-muted-foreground">
-                  Found {reportData.totalCount} records
+                  Found {getCurrentReportData().length} records
                 </p>
               </div>
               <Button
@@ -507,35 +991,18 @@ const AdminReports = () => {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-3 font-poppins">Drawing No</th>
-                      <th className="text-left p-3 font-poppins">Title</th>
-                      <th className="text-left p-3 font-poppins">Rev</th>
-                      <th className="text-left p-3 font-poppins">Date</th>
-                      <th className="text-left p-3 font-poppins">Trade</th>
-                      {hasFullAccess && <th className="text-left p-3 font-poppins">Project</th>}
+                    <tr className="border-b bg-[#1d1e3d] text-white">
+                      {getTableHeaders().map((header, index) => (
+                        <th key={index} className="text-left p-3 font-poppins font-bold text-sm">
+                          {header}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {reportData.drawings.map((drawing) => (
-                      <tr key={drawing.id} className="border-b hover:bg-muted/50">
-                        <td className="p-3 font-mono text-sm">{drawing.drawingnumber || "N/A"}</td>
-                        <td className="p-3">{drawing.drawingdescription || "N/A"}</td>
-                        <td className="p-3">
-                          <Badge variant="outline">{drawing.currentrevision || "N/A"}</Badge>
-                        </td>
-                        <td className="p-3 text-sm">
-                          {drawing.lastupdateddate 
-                            ? format(new Date(drawing.lastupdateddate), "dd/MM/yyyy")
-                            : "N/A"
-                          }
-                        </td>
-                        <td className="p-3">
-                          <Badge variant="secondary">{drawing.trade || "N/A"}</Badge>
-                        </td>
-                        {hasFullAccess && (
-                          <td className="p-3 text-sm">{drawing.project_name || "N/A"}</td>
-                        )}
+                    {getCurrentReportData().map((record, index) => (
+                      <tr key={record.id || index} className={`border-b hover:bg-muted/50 ${index % 2 === 1 ? 'bg-muted/20' : ''}`}>
+                        {renderTableRow(record, reportType)}
                       </tr>
                     ))}
                   </tbody>
@@ -546,13 +1013,13 @@ const AdminReports = () => {
         )}
 
         {/* Empty State */}
-        {!isLoading && reportData.drawings.length === 0 && reportType === "drawings" && (
+        {!isLoading && getCurrentReportData().length === 0 && (
           <Card>
             <CardContent className="text-center py-12">
               <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-poppins text-lg font-semibold mb-2">No Data Found</h3>
               <p className="text-muted-foreground">
-                No drawings found for the selected time period. Try adjusting your filters.
+                No {reportType} data found for the selected time period. Try adjusting your filters.
               </p>
             </CardContent>
           </Card>
