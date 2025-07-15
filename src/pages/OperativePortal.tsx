@@ -34,10 +34,16 @@ const OperativeDashboard = () => {
   const navigate = useNavigate();
   const { user, session } = useAuth();
   const [userData, setUserData] = useState<{ firstname?: string; lastname?: string } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!session?.user) return;
+      if (!session?.user) {
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Fetching user data for:', session.user.id);
       
       try {
         const { data, error } = await supabase
@@ -46,13 +52,18 @@ const OperativeDashboard = () => {
           .eq('supabase_auth_id', session.user.id)
           .single();
 
+        console.log('Database query result:', { data, error });
+
         if (error) {
           console.error('Error fetching user data:', error);
         } else {
+          console.log('Setting userData:', data);
           setUserData(data);
         }
       } catch (err) {
         console.error('Error:', err);
+      } finally {
+        setLoading(false);
       }
     };
 
