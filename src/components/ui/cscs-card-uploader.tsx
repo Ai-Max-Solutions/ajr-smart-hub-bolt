@@ -33,25 +33,44 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState('');
+  const [isCustomType, setIsCustomType] = useState(false);
   
-  // Get current user ID
-  const userId = supabase.auth.getUser().then(({ data }) => data.user?.id);
-
-  const cardColors = [
-    'Green',
-    'Blue', 
-    'Yellow',
-    'White',
-    'Black',
-    'Gold'
+  // CSCS card type options
+  const cardTypes = [
+    'Labourer',
+    'Supervisor', 
+    'Manager',
+    'Site Visitor',
+    'Other'
   ];
 
-  const [customType, setCustomType] = useState(false);
+  // File validation
+  const validateFile = (file: File): string | null => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      return 'File must be PDF, JPG or PNG under 5MB.';
+    }
+
+    if (file.size > maxSize) {
+      return 'File must be PDF, JPG or PNG under 5MB.';
+    }
+
+    return null;
+  };
 
   const handleImageUpload = useCallback(async (file: File, side: 'front' | 'back') => {
     try {
-      setUploadProgress(0);
+      setUploadError('');
+      
+      // Validate file
+      const validationError = validateFile(file);
+      if (validationError) {
+        setUploadError(validationError);
+        return;
+      }
       
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -132,12 +151,10 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           
           toast({
             title: "CSCS Card Analyzed",
-            description: `Successfully extracted details from your ${result.card_color} CSCS card`,
+            description: `Successfully extracted details from your CSCS card`,
           });
         }
       }
-      
-      setUploadProgress(100);
     } catch (error) {
       console.error('Error analyzing CSCS card:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -148,7 +165,6 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
       });
     } finally {
       setIsAnalyzing(false);
-      setUploadProgress(0);
     }
   }, [data, updateData, onAnalysisComplete, toast]);
 
@@ -161,7 +177,6 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
     }
   };
 
-
   const formatCardNumber = (value: string) => {
     // Remove all non-digits and format as groups of 4
     const digits = value.replace(/\D/g, '');
@@ -169,32 +184,41 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
     return formatted.substring(0, 19); // Max 16 digits + 3 spaces
   };
 
+  const handleCardTypeChange = (value: string) => {
+    if (value === 'Other') {
+      setIsCustomType(true);
+      updateData({ cardType: '' });
+    } else {
+      setIsCustomType(false);
+      updateData({ cardType: value });
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-primary">
           <CreditCard className="h-5 w-5" />
-          CSCS Card Details
+          Upload CSCS Card
           {required && <span className="text-destructive">*</span>}
         </CardTitle>
         <CardDescription>
-          Upload your CSCS card image and we'll automatically extract the details for you
+          Upload your CSCS card image and select your card type
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Image Upload Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Front Image Upload */}
+        {/* File Upload Section */}
+        <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="front-image" className="flex items-center gap-2">
+            <Label htmlFor="front-image" className="flex items-center gap-2 text-primary">
               <Camera className="h-4 w-4" />
-              Front of Card {required && <span className="text-destructive">*</span>}
+              Upload CSCS Card {required && <span className="text-destructive">*</span>}
             </Label>
-            <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:bg-accent/50 transition-colors">
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:bg-accent/50 transition-colors">
               <input
                 id="front-image"
                 type="file"
-                accept="image/*"
+                accept=".pdf,.jpg,.jpeg,.png"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleImageUpload(file, 'front');
@@ -216,46 +240,59 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
                 ) : (
                   <div className="space-y-2">
                     <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Upload front of CSCS card</p>
+                    <p className="text-sm text-primary font-medium">Click to upload CSCS card</p>
+                    <p className="text-xs text-muted-foreground">PDF, JPG, PNG (max 5MB)</p>
                   </div>
                 )}
               </label>
             </div>
           </div>
 
-          {/* Back Image Upload */}
+          {/* Upload Error */}
+          {uploadError && (
+            <Alert className="border-destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-destructive font-medium">
+                {uploadError}
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        {/* Card Type Selection */}
+        <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="back-image" className="flex items-center gap-2">
-              <Camera className="h-4 w-4" />
-              Back of Card (Optional)
+            <Label htmlFor="card-type" className="text-primary">
+              Select Card Type {required && <span className="text-destructive">*</span>}
             </Label>
-            <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:bg-accent/50 transition-colors">
-              <input
-                id="back-image"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleImageUpload(file, 'back');
-                }}
-                className="hidden"
-              />
-              <label htmlFor="back-image" className="cursor-pointer">
-                {data.backImage ? (
-                  <div className="space-y-2">
-                    <CheckCircle className="h-8 w-8 mx-auto text-green-500" />
-                    <p className="text-sm font-medium">{data.backImage.name}</p>
-                    <p className="text-xs text-muted-foreground">Click to change</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Upload back of CSCS card</p>
-                  </div>
-                )}
-              </label>
-            </div>
+            <Select value={isCustomType ? 'Other' : data.cardType} onValueChange={handleCardTypeChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select your CSCS card type" />
+              </SelectTrigger>
+              <SelectContent>
+                {cardTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Custom Type Input */}
+          {isCustomType && (
+            <div className="space-y-2">
+              <Label htmlFor="custom-type" className="text-primary">
+                Enter Custom Card Type {required && <span className="text-destructive">*</span>}
+              </Label>
+              <Input
+                id="custom-type"
+                placeholder="Enter the exact text from your card (e.g., Mate, Skilled Worker, etc.)"
+                value={data.cardType}
+                onChange={(e) => updateData({ cardType: e.target.value })}
+              />
+            </div>
+          )}
         </div>
 
         {/* Analysis Result */}
@@ -263,7 +300,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>AI Analysis:</strong> Detected {analysisResult.card_color} {analysisResult.card_type} card
+              <strong>AI Analysis:</strong> Successfully analyzed your CSCS card
               {analysisResult.confidence_score && ` (${Math.round(analysisResult.confidence_score * 100)}% confidence)`}
             </AlertDescription>
           </Alert>
@@ -272,7 +309,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
         {/* Manual Input Fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="card-number">
+            <Label htmlFor="card-number" className="text-primary">
               Card Number {required && <span className="text-destructive">*</span>}
             </Label>
             <Input
@@ -285,7 +322,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="expiry-date">
+            <Label htmlFor="expiry-date" className="text-primary">
               Expiry Date {required && <span className="text-destructive">*</span>}
             </Label>
             <Input
@@ -297,97 +334,15 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="card-color">
-              Card Color {required && <span className="text-destructive">*</span>}
-            </Label>
-            <Select value={data.cardType?.split(' - ')[0] || ''} onValueChange={(color) => {
-              if (!customType) {
-                // Auto-map to common types
-                const typeMap: { [key: string]: string } = {
-                  'Green': 'Green - Labourer',
-                  'Blue': 'Blue - Skilled Worker',
-                  'Yellow': 'Yellow - Supervisor',
-                  'White': 'White - Trainee',
-                  'Black': 'Black - Manager',
-                  'Gold': 'Gold - Academically Qualified'
-                };
-                updateData({ cardType: typeMap[color] || `${color} - Custom` });
-              } else {
-                updateData({ cardType: `${color} - ${data.cardType?.split(' - ')[1] || 'Custom'}` });
-              }
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select card color" />
-              </SelectTrigger>
-              <SelectContent>
-                {cardColors.map((color) => (
-                  <SelectItem key={color} value={color}>
-                    {color}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="card-type">
-                Card Type {required && <span className="text-destructive">*</span>}
-              </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCustomType(!customType)}
-              >
-                {customType ? 'Use Standard' : 'Custom Type'}
-              </Button>
-            </div>
-            {customType ? (
-              <Input
-                id="card-type"
-                placeholder="Enter exact text from card (e.g., Mate, Labourer, etc.)"
-                value={data.cardType?.split(' - ')[1] || ''}
-                onChange={(e) => {
-                  const color = data.cardType?.split(' - ')[0] || 'Green';
-                  updateData({ cardType: `${color} - ${e.target.value}` });
-                }}
-              />
-            ) : (
-              <Select value={data.cardType} onValueChange={(value) => updateData({ cardType: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select card type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Green - Labourer">Green - Labourer</SelectItem>
-                  <SelectItem value="Green - Mate">Green - Mate</SelectItem>
-                  <SelectItem value="Blue - Skilled Worker">Blue - Skilled Worker</SelectItem>
-                  <SelectItem value="Yellow - Supervisor">Yellow - Supervisor</SelectItem>
-                  <SelectItem value="White - Trainee">White - Trainee</SelectItem>
-                  <SelectItem value="Black - Manager">Black - Manager</SelectItem>
-                  <SelectItem value="Gold - Academically Qualified">Gold - Academically Qualified</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          </div>
+        {/* Add Button */}
+        <div className="flex justify-end pt-4">
+          <Button 
+            className="bg-accent text-primary hover:bg-accent/90"
+            disabled={!data.frontImage || !data.cardType || !data.number || !data.expiryDate}
+          >
+            Add CSCS Card
+          </Button>
         </div>
-
-        {/* Qualifications Display */}
-        {analysisResult?.qualifications && (
-          <div className="space-y-2">
-            <Label>Detected Qualifications</Label>
-            <div className="p-3 bg-accent/50 rounded-lg">
-              <p className="font-medium">{analysisResult.qualifications.primary_qualification}</p>
-              {analysisResult.qualifications.work_categories?.length > 0 && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Work Categories: {analysisResult.qualifications.work_categories.join(', ')}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
