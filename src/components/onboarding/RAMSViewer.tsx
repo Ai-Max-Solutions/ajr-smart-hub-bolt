@@ -26,14 +26,16 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
   const startReading = () => {
     setIsReading(true);
     const timer = setInterval(() => {
-      setReadingTime(prev => prev + 1);
+      setReadingTime(prev => {
+        const newTime = prev + 1;
+        // Auto-enable signing after 15 seconds (minimum read time)
+        if (newTime >= 15) {
+          clearInterval(timer);
+          setIsReading(false);
+        }
+        return newTime;
+      });
     }, 1000);
-
-    // Auto-enable signing after 30 seconds (minimum read time)
-    setTimeout(() => {
-      clearInterval(timer);
-      setIsReading(false);
-    }, 30000);
 
     return () => clearInterval(timer);
   };
@@ -160,7 +162,7 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
               <Clock className="w-4 h-4 text-warning" />
               <span className="text-sm font-medium">
                 Reading time: {formatTime(readingTime)}
-                {readingTime < 30 && " (minimum 30 seconds required)"}
+                {readingTime < 15 && " (minimum 15 seconds required)"}
               </span>
             </div>
           </div>
@@ -192,7 +194,7 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
                   id="hasRead"
                   checked={hasRead}
                   onCheckedChange={(checked) => setHasRead(!!checked)}
-                  disabled={readingTime < 30}
+                  disabled={readingTime < 15}
                 />
                 <div className="grid gap-1.5 leading-none">
                   <Label
@@ -202,14 +204,14 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
                     I have read and understood this safety document
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Minimum review time: 30 seconds • Current time: {formatTime(readingTime)}
+                    Minimum review time: 15 seconds • Current time: {formatTime(readingTime)}
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Signature Section */}
-            {hasRead && readingTime >= 30 && (
+            {hasRead && readingTime >= 15 && (
               <div className="border rounded-lg p-4 bg-muted/20">
                 <h3 className="font-medium mb-3">Digital Signature Required</h3>
                 <p className="text-sm text-muted-foreground mb-4">
