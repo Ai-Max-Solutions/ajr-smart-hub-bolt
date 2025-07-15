@@ -36,31 +36,55 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
       }
 
       try {
-        // Get user's whalesync_postgres_id
-        const { data: userData, error: userError } = await supabase
-          .from('Users')
-          .select('whalesync_postgres_id')
-          .eq('supabase_auth_id', user.id)
+        // First check if user has uploaded a CSCS card using the direct table
+        const { data: cscsCard, error: cscsError } = await supabase
+          .from('cscs_cards')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .single();
 
-        if (userError || !userData) {
-          console.error('User not found:', userError);
-          setLoading(false);
-          return;
-        }
-
-        // Check CSCS status
-        const { data: status, error: statusError } = await supabase.rpc('check_user_cscs_status', {
-          p_user_id: userData.whalesync_postgres_id
-        });
-
-        if (statusError) {
-          console.error('Error checking CSCS status:', statusError);
-        } else if (status && typeof status === 'object' && !Array.isArray(status) && 'is_valid' in status) {
-          setCSCSStatus(status as unknown as CSCSStatus);
+        if (cscsCard && !cscsError) {
+          // User has a CSCS card, check if it's valid (not expired)
+          const today = new Date();
+          const expiryDate = new Date(cscsCard.expiry_date);
+          
+          if (expiryDate > today) {
+            // Card is valid
+            setCSCSStatus({
+              is_valid: true,
+              status: 'valid',
+              reason: 'CSCS card is valid',
+              requires_upload: false
+            });
+          } else {
+            // Card is expired
+            setCSCSStatus({
+              is_valid: false,
+              status: 'expired',
+              reason: 'CSCS card has expired',
+              requires_upload: true
+            });
+          }
+        } else {
+          // No CSCS card found, user needs to upload
+          setCSCSStatus({
+            is_valid: false,
+            status: 'missing',
+            reason: 'No CSCS card uploaded',
+            requires_upload: true
+          });
         }
       } catch (error) {
         console.error('Error in CSCS check:', error);
+        // Default to requiring upload on error
+        setCSCSStatus({
+          is_valid: false,
+          status: 'error',
+          reason: 'Error checking CSCS status',
+          requires_upload: true
+        });
       } finally {
         setLoading(false);
       }

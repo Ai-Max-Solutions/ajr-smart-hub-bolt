@@ -93,26 +93,22 @@ export const CSCSOnboardingFlow: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Get current user's whalesync_postgres_id
-      const { data: userData, error: userError } = await supabase
-        .from('Users')
-        .select('whalesync_postgres_id')
-        .eq('supabase_auth_id', user.id)
-        .single();
+      // Directly insert/update CSCS card record
+      const { error: upsertError } = await supabase
+        .from('cscs_cards')
+        .upsert({
+          user_id: user.id,
+          card_number: cscsData.number.replace(/\D/g, ''), // Clean card number
+          expiry_date: cscsData.expiryDate,
+          cscs_card_type: cscsData.cardType,
+          file_url: 'placeholder', // Required field - will be updated when actual file is uploaded
+          created_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
 
-      if (userError || !userData) {
-        throw new Error('User not found');
-      }
-
-      // Update CSCS status using the database function
-      const { error: updateError } = await supabase.rpc('update_user_cscs_status', {
-        p_user_id: userData.whalesync_postgres_id,
-        p_card_number: cscsData.number,
-        p_expiry_date: cscsData.expiryDate
-      });
-
-      if (updateError) {
-        throw updateError;
+      if (upsertError) {
+        throw upsertError;
       }
 
       setCurrentStep(3); // Move to success step
