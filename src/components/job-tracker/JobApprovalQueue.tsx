@@ -74,13 +74,13 @@ export const JobApprovalQueue: React.FC<JobApprovalQueueProps> = ({
           safety_checks_completed,
           photos,
           submitted_at,
-          Projects:project_id(projectname),
-          Plots:plot_id(plotnumber),
-          job_types:job_type_id(
+          Projects!project_id(projectname),
+          Plots!plot_id(plotnumber),
+          job_types!job_type_id(
             name,
-            work_categories:work_category_id(name)
+            work_categories!work_category_id(name)
           ),
-          Users:assigned_user_id(fullname)
+          Users!assigned_user_id(fullname)
         `)
         .eq('status', 'pending')
         .order('submitted_at', { ascending: true });

@@ -76,10 +76,26 @@ export const JobSubmissionForm: React.FC<JobSubmissionFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assignment || !user?.full_name) return;
+    if (!assignment || !user?.id) return;
 
     setSubmitting(true);
     try {
+      // Get user's fullname from Users table
+      const { data: userData } = await supabase
+        .from('Users')
+        .select('fullname')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (!userData?.fullname) {
+        toast({
+          title: "User Profile Error",
+          description: "Could not find your user profile. Please contact admin.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Check if RAMS is required and signed
       // This would be enhanced with actual RAMS checking logic
       
@@ -89,7 +105,7 @@ export const JobSubmissionForm: React.FC<JobSubmissionFormProps> = ({
         project_id: assignment.project_id,
         plot_id: assignment.plot_id,
         job_type_id: assignment.job_type_id,
-        assigned_user_id: user.full_name,
+        assigned_user_id: userData.fullname,
         work_date: workDate,
         start_time: startTime || null,
         end_time: endTime || null,

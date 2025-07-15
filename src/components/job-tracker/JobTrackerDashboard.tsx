@@ -78,7 +78,18 @@ export const JobTrackerDashboard = () => {
   };
 
   const fetchJobAssignments = async () => {
+    if (!user?.id) return;
+    
     try {
+      // Get user's fullname from Users table
+      const { data: userData } = await supabase
+        .from('Users')
+        .select('fullname')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (!userData?.fullname) return;
+
       const { data, error } = await supabase
         .from('user_job_assignments')
         .select(`
@@ -98,7 +109,7 @@ export const JobTrackerDashboard = () => {
           plot_job_status(status)
         `)
         .eq('is_active', true)
-        .eq('user_id', user?.full_name);
+        .eq('user_id', userData.fullname);
 
       if (error) throw error;
 
@@ -111,7 +122,7 @@ export const JobTrackerDashboard = () => {
         plot_number: assignment.Plots?.plotnumber || 'Unknown Plot',
         job_type_name: assignment.job_types?.name || 'Unknown Job',
         work_category_name: assignment.job_types?.work_categories?.name || 'Unknown Category',
-        status: assignment.plot_job_status?.[0]?.status || 'available',
+        status: Array.isArray(assignment.plot_job_status) ? assignment.plot_job_status[0]?.status || 'available' : 'available',
         pricing_model: assignment.job_types?.pricing_model || 'day_rate',
         default_unit_price: assignment.job_types?.default_unit_price || 0,
         unit_type: assignment.job_types?.default_unit_type || 'job'
@@ -124,14 +135,25 @@ export const JobTrackerDashboard = () => {
   };
 
   const fetchStats = async () => {
+    if (!user?.id) return;
+    
     try {
       setLoading(true);
+      
+      // Get user's fullname from Users table
+      const { data: userData } = await supabase
+        .from('Users')
+        .select('fullname')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (!userData?.fullname) return;
       
       // Fetch job tracker stats
       const { data: jobData, error: jobError } = await supabase
         .from('job_tracker')
         .select('status, calculated_total, override_total, hours_worked')
-        .eq('assigned_user_id', user?.full_name);
+        .eq('assigned_user_id', userData.fullname);
 
       if (jobError) throw jobError;
 

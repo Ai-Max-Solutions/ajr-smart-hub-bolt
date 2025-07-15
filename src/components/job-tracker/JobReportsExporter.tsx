@@ -62,7 +62,7 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
           agreed_rate,
           status,
           work_date,
-          Users:assigned_user_id(fullname)
+          Users!assigned_user_id(fullname)
         `);
 
       if (selectedProject) {
@@ -136,10 +136,10 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
           status,
           hours_worked,
           safety_checks_completed,
-          Projects:project_id(projectname, projectnumber),
-          Plots:plot_id(plotnumber),
-          job_types:job_type_id(name, work_categories:work_category_id(name)),
-          Users:assigned_user_id(fullname)
+          Projects!project_id(projectname),
+          Plots!plot_id(plotnumber),
+          job_types!job_type_id(name, work_categories!work_category_id(name)),
+          Users!assigned_user_id(fullname)
         `)
         .order('work_date', { ascending: false });
 
@@ -358,11 +358,10 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Date Range</label>
-              <DateRangePicker
-                date={dateRange}
-                onDateChange={setDateRange}
-                className="w-full"
-              />
+              {/* DateRangePicker to be implemented */}
+              <div className="p-2 border rounded text-sm text-muted-foreground">
+                Date range picker coming soon
+              </div>
             </div>
           </div>
 
