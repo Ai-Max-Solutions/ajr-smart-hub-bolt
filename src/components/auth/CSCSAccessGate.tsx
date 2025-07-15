@@ -70,9 +70,9 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
           return;
         }
 
-        // Now query CSCS cards using both supabase_auth_id and whalesync_postgres_id to see which one works
+        // Query CSCS cards - try with auth ID first, then whalesync ID if needed
         console.log('[CSCSAccessGate] Querying CSCS cards with auth ID:', user.id);
-        const { data: cscsCard, error: cscsError } = await supabase
+        let { data: cscsCard, error: cscsError } = await supabase
           .from('cscs_cards')
           .select('*')
           .eq('user_id', user.id)
@@ -94,9 +94,13 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
             .maybeSingle();
           
           console.log('[CSCSAccessGate] CSCS query with whalesync ID result:', { cscsCard2, cscsError2 });
+          
+          // Use the result from the second query
+          cscsCard = cscsCard2;
+          cscsError = cscsError2;
         }
 
-        console.log('[CSCSAccessGate] Query result:', { cscsCard, cscsError });
+        console.log('[CSCSAccessGate] Final query result:', { cscsCard, cscsError });
 
         if (cscsError) {
           console.error('[CSCSAccessGate] Database error:', cscsError);
