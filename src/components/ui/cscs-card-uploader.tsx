@@ -36,13 +36,21 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
   const [uploadError, setUploadError] = useState('');
   const [isCustomType, setIsCustomType] = useState(false);
   
-  // CSCS card type options
+  // CSCS card type options with colors
   const cardTypes = [
-    'Labourer',
-    'Supervisor', 
-    'Manager',
-    'Site Visitor',
-    'Other'
+    { value: 'Labourer', label: 'Labourer (Green)', color: '#00A650' },
+    { value: 'Apprentice', label: 'Apprentice (Red)', color: '#D71920' },
+    { value: 'Trainee', label: 'Trainee (Red)', color: '#D71920' },
+    { value: 'Experienced Worker', label: 'Experienced Worker (Red)', color: '#D71920' },
+    { value: 'Experienced Technical/Supervisor/Manager', label: 'Experienced Technical/Supervisor/Manager (Red)', color: '#D71920' },
+    { value: 'Skilled Worker', label: 'Skilled Worker (Blue)', color: '#0072CE' },
+    { value: 'Gold – Advanced Craft', label: 'Gold – Advanced Craft (Gold)', color: '#FFD700' },
+    { value: 'Gold – Supervisor', label: 'Gold – Supervisor (Gold)', color: '#FFD700' },
+    { value: 'Academically Qualified Person', label: 'Academically Qualified Person (White)', color: '#FFFFFF' },
+    { value: 'Professionally Qualified Person', label: 'Professionally Qualified Person (White)', color: '#FFFFFF' },
+    { value: 'Manager', label: 'Manager (Black)', color: '#000000' },
+    { value: 'Operative', label: 'Operative (Default)', color: '#00A650' },
+    { value: 'Other', label: 'Other (Custom)', color: '#666666' }
   ];
 
   // File validation
@@ -140,11 +148,11 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           const result = analysis.analysis;
           setAnalysisResult(result);
           
-          // Auto-populate form fields
+          // Auto-populate form fields - default to Operative if AI doesn't know
           updateData({
             number: result.card_number || data.number,
             expiryDate: result.expiry_date ? formatDateForInput(result.expiry_date) : data.expiryDate,
-            cardType: result.card_type || data.cardType
+            cardType: result.card_type || data.cardType || 'Operative'
           });
           
           onAnalysisComplete?.(result);
@@ -267,12 +275,18 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
             </Label>
             <Select value={isCustomType ? 'Other' : data.cardType} onValueChange={handleCardTypeChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select your CSCS card type" />
+                <SelectValue placeholder="Select your CSCS card type (defaults to Operative)" />
               </SelectTrigger>
               <SelectContent>
                 {cardTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
+                  <SelectItem key={type.value} value={type.value}>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full border" 
+                        style={{ backgroundColor: type.color, borderColor: type.color === '#FFFFFF' ? '#ccc' : type.color }}
+                      />
+                      {type.label}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
