@@ -185,7 +185,7 @@ const OperativeDashboard = () => {
               <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                 <div className="text-center lg:text-left">
                   <CardTitle className="text-2xl lg:text-3xl font-bold text-aj-yellow mb-2">
-                    {getGreeting()}, {userData?.firstname || (user as any)?.user_metadata?.first_name || user?.email?.split('@')[0] || 'User'}
+                    {loading ? `${getGreeting()}...` : `${getGreeting()}, ${userData?.firstname || (user as any)?.user_metadata?.first_name || user?.email?.split('@')[0] || 'User'}`}
                   </CardTitle>
                   <p className="text-base text-white/80">
                     Welcome to your AJ Ryan workspace
