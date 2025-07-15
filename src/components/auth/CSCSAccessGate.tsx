@@ -39,7 +39,39 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
       console.log('[CSCSAccessGate] Checking CSCS status for user:', user.id);
 
       try {
-        // Get the most recent CSCS card using maybeSingle to avoid errors when no data exists
+        // First get the user's whalesync_postgres_id from the Users table
+        const { data: userData, error: userError } = await supabase
+          .from('Users')
+          .select('whalesync_postgres_id, email')
+          .eq('supabase_auth_id', user.id)
+          .maybeSingle();
+
+        console.log('[CSCSAccessGate] User query result:', { userData, userError, authUserId: user.id });
+
+        if (userError) {
+          console.error('[CSCSAccessGate] Error fetching user data:', userError);
+          setCSCSStatus({
+            is_valid: false,
+            status: 'error',
+            reason: 'Error fetching user data',
+            requires_upload: true
+          });
+          return;
+        }
+
+        if (!userData) {
+          console.log('[CSCSAccessGate] User not found in Users table');
+          setCSCSStatus({
+            is_valid: false,
+            status: 'error',
+            reason: 'User profile not found',
+            requires_upload: true
+          });
+          return;
+        }
+
+        // Now query CSCS cards using both supabase_auth_id and whalesync_postgres_id to see which one works
+        console.log('[CSCSAccessGate] Querying CSCS cards with auth ID:', user.id);
         const { data: cscsCard, error: cscsError } = await supabase
           .from('cscs_cards')
           .select('*')
@@ -47,6 +79,22 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
+
+        console.log('[CSCSAccessGate] CSCS query with auth ID result:', { cscsCard, cscsError });
+
+        // If no card found with auth ID, try with whalesync_postgres_id
+        if (!cscsCard && !cscsError) {
+          console.log('[CSCSAccessGate] Trying with whalesync_postgres_id:', userData.whalesync_postgres_id);
+          const { data: cscsCard2, error: cscsError2 } = await supabase
+            .from('cscs_cards')
+            .select('*')
+            .eq('user_id', userData.whalesync_postgres_id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          console.log('[CSCSAccessGate] CSCS query with whalesync ID result:', { cscsCard2, cscsError2 });
+        }
 
         console.log('[CSCSAccessGate] Query result:', { cscsCard, cscsError });
 
