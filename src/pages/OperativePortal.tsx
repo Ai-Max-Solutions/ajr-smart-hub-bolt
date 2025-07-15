@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { getPersonalizedGreeting } from '@/utils/greetings';
+import { supabase } from '@/integrations/supabase/client';
 import { 
-  DollarSign, 
+  PoundSterling, 
   Clock, 
   FileText, 
   User, 
@@ -31,7 +32,32 @@ import MyProfile from '@/components/operative/MyProfile';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const [userData, setUserData] = useState<{ firstname?: string; lastname?: string } | null>(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!session?.user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('Users')
+          .select('firstname, lastname')
+          .eq('supabase_auth_id', session.user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user data:', error);
+        } else {
+          setUserData(data);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+      }
+    };
+
+    fetchUserData();
+  }, [session]);
 
   const quickActions = [
     {
@@ -51,7 +77,7 @@ const OperativeDashboard = () => {
     {
       title: 'My Payslips',
       description: 'View weekly earnings and payment status',
-      icon: DollarSign,
+      icon: PoundSterling,
       action: () => navigate('/operative/payslips'),
     },
     {
@@ -116,7 +142,7 @@ const OperativeDashboard = () => {
               <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                 <div className="text-center lg:text-left">
                   <CardTitle className="text-2xl lg:text-3xl font-bold text-aj-yellow mb-2">
-                    {getGreeting()}, {(user as any)?.user_metadata?.first_name || user?.email?.split('@')[0] || 'User'}
+                    {getGreeting()}, {userData?.firstname || (user as any)?.user_metadata?.first_name || user?.email?.split('@')[0] || 'User'}
                   </CardTitle>
                   <p className="text-base text-white/80">
                     Welcome to your AJ Ryan workspace
