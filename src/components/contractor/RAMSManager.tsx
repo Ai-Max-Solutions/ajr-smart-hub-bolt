@@ -119,7 +119,7 @@ CONTROL MEASURES
 5. Emergency procedures must be understood by all personnel
 
 By signing this document, you confirm that you have read, understood, and will comply with all safety procedures outlined above.`,
-          minimum_read_time: 60,
+          minimum_read_time: 15,
           requires_fresh_signature: true,
           project_name: 'Windsor Heights Development'
         },
@@ -152,7 +152,7 @@ CONTROL MEASURES
 4. Regular tool inspection
 
 By signing this document, you confirm understanding of all safety requirements.`,
-          minimum_read_time: 45,
+          minimum_read_time: 15,
           requires_fresh_signature: false
         }
       ]);

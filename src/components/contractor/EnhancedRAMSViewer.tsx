@@ -75,7 +75,15 @@ const EnhancedRAMSViewer = ({
       setIsReading(true);
       
       intervalRef.current = setInterval(() => {
-        setReadingTime(prev => prev + 1);
+        setReadingTime(prev => {
+          const newTime = prev + 1;
+          // Continue until minimum time is reached
+          if (newTime >= document.minimum_read_time) {
+            clearInterval(intervalRef.current!);
+            setIsReading(false);
+          }
+          return newTime;
+        });
       }, 1000);
     }
   };
