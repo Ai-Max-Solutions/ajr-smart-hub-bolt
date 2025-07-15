@@ -8,13 +8,13 @@
 
 @layer base {
   :root {
-    /* AJ Ryan Brand Colors - New Premium Design */
+    /* AJ Ryan Brand Colors - Official Brand Guidelines */
     --aj-navy-deep: 223 45% 11%; /* #1d1e3d - Dark Blue Primary */
     --aj-navy-light: 223 35% 20%; /* Lighter navy for panels */
-    --aj-yellow: 48 85% 45%; /* #d4a929 - More subdued yellow */
+    --aj-yellow: 48 100% 56%; /* #ffcf21 - Official Strong Yellow */
     --aj-yellow-bright: 48 100% 65%; /* Brighter yellow variant */
     --aj-blue-calm: 215 25% 70%; /* #acb7d1 - Calming Blue */
-    --aj-blue-accent: 203 85% 35%; /* #0a7cb8 - Strong but not overwhelming blue */
+    --aj-blue-accent: 203 100% 31%; /* #006198 - Official Strong Blue */
     
     /* AJ Ryan Premium Light Theme */
     --background: 0 0% 100%; /* Pure white background */

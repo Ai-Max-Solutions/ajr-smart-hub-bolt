@@ -16,6 +16,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 import DirectorDashboard from "./pages/DirectorDashboard";
 import AIAssistant from "./pages/AIAssistant";
 import { Auth } from "./pages/Auth";
+import ContractorAuth from "./pages/ContractorAuth";
+import ContractorOnboarding from "./pages/ContractorOnboarding";
+import ContractorDashboard from "./pages/ContractorDashboard";
 import NotFound from "./pages/NotFound";
 import InductionDemo from "./pages/InductionDemo";
 import MobileDashboard from "./pages/MobileDashboard";
@@ -34,6 +37,9 @@ function App() {
             <Routes>
               {/* Public routes without navigation */}
               <Route path="/auth" element={<Auth />} />
+              <Route path="/contractor/auth" element={<ContractorAuth />} />
+              <Route path="/contractor/onboarding" element={<ContractorOnboarding />} />
+              <Route path="/contractor/dashboard" element={<ContractorDashboard />} />
               <Route path="/check/:docId" element={<DocumentStatusChecker />} />
               <Route path="/beta/*" element={<InductionDemo />} />
               

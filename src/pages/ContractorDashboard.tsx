@@ -1,0 +1,512 @@
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Truck, 
+  FileText, 
+  Clock, 
+  CheckCircle, 
+  AlertTriangle, 
+  Plus,
+  Building2,
+  Calendar,
+  User,
+  Phone,
+  Mail,
+  LogOut
+} from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import ContractorDeliveryForm from '@/components/contractor/ContractorDeliveryForm';
+import { Separator } from '@/components/ui/separator';
+
+interface ContractorProfile {
+  id: string;
+  company: {
+    name: string;
+    contact_email: string;
+    contact_phone: string;
+  };
+  job_role: {
+    name: string;
+  };
+  emergency_contact: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+  vehicle_details: {
+    hasVehicle: boolean;
+    vehicleType: string;
+    weight: string;
+  };
+}
+
+interface DeliveryRequest {
+  id: string;
+  request_number: string;
+  project_name: string;
+  delivery_date: string;
+  time_slot: string;
+  status: 'pending' | 'approved' | 'rejected';
+  items: any[];
+  total_items: number;
+  created_at: string;
+  admin_notes?: string;
+}
+
+const ContractorDashboard = () => {
+  const [profile, setProfile] = useState<ContractorProfile | null>(null);
+  const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showDeliveryForm, setShowDeliveryForm] = useState(false);
+  
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      loadContractorData();
+    }
+  }, [user]);
+
+  const loadContractorData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load contractor profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('contractor_profiles')
+        .select(`
+          *,
+          company:contractor_companies(*),
+          job_role:contractor_job_roles(*)
+        `)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (profileError) throw profileError;
+      setProfile(profileData);
+
+      // Load delivery requests
+      const { data: requestsData, error: requestsError } = await supabase
+        .from('delivery_requests')
+        .select('*')
+        .eq('contractor_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (requestsError) throw requestsError;
+      setDeliveryRequests(requestsData || []);
+
+    } catch (error: any) {
+      console.error('Error loading contractor data:', error);
+      toast({
+        title: "Error loading data",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/contractor/auth');
+    } catch (error: any) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+      case 'approved':
+        return <Badge variant="default" className="bg-success"><CheckCircle className="h-3 w-3 mr-1" />Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />Rejected</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showDeliveryForm) {
+    return (
+      <ContractorDeliveryForm 
+        onClose={() => setShowDeliveryForm(false)}
+        onSuccess={() => {
+          setShowDeliveryForm(false);
+          loadContractorData();
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-subtle">
+      {/* Header */}
+      <div className="bg-primary text-primary-foreground p-6 shadow-card">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Building2 className="h-8 w-8" />
+              <div>
+                <h1 className="text-2xl font-bold">AJ Ryan Contractor Portal</h1>
+                <p className="text-primary-foreground/80">
+                  {profile?.company.name} • {profile?.job_role.name}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-right text-sm">
+                <p className="font-medium">{user?.email}</p>
+                <p className="text-primary-foreground/80">Contractor Access</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="deliveries">Delivery Requests</TabsTrigger>
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-6">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-5 w-5 text-warning" />
+                    <div>
+                      <p className="text-sm font-medium">Pending</p>
+                      <p className="text-2xl font-bold">
+                        {deliveryRequests.filter(r => r.status === 'pending').length}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="h-5 w-5 text-success" />
+                    <div>
+                      <p className="text-sm font-medium">Approved</p>
+                      <p className="text-2xl font-bold">
+                        {deliveryRequests.filter(r => r.status === 'approved').length}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <div>
+                      <p className="text-sm font-medium">Rejected</p>
+                      <p className="text-2xl font-bold">
+                        {deliveryRequests.filter(r => r.status === 'rejected').length}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-2">
+                    <Truck className="h-5 w-5 text-accent" />
+                    <div>
+                      <p className="text-sm font-medium">Total</p>
+                      <p className="text-2xl font-bold">{deliveryRequests.length}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+                <CardDescription>Common contractor tasks</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-4">
+                  <Button onClick={() => setShowDeliveryForm(true)} className="btn-primary">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Request New Delivery
+                  </Button>
+                  <Button variant="outline">
+                    <FileText className="h-4 w-4 mr-2" />
+                    View RAMS Documents
+                  </Button>
+                  <Button variant="outline">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Upcoming Deliveries
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Delivery Requests */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Delivery Requests</CardTitle>
+                <CardDescription>Your latest delivery booking requests</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {deliveryRequests.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No delivery requests yet</p>
+                    <Button 
+                      onClick={() => setShowDeliveryForm(true)} 
+                      className="mt-4 btn-primary"
+                    >
+                      Create Your First Request
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {deliveryRequests.slice(0, 5).map((request) => (
+                      <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3">
+                            <p className="font-medium">#{request.request_number}</p>
+                            {getStatusBadge(request.status)}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {request.project_name} • {new Date(request.delivery_date).toLocaleDateString()} • {request.time_slot}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {request.total_items} items
+                          </p>
+                        </div>
+                        <div className="text-right text-sm text-muted-foreground">
+                          {new Date(request.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="deliveries" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Delivery Requests</h2>
+                <p className="text-muted-foreground">Manage your delivery bookings</p>
+              </div>
+              <Button onClick={() => setShowDeliveryForm(true)} className="btn-primary">
+                <Plus className="h-4 w-4 mr-2" />
+                New Request
+              </Button>
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                {deliveryRequests.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Truck className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No delivery requests</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Start by creating your first delivery request
+                    </p>
+                    <Button onClick={() => setShowDeliveryForm(true)} className="btn-primary">
+                      Create Delivery Request
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {deliveryRequests.map((request) => (
+                      <div key={request.id} className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h3 className="font-semibold">#{request.request_number}</h3>
+                              {getStatusBadge(request.status)}
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <p className="font-medium text-muted-foreground">Project</p>
+                                <p>{request.project_name}</p>
+                              </div>
+                              <div>
+                                <p className="font-medium text-muted-foreground">Delivery Date</p>
+                                <p>{new Date(request.delivery_date).toLocaleDateString()}</p>
+                              </div>
+                              <div>
+                                <p className="font-medium text-muted-foreground">Time Slot</p>
+                                <p>{request.time_slot}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-3">
+                              <p className="font-medium text-muted-foreground">Items ({request.total_items})</p>
+                              <div className="text-sm text-muted-foreground">
+                                {request.items.slice(0, 3).map((item: any, index: number) => (
+                                  <span key={index}>
+                                    {item.description} ({item.quantity})
+                                    {index < Math.min(request.items.length, 3) - 1 ? ', ' : ''}
+                                  </span>
+                                ))}
+                                {request.items.length > 3 && ` +${request.items.length - 3} more`}
+                              </div>
+                            </div>
+
+                            {request.admin_notes && (
+                              <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+                                <p className="font-medium text-muted-foreground">Admin Notes</p>
+                                <p className="text-sm">{request.admin_notes}</p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="text-right text-sm text-muted-foreground">
+                            <p>Submitted</p>
+                            <p>{new Date(request.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="profile" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Contractor Profile</CardTitle>
+                <CardDescription>Your company and contact information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold flex items-center">
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Company Information
+                    </h3>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Company Name</p>
+                        <p>{profile?.company.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Job Role</p>
+                        <p>{profile?.job_role.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Contact Email</p>
+                        <p className="flex items-center">
+                          <Mail className="h-4 w-4 mr-2" />
+                          {profile?.company.contact_email}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Contact Phone</p>
+                        <p className="flex items-center">
+                          <Phone className="h-4 w-4 mr-2" />
+                          {profile?.company.contact_phone}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Emergency Contact
+                    </h3>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Name</p>
+                        <p>{profile?.emergency_contact.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                        <p className="flex items-center">
+                          <Phone className="h-4 w-4 mr-2" />
+                          {profile?.emergency_contact.phone}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Relationship</p>
+                        <p>{profile?.emergency_contact.relationship}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {profile?.vehicle_details.hasVehicle && (
+                  <>
+                    <Separator />
+                    <div className="space-y-4">
+                      <h3 className="font-semibold flex items-center">
+                        <Truck className="h-4 w-4 mr-2" />
+                        Vehicle Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Vehicle Type</p>
+                          <p>{profile.vehicle_details.vehicleType}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Weight</p>
+                          <p>{profile.vehicle_details.weight} tonnes</p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default ContractorDashboard;
