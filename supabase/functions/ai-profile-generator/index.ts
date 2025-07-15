@@ -9,37 +9,63 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Cheeky AI moods and personalities
+// Job type to visual mapping for enhanced avatars
+const JOB_TYPE_VISUALS = {
+  'Sprinkler Fitter': 'sprinkler system pipes and fittings in background, wearing safety gear',
+  'Plumber': 'plumbing tools and pipes, professional plumber appearance',
+  'Electrician': 'electrical equipment and wiring, electrician in safety vest',
+  'Heating Engineer': 'heating systems and boilers, HVAC professional',
+  'Gas Engineer': 'gas installation equipment, certified gas professional',
+  'Multi-Skilled Engineer': 'various technical equipment, versatile engineer',
+  'Testing & Commissioning Engineer': 'testing equipment and instruments, commissioning specialist',
+  'Project Manager': 'construction site background, management professional',
+  'Site Supervisor': 'construction site with hard hat, supervisory role',
+  'Apprentice': 'learning environment, young professional with tools',
+  'Operative': 'construction site environment, skilled worker',
+  'Default': 'construction site background, professional worker'
+};
+
+// CSCS card color mapping to visual elements
+const CSCS_VISUAL_MAPPING = {
+  'Green': { description: 'Green CSCS card holder, skilled laborer', safety_level: 'standard safety gear' },
+  'Blue': { description: 'Blue CSCS card holder, skilled worker', safety_level: 'professional safety equipment' },
+  'Gold': { description: 'Gold CSCS card holder, supervisor level', safety_level: 'high-visibility supervisor gear' },
+  'White': { description: 'White CSCS card holder, manager level', safety_level: 'management attire with safety elements' },
+  'Red': { description: 'Red CSCS card holder, trainee', safety_level: 'trainee safety gear' },
+  'Default': { description: 'CSCS compliant worker', safety_level: 'standard safety gear' }
+};
+
+// Enhanced AI moods with AJ Ryan branding
 const AI_MOODS = [
   {
-    name: "Professional Overachiever",
-    style: "ultra-professional headshot in business attire, confident smile, perfect lighting, corporate background",
-    personality: "I'm feeling very serious today. Let's make you look like CEO material! 💼"
+    name: "AJ Ryan Professional",
+    style: "professional construction industry headshot, confident and competent, modern industrial background with AJ Ryan brand colors (dark blue #1d1e3d and yellow #ffcf21)",
+    personality: "Ready to showcase your AJ Ryan professionalism! Looking sharp and site-ready! 🏗️"
   },
   {
-    name: "Creative Genius", 
-    style: "artistic portrait with creative lighting, thoughtful expression, modern artistic background",
-    personality: "Feeling artsy! Time to unleash your inner creative mastermind! 🎨"
+    name: "Safety First Expert", 
+    style: "professional safety-focused portrait, high-visibility gear, construction site background, AJ Ryan brand styling",
+    personality: "Safety first, style second! Well, actually both are first-class today! 🦺"
   },
   {
-    name: "Friendly Neighborhood Person",
-    style: "warm and approachable portrait, genuine smile, casual professional attire, friendly atmosphere",
-    personality: "I'm in a good mood - let's make you look like the friend everyone wants to have! 😊"
+    name: "Technical Specialist",
+    style: "expert professional headshot, technical competence visible, clean industrial background with subtle AJ Ryan branding",
+    personality: "Looking like the technical expert you are - clients will be impressed! 🔧"
   },
   {
-    name: "Mysterious Genius",
-    style: "sophisticated portrait with dramatic lighting, intelligent gaze, modern minimalist background",
-    personality: "Ooh, mysterious vibes today! Let's give you that 'I know secrets' look... 🕵️"
+    name: "Team Leader",
+    style: "confident leadership portrait, approachable but authoritative, construction management setting with AJ Ryan colors",
+    personality: "Leadership vibes activated! Ready to inspire your team! 👷‍♂️"
   },
   {
-    name: "Quirky Character",
-    style: "fun and unique portrait with personality, expressive features, colorful modern background",
-    personality: "I'm feeling playful! Warning: May result in excessive charm and likeability! 🎭"
+    name: "AJ Ryan Pride",
+    style: "proud AJ Ryan team member, professional company representation, branded background elements",
+    personality: "Representing AJ Ryan with style! Company pride level: Maximum! 💼"
   },
   {
-    name: "Tech Wizard",
-    style: "modern tech-savvy portrait, confident and innovative look, sleek futuristic background",
-    personality: "Beep boop! Let's make you look like you invented the future! 🤖"
+    name: "Site Ready",
+    style: "ready-for-action portrait, practical work attire, dynamic construction environment, AJ Ryan branded elements",
+    personality: "Site-ready and looking good! Let's build something amazing! 🚧"
   }
 ];
 
@@ -74,19 +100,76 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Get enhanced user data for personalization
+    const { data: userData, error: userError } = await supabase
+      .from('Users')
+      .select('whalesync_postgres_id, firstname, lastname, role, primaryskill, skills')
+      .eq('supabase_auth_id', userId)
+      .single();
+
+    if (userError) {
+      console.error('Error fetching user data:', userError);
+    }
+
+    // Get CSCS card information
+    const { data: cscsData, error: cscsError } = await supabase
+      .from('cscs_cards')
+      .select('cscs_card_type, card_color, qualifications')
+      .eq('user_id', userData?.whalesync_postgres_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (cscsError) {
+      console.log('No CSCS data found or error:', cscsError.message);
+    }
+
+    console.log('Enhanced user data:', { userData, cscsData });
+
     // Pick a random AI mood
     const selectedMood = AI_MOODS[Math.floor(Math.random() * AI_MOODS.length)];
     
-    // Create base prompt
-    let basePrompt = `Professional headshot portrait of a person working as a ${userRole || 'construction worker'}`;
+    // Determine job type visuals
+    const effectiveRole = userData?.role || userRole || 'Operative';
+    const primarySkill = userData?.primaryskill || '';
+    const jobTypeKey = primarySkill || effectiveRole;
+    const jobVisuals = JOB_TYPE_VISUALS[jobTypeKey] || JOB_TYPE_VISUALS['Default'];
     
-    // Add user's name context if provided
-    if (userName) {
-      basePrompt += `, confident and professional appearance`;
+    // Determine CSCS visuals
+    const cscsColor = cscsData?.card_color || 'Default';
+    const cscsVisuals = CSCS_VISUAL_MAPPING[cscsColor] || CSCS_VISUAL_MAPPING['Default'];
+    
+    // Build enhanced prompt with personalization
+    let enhancedPrompt = `Professional headshot portrait of ${userName || 'a professional'} working as a ${effectiveRole}`;
+    
+    // Add CSCS context
+    enhancedPrompt += `, ${cscsVisuals.description}`;
+    
+    // Add job-specific context
+    enhancedPrompt += `, ${jobVisuals}`;
+    
+    // Add safety and compliance context
+    enhancedPrompt += `, ${cscsVisuals.safety_level}`;
+    
+    // Add AJ Ryan branding
+    enhancedPrompt += `, professional AJ Ryan Mechanical Services team member`;
+    
+    // Add qualifications context if available
+    if (cscsData?.qualifications?.primary_qualification) {
+      enhancedPrompt += `, ${cscsData.qualifications.primary_qualification} qualified`;
     }
-
-    // Use custom style or AI mood
-    const finalPrompt = customStyle || `${basePrompt}, ${selectedMood.style}, high quality, realistic, well-lit, professional photography`;
+    
+    // Use custom style or enhanced AI mood
+    const finalPrompt = customStyle || `${enhancedPrompt}, ${selectedMood.style}, high quality, realistic, well-lit, professional construction industry photography`;
+    
+    console.log('Enhanced prompt context:', {
+      effectiveRole,
+      primarySkill,
+      jobTypeKey,
+      cscsColor,
+      cscsType: cscsData?.cscs_card_type,
+      qualifications: cscsData?.qualifications
+    });
 
     console.log(`AI Mood: ${selectedMood.name} - ${selectedMood.personality}`);
     console.log(`Generating image with prompt: ${finalPrompt}`);

@@ -232,6 +232,8 @@ const MyProfile = () => {
               currentAvatarUrl={formData.avatarUrl}
               userName={`${formData.firstName} ${formData.lastName}`.trim()}
               userRole={userProfile?.role || 'Site Operative'}
+              userSkills={userProfile?.skills || []}
+              cscsLevel={userProfile?.cscs_validation_status || 'Pending'}
               onAvatarUpdate={(url) => setFormData({ ...formData, avatarUrl: url })}
             />
           </CardContent>

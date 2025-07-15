@@ -19,6 +19,8 @@ interface ProfilePictureUploaderProps {
   currentAvatarUrl?: string;
   userName?: string;
   userRole?: string;
+  userSkills?: string[];
+  cscsLevel?: string;
   onAvatarUpdate: (url: string) => void;
 }
 
@@ -26,6 +28,8 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
   currentAvatarUrl,
   userName,
   userRole,
+  userSkills,
+  cscsLevel,
   onAvatarUpdate
 }) => {
   const { user } = useAuth();
@@ -378,7 +382,7 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
                   Take Selfie 📸
                 </Button>
 
-                {/* AI Generation Button */}
+                 {/* AI Generation Button */}
                 <Button
                   onClick={handleGenerateAI}
                   disabled={isUploading || isGenerating}
@@ -388,12 +392,12 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      AI is being creative...
+                      AI creating your personalized avatar...
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Let AI Surprise Me! ✨
+                      Generate Smart AJ Ryan Avatar ✨
                     </>
                   )}
                 </Button>
@@ -429,14 +433,14 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
             )}
           </div>
 
-          {/* Fun Helper Text */}
+          {/* Enhanced Helper Text */}
           <div className="text-center max-w-md">
             <p className="text-sm text-muted-foreground mb-2">
-              Can't be bothered with a selfie? No worries! 
+              🎯 Smart AI avatars use your role{userRole && ` (${userRole})`}, CSCS level{cscsLevel && ` (${cscsLevel})`}, and AJ Ryan branding!
             </p>
             <p className="text-xs text-muted-foreground italic">
-              Our AI is feeling particularly {isGenerating ? 'creative' : 'cheeky'} today and might surprise you! 
-              Sometimes it goes full professional, sometimes it gets... interesting. 😄
+              Our AI creates personalized professional headshots based on your job type, qualifications, and company standards. 
+              Looking professional has never been this easy! 🏗️
             </p>
           </div>
 
