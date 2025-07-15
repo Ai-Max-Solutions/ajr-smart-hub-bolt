@@ -524,7 +524,7 @@ const AdminReports = () => {
       // Executive Summary section if AI insights available
       let currentYPosition = height - 160;
       if (aiInsights) {
-        page.drawText("Executive Summary - AI Quality Insights", {
+        page.drawText("Executive Summary", {
           x: 21,
           y: currentYPosition,
           size: 12,
@@ -532,41 +532,36 @@ const AdminReports = () => {
           color: black,
         });
         
-        currentYPosition -= 20;
+        currentYPosition -= 25;
         
-        // Split insights into lines for PDF
-        const maxLineLength = 80;
-        const insightLines = aiInsights.split('\n').flatMap(line => {
-          if (line.length <= maxLineLength) return [line];
-          const words = line.split(' ');
-          const lines = [];
-          let currentLine = '';
-          
-          words.forEach(word => {
-            if ((currentLine + word).length <= maxLineLength) {
-              currentLine += (currentLine ? ' ' : '') + word;
-            } else {
-              if (currentLine) lines.push(currentLine);
-              currentLine = word;
-            }
-          });
-          if (currentLine) lines.push(currentLine);
-          return lines;
-        });
+        // Split insights into bullet points and apply AJ Ryan styling
+        const insightLines = aiInsights.split('\n').filter(line => line.trim());
         
-        // Draw insight lines
+        // Draw insight lines with Strong Yellow bullets and Calibri 11pt italic
         for (const line of insightLines.slice(0, 8)) { // Limit to 8 lines to fit on page
-          page.drawText(line, {
-            x: 21,
-            y: currentYPosition,
-            size: 9,
-            font: font,
-            color: rgb(0.2, 0.2, 0.2),
-          });
-          currentYPosition -= 14;
+          if (line.trim()) {
+            // Draw Strong Yellow bullet point
+            page.drawText("•", {
+              x: 21,
+              y: currentYPosition,
+              size: 12,
+              font: boldFont,
+              color: rgb(1, 0.812, 0.129), // Strong Yellow #ffcf21
+            });
+            
+            // Draw insight text in Calibri 11pt (using italic styling)
+            page.drawText(line.trim(), {
+              x: 35, // Indented after bullet
+              y: currentYPosition,
+              size: 11,
+              font: font, // Calibri equivalent
+              color: black,
+            });
+            currentYPosition -= 16;
+          }
         }
         
-        currentYPosition -= 10; // Extra space before table
+        currentYPosition -= 15; // Extra space before table
       }
 
       // Table setup
@@ -642,10 +637,15 @@ const AdminReports = () => {
         color: rgb(0.5, 0.5, 0.5),
       });
 
-      // Generate filename
+      // Generate filename with proper format: <ProjectNumber>-<ProjectName>-<Period>-<ReportType>.pdf
+      const selectedProjectData = projects.find(p => p.whalesync_postgres_id === selectedProject);
+      const projectNumber = selectedProjectData?.projectnumber || "PROJ"; // Fallback if no project number
+      const cleanProjectName = (selectedProjectData?.projectname || projectName || "AllProjects").replace(/\s+/g, "");
+      
       const period = dateRange === "custom" 
         ? `${format(new Date(customStartDate), "ddMMyy")}-${format(new Date(customEndDate), "ddMMyy")}`
-        : dateRange;
+        : dateRange.charAt(0).toUpperCase() + dateRange.slice(1);
+        
       const reportNames = {
         drawings: "DrawingReport",
         rams: "RAMSReport", 
@@ -653,7 +653,8 @@ const AdminReports = () => {
         testCerts: "TestCertsReport",
         training: "TrainingReport"
       };
-      const filename = `${projectName?.replace(/\s+/g, "")}-${period}-${reportNames[reportType as keyof typeof reportNames]}.pdf`;
+      
+      const filename = `${projectNumber}-${cleanProjectName}-${period}-${reportNames[reportType as keyof typeof reportNames]}.pdf`;
 
       // Download
       const pdfBytes = await pdfDoc.save();
