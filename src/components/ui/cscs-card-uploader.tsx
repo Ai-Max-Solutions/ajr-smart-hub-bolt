@@ -106,6 +106,12 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
             hint: analysisError.hint,
             code: analysisError.code
           });
+          
+          // Check if it's an OpenAI API key issue
+          if (analysisError.message?.includes('OpenAI API key')) {
+            throw new Error('OpenAI API key not configured. Please check your Supabase edge function secrets.');
+          }
+          
           throw new Error(`Analysis failed: ${analysisError.message}`);
         }
         
