@@ -29,8 +29,13 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
 
     // CSCS Card validation - ALL FIELDS MANDATORY
     if (!data.cscsCard.number.trim()) newErrors.cscsNumber = 'CSCS card number is required';
-    else if (!/^\d{16}$/.test(data.cscsCard.number.replace(/\s/g, ''))) {
-      newErrors.cscsNumber = 'CSCS card number must be 16 digits';
+    else {
+      const cleanedNumber = data.cscsCard.number.replace(/[^A-Za-z0-9]/g, '');
+      if (cleanedNumber.length < 8) {
+        newErrors.cscsNumber = 'Card number must be at least 8 characters.';
+      } else if (cleanedNumber.length > 16) {
+        newErrors.cscsNumber = 'Card number must be no more than 16 characters.';
+      }
     }
     
     if (!data.cscsCard.expiryDate) newErrors.cscsExpiry = 'Expiry date is required';
