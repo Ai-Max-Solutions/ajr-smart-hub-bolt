@@ -1013,7 +1013,7 @@ export type Database = {
           hire: string | null
           hireequipmentonblock: number | null
           lastblockdelivery: string | null
-          levels: string | null
+          levels: string[] | null
           nextscheduledblockdelivery: string | null
           pendingblockdeliveries: number | null
           project: string | null
@@ -1049,7 +1049,7 @@ export type Database = {
           hire?: string | null
           hireequipmentonblock?: number | null
           lastblockdelivery?: string | null
-          levels?: string | null
+          levels?: string[] | null
           nextscheduledblockdelivery?: string | null
           pendingblockdeliveries?: number | null
           project?: string | null
@@ -1085,7 +1085,7 @@ export type Database = {
           hire?: string | null
           hireequipmentonblock?: number | null
           lastblockdelivery?: string | null
-          levels?: string | null
+          levels?: string[] | null
           nextscheduledblockdelivery?: string | null
           pendingblockdeliveries?: number | null
           project?: string | null
@@ -2907,7 +2907,7 @@ export type Database = {
           level: string | null
           nextreviewdate: string | null
           plannedissuedate: string | null
-          plotscovered: string | null
+          plotscovered: string[] | null
           project: string | null
           qualityrating: string | null
           revisionstatus: string | null
@@ -2950,7 +2950,7 @@ export type Database = {
           level?: string | null
           nextreviewdate?: string | null
           plannedissuedate?: string | null
-          plotscovered?: string | null
+          plotscovered?: string[] | null
           project?: string | null
           qualityrating?: string | null
           revisionstatus?: string | null
@@ -2993,7 +2993,7 @@ export type Database = {
           level?: string | null
           nextreviewdate?: string | null
           plannedissuedate?: string | null
-          plotscovered?: string | null
+          plotscovered?: string[] | null
           project?: string | null
           qualityrating?: string | null
           revisionstatus?: string | null
@@ -4364,7 +4364,7 @@ export type Database = {
           plannedenddate: string | null
           plannedstartdate: string | null
           plasteringcomplete: boolean | null
-          plots: string | null
+          plots: string[] | null
           plotsonlevel: number | null
           plumbingfirstfixcomplete: boolean | null
           plumbingsecondfixcomplete: boolean | null
@@ -4416,7 +4416,7 @@ export type Database = {
           plannedenddate?: string | null
           plannedstartdate?: string | null
           plasteringcomplete?: boolean | null
-          plots?: string | null
+          plots?: string[] | null
           plotsonlevel?: number | null
           plumbingfirstfixcomplete?: boolean | null
           plumbingsecondfixcomplete?: boolean | null
@@ -4468,7 +4468,7 @@ export type Database = {
           plannedenddate?: string | null
           plannedstartdate?: string | null
           plasteringcomplete?: boolean | null
-          plots?: string | null
+          plots?: string[] | null
           plotsonlevel?: number | null
           plumbingfirstfixcomplete?: boolean | null
           plumbingsecondfixcomplete?: boolean | null
@@ -6707,7 +6707,7 @@ export type Database = {
           actualenddate: string | null
           airtable_created_time: string | null
           airtable_record_id: string | null
-          blocks: string | null
+          blocks: string[] | null
           budgetremaining: number | null
           budgetspent: number | null
           clientname: string | null
@@ -6752,7 +6752,7 @@ export type Database = {
           actualenddate?: string | null
           airtable_created_time?: string | null
           airtable_record_id?: string | null
-          blocks?: string | null
+          blocks?: string[] | null
           budgetremaining?: number | null
           budgetspent?: number | null
           clientname?: string | null
@@ -6797,7 +6797,7 @@ export type Database = {
           actualenddate?: string | null
           airtable_created_time?: string | null
           airtable_record_id?: string | null
-          blocks?: string | null
+          blocks?: string[] | null
           budgetremaining?: number | null
           budgetspent?: number | null
           clientname?: string | null
