@@ -18,7 +18,7 @@ interface PlotsCRUDProps {
 }
 
 interface Plot {
-  whalesync_postgres_id: string;
+  id: string;
   plotnumber: string;
   plotstatus: string;
   level: string;
@@ -57,8 +57,8 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
     try {
       const [plotsRes, levelsRes, usersRes] = await Promise.all([
         supabase.from('Plots').select('*').order('plotnumber'),
-        supabase.from('Levels').select('whalesync_postgres_id, levelname, levelnumber'),
-        supabase.from('Users').select('whalesync_postgres_id, fullname, role').eq('employmentstatus', 'Active')
+        supabase.from('Levels').select('id, levelname, levelnumber'),
+        supabase.from('Users').select('id, fullname, role').eq('employmentstatus', 'Active')
       ]);
 
       setPlots(plotsRes.data || []);
@@ -81,7 +81,7 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
         const { error } = await supabase
           .from('Plots')
           .update(formData)
-          .eq('whalesync_postgres_id', editingPlot.whalesync_postgres_id);
+          .eq('id', editingPlot.id);
 
         if (error) throw error;
         toast.success("Plot updated successfully");
@@ -109,7 +109,7 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
       const { error } = await supabase
         .from('Plots')
         .update({ plotstatus: 'Archived' })
-        .eq('whalesync_postgres_id', plotId);
+        .eq('id', plotId);
 
       if (error) throw error;
       toast.success("Plot archived successfully");
@@ -262,7 +262,7 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
                       </SelectTrigger>
                       <SelectContent>
                         {levels.map((level) => (
-                          <SelectItem key={level.whalesync_postgres_id} value={level.whalesync_postgres_id}>
+                          <SelectItem key={level.id} value={level.id}>
                             Level {level.levelnumber} - {level.levelname}
                           </SelectItem>
                         ))}
@@ -366,7 +366,7 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
               </TableHeader>
               <TableBody>
                 {filteredPlots.map((plot) => (
-                  <TableRow key={plot.whalesync_postgres_id}>
+                  <TableRow key={plot.id}>
                     <TableCell className="font-medium">{plot.plotnumber}</TableCell>
                     <TableCell>{getStatusBadge(plot.plotstatus)}</TableCell>
                     <TableCell>
@@ -397,7 +397,7 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(plot.whalesync_postgres_id)}
+                          onClick={() => handleDelete(plot.id)}
                           className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />

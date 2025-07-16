@@ -18,7 +18,7 @@ interface ProjectsCRUDProps {
 }
 
 interface Project {
-  whalesync_postgres_id: string;
+  id: string;
   projectname: string;
   clientname: string;
   status: string;
@@ -78,7 +78,7 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
     try {
       const { data, error } = await supabase
         .from('Users')
-        .select('whalesync_postgres_id, fullname, role')
+        .select('id, fullname, role')
         .in('role', ['Project Manager', 'Director', 'Admin'])
         .eq('employmentstatus', 'Active');
 
@@ -95,7 +95,7 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
         const { error } = await supabase
           .from('Projects')
           .update(data)
-          .eq('whalesync_postgres_id', editingProject.whalesync_postgres_id);
+          .eq('id', editingProject.id);
 
         if (error) throw error;
         toast.success("Project updated successfully");
@@ -123,7 +123,7 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
       const { error } = await supabase
         .from('Projects')
         .update({ status: 'Archived' })
-        .eq('whalesync_postgres_id', projectId);
+        .eq('id', projectId);
 
       if (error) throw error;
       toast.success("Project archived successfully");
@@ -257,7 +257,7 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
               Edit Project
             </DropdownMenuItem>
             <DropdownMenuItem 
-              onClick={() => handleDelete(row.whalesync_postgres_id)}
+              onClick={() => handleDelete(row.id)}
               className="text-destructive"
             >
               <Trash2 className="h-4 w-4 mr-2" />

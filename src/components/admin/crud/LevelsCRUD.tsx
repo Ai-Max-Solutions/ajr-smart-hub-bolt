@@ -18,7 +18,7 @@ interface LevelsCRUDProps {
 }
 
 interface Level {
-  whalesync_postgres_id: string;
+  id: string;
   levelname: string;
   levelnumber: number;
   levelstatus: string;
@@ -51,8 +51,8 @@ export const LevelsCRUD = ({ searchQuery, isOffline }: LevelsCRUDProps) => {
     try {
       const [levelsRes, projectsRes, blocksRes] = await Promise.all([
         supabase.from('Levels').select('*').order('levelnumber'),
-        supabase.from('Projects').select('whalesync_postgres_id, projectname').eq('status', 'Active'),
-        supabase.from('Blocks').select('whalesync_postgres_id, blockname, project')
+        supabase.from('Projects').select('id, projectname').eq('status', 'Active'),
+        supabase.from('Blocks').select('id, blockname, project')
       ]);
 
       setLevels(levelsRes.data || []);
@@ -75,7 +75,7 @@ export const LevelsCRUD = ({ searchQuery, isOffline }: LevelsCRUDProps) => {
         const { error } = await supabase
           .from('Levels')
           .update(formData)
-          .eq('whalesync_postgres_id', editingLevel.whalesync_postgres_id);
+          .eq('id', editingLevel.id);
 
         if (error) throw error;
         toast.success("Level updated successfully");
@@ -103,7 +103,7 @@ export const LevelsCRUD = ({ searchQuery, isOffline }: LevelsCRUDProps) => {
       const { error } = await supabase
         .from('Levels')
         .update({ levelstatus: 'Archived' })
-        .eq('whalesync_postgres_id', levelId);
+        .eq('id', levelId);
 
       if (error) throw error;
       toast.success("Level archived successfully");
@@ -267,7 +267,7 @@ export const LevelsCRUD = ({ searchQuery, isOffline }: LevelsCRUDProps) => {
                       </SelectTrigger>
                       <SelectContent>
                         {blocks.map((block) => (
-                          <SelectItem key={block.whalesync_postgres_id} value={block.whalesync_postgres_id}>
+                          <SelectItem key={block.id} value={block.id}>
                             {block.blockname}
                           </SelectItem>
                         ))}
@@ -314,7 +314,7 @@ export const LevelsCRUD = ({ searchQuery, isOffline }: LevelsCRUDProps) => {
               </TableHeader>
               <TableBody>
                 {filteredLevels.map((level) => (
-                  <TableRow key={level.whalesync_postgres_id}>
+                  <TableRow key={level.id}>
                     <TableCell className="font-medium">{level.levelname}</TableCell>
                     <TableCell>{level.levelnumber}</TableCell>
                     <TableCell>{getStatusBadge(level.levelstatus)}</TableCell>
@@ -333,7 +333,7 @@ export const LevelsCRUD = ({ searchQuery, isOffline }: LevelsCRUDProps) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(level.whalesync_postgres_id)}
+                          onClick={() => handleDelete(level.id)}
                           className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
