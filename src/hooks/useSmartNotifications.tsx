@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface SmartNotification {
@@ -20,132 +19,182 @@ export const useSmartNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { toast } = useToast();
 
-  // Fetch notifications
+  // Mock notifications data
+  const mockNotifications: SmartNotification[] = [
+    {
+      id: 'smart1',
+      title: 'AI Safety Alert',
+      message: 'Weather conditions suggest increased safety precautions today.',
+      priority: 'high',
+      category: 'safety',
+      ai_generated: true,
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000).toISOString(),
+      user_id: 'demo-user'
+    },
+    {
+      id: 'smart2',
+      title: 'Productivity Insight',
+      message: 'Your team efficiency is 15% above average this week.',
+      priority: 'medium',
+      category: 'productivity',
+      ai_generated: true,
+      is_read: false,
+      created_at: new Date(Date.now() - 7200000).toISOString(),
+      user_id: 'demo-user'
+    },
+    {
+      id: 'smart3',
+      title: 'Training Reminder',
+      message: 'Based on your role, refresher training on equipment safety is recommended.',
+      priority: 'medium',
+      category: 'training',
+      ai_generated: true,
+      is_read: true,
+      created_at: new Date(Date.now() - 10800000).toISOString(),
+      user_id: 'demo-user'
+    }
+  ];
+
+  // Fetch notifications (mock implementation)
   const fetchNotifications = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('smart_notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-
-      const notifs = data.map((n: any) => ({
-        ...n,
-        is_read: n.is_read || false
-      })) as SmartNotification[];
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter(n => !n.is_read).length);
-
+      setLoading(true);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setNotifications(mockNotifications);
+      setUnreadCount(mockNotifications.filter(n => !n.is_read).length);
     } catch (error) {
       console.error('Error fetching notifications:', error);
-    }
-  }, []);
-
-  // Generate new AI notifications
-  const generateSmartNotifications = useCallback(async () => {
-    setLoading(true);
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      const { data, error } = await supabase.functions.invoke('smart-notifications', {
-        body: {
-          userId: user.id,
-          type: 'daily_check',
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Smart Notifications Generated",
-        description: `Generated ${data.notifications?.length || 0} personalized notifications`,
-      });
-
-      // Refresh notifications
-      await fetchNotifications();
-
-    } catch (error) {
-      console.error('Error generating notifications:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to generate notifications',
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
-  }, [toast, fetchNotifications]);
+  }, []);
 
-  // Mark notification as read
+  // Generate new AI notifications (mock implementation)
+  const generateSmartNotification = useCallback(async (
+    category: SmartNotification['category'],
+    context: any = {}
+  ) => {
+    try {
+      const newNotification: SmartNotification = {
+        id: `smart_${Date.now()}`,
+        title: `AI ${category} Alert`,
+        message: `Smart notification generated based on ${category} context.`,
+        priority: 'medium',
+        category,
+        ai_generated: true,
+        is_read: false,
+        created_at: new Date().toISOString(),
+        user_id: context.user_id || 'demo-user'
+      };
+
+      setNotifications(prev => [newNotification, ...prev]);
+      setUnreadCount(prev => prev + 1);
+
+      // Show toast for high priority notifications
+      if (newNotification.priority === 'high' || newNotification.priority === 'critical') {
+        toast({
+          title: newNotification.title,
+          description: newNotification.message,
+          variant: newNotification.priority === 'critical' ? 'destructive' : 'default',
+        });
+      }
+
+      return newNotification;
+    } catch (error) {
+      console.error('Error generating smart notification:', error);
+      return null;
+    }
+  }, [toast]);
+
+  // Mark notification as read (mock implementation)
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('smart_notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId);
-
-      if (error) throw error;
-
       setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId 
-            ? { ...notif, is_read: true }
-            : notif
-        )
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       );
-
       setUnreadCount(prev => Math.max(0, prev - 1));
-
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
   }, []);
 
-  // Mark all as read
+  // Mark all as read (mock implementation)
   const markAllAsRead = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { error } = await supabase
-        .from('smart_notifications')
-        .update({ is_read: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-
-      if (error) throw error;
-
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, is_read: true }))
-      );
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
-
-      toast({
-        title: "All notifications marked as read",
-      });
-
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
-      toast({
-        title: "Error",
-        description: "Failed to mark notifications as read",
-        variant: "destructive",
-      });
     }
-  }, [toast]);
+  }, []);
+
+  // Delete notification (mock implementation)
+  const deleteNotification = useCallback(async (notificationId: string) => {
+    try {
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      setUnreadCount(prev => {
+        const notification = notifications.find(n => n.id === notificationId);
+        return notification && !notification.is_read ? prev - 1 : prev;
+      });
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  }, [notifications]);
+
+  // Schedule smart notification (mock implementation)
+  const scheduleSmartNotification = useCallback(async (
+    title: string,
+    message: string,
+    scheduledFor: Date,
+    priority: SmartNotification['priority'] = 'medium'
+  ) => {
+    try {
+      // In a real implementation, this would schedule the notification
+      console.log('Scheduling smart notification:', {
+        title,
+        message,
+        scheduledFor,
+        priority
+      });
+      return true;
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
+      return false;
+    }
+  }, []);
+
+  // Generate smart notifications (mock implementation)
+  const generateSmartNotifications = useCallback(async () => {
+    try {
+      // Mock generate multiple notifications
+      const newNotifications: SmartNotification[] = [
+        {
+          id: `smart_${Date.now()}_1`,
+          title: 'Weather Alert',
+          message: 'Heavy rain expected today - ensure proper safety equipment.',
+          priority: 'high',
+          category: 'safety',
+          ai_generated: true,
+          is_read: false,
+          created_at: new Date().toISOString(),
+          user_id: 'demo-user'
+        }
+      ];
+
+      setNotifications(prev => [...newNotifications, ...prev]);
+      setUnreadCount(prev => prev + newNotifications.length);
+      return newNotifications;
+    } catch (error) {
+      console.error('Error generating smart notifications:', error);
+      return [];
+    }
+  }, []);
 
   // Get notifications by priority
-  const getByPriority = useCallback((priority: 'high' | 'medium' | 'low') => {
+  const getByPriority = useCallback((priority: SmartNotification['priority']) => {
     return notifications.filter(n => n.priority === priority);
   }, [notifications]);
 
@@ -154,40 +203,9 @@ export const useSmartNotifications = () => {
     return notifications.filter(n => !n.is_read);
   }, [notifications]);
 
-  // Initial load
+  // Initial fetch
   useEffect(() => {
     fetchNotifications();
-  }, [fetchNotifications]);
-
-  // Set up real-time subscription
-  useEffect(() => {
-    const setupRealtimeSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) return;
-
-      const channel = supabase
-        .channel('smart-notifications-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'smart_notifications',
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            fetchNotifications();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    };
-
-    setupRealtimeSubscription();
   }, [fetchNotifications]);
 
   return {
@@ -195,10 +213,13 @@ export const useSmartNotifications = () => {
     loading,
     unreadCount,
     fetchNotifications,
+    generateSmartNotification,
     generateSmartNotifications,
-    markAsRead,
-    markAllAsRead,
     getByPriority,
     getUnread,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    scheduleSmartNotification
   };
 };

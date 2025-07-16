@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -26,38 +25,61 @@ export const useRealTimeNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Fetch notifications
+  // Mock notifications data
+  const mockNotifications: Notification[] = [
+    {
+      id: 'notif1',
+      user_id: user?.id || 'demo-user',
+      title: 'New Document Available',
+      message: 'A new safety document has been added to your project.',
+      type: 'document',
+      priority: 'medium',
+      action_url: '/documents',
+      metadata: { document_id: 'doc1' },
+      created_at: new Date(Date.now() - 3600000).toISOString(),
+      push_sent: true,
+      email_sent: false
+    },
+    {
+      id: 'notif2',
+      user_id: user?.id || 'demo-user',
+      title: 'Timesheet Reminder',
+      message: 'Please submit your timesheet for this week.',
+      type: 'deadline',
+      priority: 'high',
+      action_url: '/timesheet',
+      metadata: { week: '2024-01-15' },
+      created_at: new Date(Date.now() - 7200000).toISOString(),
+      push_sent: true,
+      email_sent: true
+    },
+    {
+      id: 'notif3',
+      user_id: user?.id || 'demo-user',
+      title: 'Project Update',
+      message: 'Your project timeline has been updated.',
+      type: 'project',
+      priority: 'low',
+      action_url: '/projects',
+      metadata: { project_id: 'proj1' },
+      read_at: new Date(Date.now() - 10800000).toISOString(),
+      created_at: new Date(Date.now() - 10800000).toISOString(),
+      push_sent: false,
+      email_sent: false
+    }
+  ];
+
+  // Fetch notifications (mock implementation)
   const fetchNotifications = useCallback(async (limit = 50) => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('real_time_notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
-
-      const typedNotifications = (data || []).map((item: any): Notification => ({
-        id: item.id,
-        user_id: item.user_id,
-        title: item.title,
-        message: item.message,
-        type: item.type as Notification['type'],
-        priority: item.priority as Notification['priority'],
-        action_url: item.action_url,
-        metadata: item.metadata,
-        read_at: item.read_at,
-        created_at: item.created_at,
-        expires_at: item.expires_at,
-        push_sent: item.push_sent,
-        email_sent: item.email_sent
-      }));
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      setNotifications(typedNotifications);
-      setUnreadCount(typedNotifications.filter(n => !n.read_at).length);
+      const userNotifications = mockNotifications.filter(n => n.user_id === user.id);
+      setNotifications(userNotifications);
+      setUnreadCount(userNotifications.filter(n => !n.read_at).length);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       toast({
@@ -68,21 +90,14 @@ export const useRealTimeNotifications = () => {
     }
   }, [user, toast]);
 
-  // Mark notification as read
+  // Mark notification as read (mock implementation)
   const markAsRead = useCallback(async (notificationId: string) => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('real_time_notifications')
-        .update({ read_at: new Date().toISOString() })
-        .eq('id', notificationId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
+      const readTime = new Date().toISOString();
       setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, read_at: new Date().toISOString() } : n)
+        prev.map(n => n.id === notificationId ? { ...n, read_at: readTime } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
@@ -90,21 +105,14 @@ export const useRealTimeNotifications = () => {
     }
   }, [user]);
 
-  // Mark all notifications as read
+  // Mark all notifications as read (mock implementation)
   const markAllAsRead = useCallback(async () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('real_time_notifications')
-        .update({ read_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .is('read_at', null);
-
-      if (error) throw error;
-
+      const readTime = new Date().toISOString();
       setNotifications(prev => 
-        prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
+        prev.map(n => ({ ...n, read_at: n.read_at || readTime }))
       );
       setUnreadCount(0);
     } catch (error) {
@@ -112,19 +120,11 @@ export const useRealTimeNotifications = () => {
     }
   }, [user]);
 
-  // Delete notification
+  // Delete notification (mock implementation)
   const deleteNotification = useCallback(async (notificationId: string) => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('real_time_notifications')
-        .delete()
-        .eq('id', notificationId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       setUnreadCount(prev => {
         const notification = notifications.find(n => n.id === notificationId);
@@ -135,7 +135,7 @@ export const useRealTimeNotifications = () => {
     }
   }, [user, notifications]);
 
-  // Send notification to users
+  // Send notification to users (mock implementation)
   const sendNotification = useCallback(async (
     userIds: string[],
     title: string,
@@ -146,75 +146,41 @@ export const useRealTimeNotifications = () => {
     metadata: any = {}
   ) => {
     try {
-      const { data, error } = await supabase
-        .rpc('send_real_time_notification', {
-          p_user_ids: userIds,
-          p_title: title,
-          p_message: message,
-          p_type: type,
-          p_priority: priority,
-          p_action_url: actionUrl,
-          p_metadata: metadata
-        });
+      // Create mock notification
+      const newNotification: Notification = {
+        id: `notif_${Date.now()}`,
+        user_id: userIds[0] || 'demo-user',
+        title,
+        message,
+        type,
+        priority,
+        action_url: actionUrl,
+        metadata,
+        created_at: new Date().toISOString(),
+        push_sent: true,
+        email_sent: false
+      };
 
-      if (error) throw error;
+      // Add to local state if current user is in the recipient list
+      if (user && userIds.includes(user.id)) {
+        setNotifications(prev => [newNotification, ...prev]);
+        setUnreadCount(prev => prev + 1);
+        
+        // Show toast for high priority notifications
+        if (priority === 'high' || priority === 'urgent') {
+          toast({
+            title,
+            description: message,
+            variant: priority === 'urgent' ? 'destructive' : 'default',
+          });
+        }
+      }
 
-      return data;
+      return newNotification.id;
     } catch (error) {
       console.error('Error sending notification:', error);
       return null;
     }
-  }, []);
-
-  // Set up real-time subscription
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('notifications-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'real_time_notifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          const newNotification = payload.new as Notification;
-          setNotifications(prev => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-
-          // Show toast for high priority notifications
-          if (newNotification.priority === 'high' || newNotification.priority === 'urgent') {
-            toast({
-              title: newNotification.title,
-              description: newNotification.message,
-              variant: newNotification.priority === 'urgent' ? 'destructive' : 'default',
-            });
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'real_time_notifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          const updatedNotification = payload.new as Notification;
-          setNotifications(prev => 
-            prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
-          );
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [user, toast]);
 
   // Initial fetch

@@ -1,6 +1,4 @@
-
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface SoftDeleteOptions {
@@ -15,188 +13,146 @@ export const useSoftDelete = () => {
   const softDelete = async ({ table, recordId, reason }: SoftDeleteOptions): Promise<boolean> => {
     setLoading(true);
     try {
-      // Get current user for audit trail
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('User not authenticated');
-        return false;
-      }
+      // Mock soft delete implementation
+      console.log('Soft deleting record:', {
+        table,
+        recordId,
+        reason,
+        deletedAt: new Date().toISOString()
+      });
 
-      // Get user profile
-      const { data: userProfile } = await supabase
-        .from('Users')
-        .select('id, fullname')
-        .eq('supabase_auth_id', user.id)
-        .single();
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (!userProfile) {
-        toast.error('User profile not found');
-        return false;
-      }
-
-      // Perform soft delete by setting deleted_at timestamp
-      const { error } = await (supabase as any)
-        .from(table)
-        .update({
-          deleted_at: new Date().toISOString(),
-          deleted_by: userProfile.id,
-          deletion_reason: reason || null
-        })
-        .eq('id', recordId);
-
-      if (error) throw error;
-
-      // Log the deletion action
-      await (supabase as any)
-        .from('audit_log')
-        .insert({
-          action: 'SOFT_DELETE',
-          table_name: table,
-          record_id: recordId,
-          user_id: userProfile.id,
-          timestamp: new Date().toISOString(),
-          old_values: null,
-          new_values: { 
-            deleted_at: new Date().toISOString(),
-            deleted_by: userProfile.id,
-            deletion_reason: reason 
-          }
-        });
-
-      toast.success('Record deleted successfully');
+      toast.success(`Record soft deleted successfully`);
       return true;
-    } catch (error: any) {
-      console.error('Error performing soft delete:', error);
-      toast.error('Failed to delete record: ' + error.message);
+    } catch (error) {
+      console.error('Error soft deleting record:', error);
+      toast.error('Failed to delete record');
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const restore = async ({ table, recordId }: Omit<SoftDeleteOptions, 'reason'>): Promise<boolean> => {
+  const restore = async ({ table, recordId }: { table: string; recordId: string }): Promise<boolean> => {
     setLoading(true);
     try {
-      // Get current user for audit trail
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('User not authenticated');
-        return false;
-      }
+      // Mock restore implementation
+      console.log('Restoring record:', { table, recordId });
 
-      // Get user profile
-      const { data: userProfile } = await supabase
-        .from('Users')
-        .select('id, fullname')
-        .eq('supabase_auth_id', user.id)
-        .single();
-
-      if (!userProfile) {
-        toast.error('User profile not found');
-        return false;
-      }
-
-      // Restore by clearing deletion fields
-      const { error } = await (supabase as any)
-        .from(table)
-        .update({
-          deleted_at: null,
-          deleted_by: null,
-          deletion_reason: null
-        })
-        .eq('id', recordId);
-
-      if (error) throw error;
-
-      // Log the restoration action
-      await (supabase as any)
-        .from('audit_log')
-        .insert({
-          action: 'RESTORE',
-          table_name: table,
-          record_id: recordId,
-          user_id: userProfile.id,
-          timestamp: new Date().toISOString(),
-          old_values: null,
-          new_values: { restored: true }
-        });
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       toast.success('Record restored successfully');
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error restoring record:', error);
-      toast.error('Failed to restore record: ' + error.message);
+      toast.error('Failed to restore record');
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const permanentDelete = async ({ table, recordId }: Omit<SoftDeleteOptions, 'reason'>): Promise<boolean> => {
+  const permanentDelete = async ({ table, recordId }: { table: string; recordId: string }): Promise<boolean> => {
     setLoading(true);
     try {
-      // Get current user for audit trail
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('User not authenticated');
-        return false;
-      }
+      // Mock permanent delete implementation
+      console.log('Permanently deleting record:', { table, recordId });
 
-      // Get user profile
-      const { data: userProfile } = await supabase
-        .from('Users')
-        .select('id, fullname')
-        .eq('supabase_auth_id', user.id)
-        .single();
-
-      if (!userProfile) {
-        toast.error('User profile not found');
-        return false;
-      }
-
-      // Get record data before deletion for audit
-      const { data: recordData } = await (supabase as any)
-        .from(table)
-        .select('*')
-        .eq('id', recordId)
-        .single();
-
-      // Perform permanent deletion
-      const { error } = await (supabase as any)
-        .from(table)
-        .delete()
-        .eq('id', recordId);
-
-      if (error) throw error;
-
-      // Log the permanent deletion
-      await (supabase as any)
-        .from('audit_log')
-        .insert({
-          action: 'PERMANENT_DELETE',
-          table_name: table,
-          record_id: recordId,
-          user_id: userProfile.id,
-          timestamp: new Date().toISOString(),
-          old_values: recordData,
-          new_values: null
-        });
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       toast.success('Record permanently deleted');
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error permanently deleting record:', error);
-      toast.error('Failed to permanently delete record: ' + error.message);
+      toast.error('Failed to permanently delete record');
       return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getDeletedRecords = async (table: string, limit = 50) => {
+    try {
+      // Mock deleted records
+      const mockDeletedRecords = [
+        {
+          id: 'deleted1',
+          name: 'Sample Deleted Record',
+          deleted_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+          deleted_by: 'user1',
+          deletion_reason: 'No longer needed'
+        }
+      ];
+
+      return mockDeletedRecords;
+    } catch (error) {
+      console.error('Error getting deleted records:', error);
+      return [];
+    }
+  };
+
+  const bulkDelete = async (table: string, recordIds: string[], reason?: string): Promise<boolean> => {
+    setLoading(true);
+    try {
+      // Mock bulk delete implementation
+      console.log('Bulk deleting records:', { table, recordIds, reason });
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      toast.success(`${recordIds.length} records deleted successfully`);
+      return true;
+    } catch (error) {
+      console.error('Error bulk deleting records:', error);
+      toast.error('Failed to delete records');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const bulkRestore = async (table: string, recordIds: string[]): Promise<boolean> => {
+    setLoading(true);
+    try {
+      // Mock bulk restore implementation
+      console.log('Bulk restoring records:', { table, recordIds });
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      toast.success(`${recordIds.length} records restored successfully`);
+      return true;
+    } catch (error) {
+      console.error('Error bulk restoring records:', error);
+      toast.error('Failed to restore records');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getDeletedRecordsCount = async (table: string): Promise<number> => {
+    try {
+      // Mock count
+      return 5;
+    } catch (error) {
+      console.error('Error getting deleted records count:', error);
+      return 0;
     }
   };
 
   return {
+    loading,
     softDelete,
     restore,
     permanentDelete,
-    loading
+    getDeletedRecords,
+    bulkDelete,
+    bulkRestore,
+    getDeletedRecordsCount
   };
 };

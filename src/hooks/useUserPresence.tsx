@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 interface UserPresence {
@@ -22,7 +21,43 @@ export const useUserPresence = () => {
   const [presenceData, setPresenceData] = useState<Record<string, UserPresence>>({});
   const [onlineUsers, setOnlineUsers] = useState<UserPresence[]>([]);
 
-  // Update current user presence
+  // Mock presence data
+  const mockPresence: UserPresence[] = [
+    {
+      id: 'presence1',
+      user_id: 'user1',
+      status: 'online',
+      last_seen: new Date().toISOString(),
+      current_location: 'Site A',
+      device_info: { type: 'mobile', platform: 'android' },
+      custom_status: 'Available',
+      updated_at: new Date().toISOString(),
+      user: { fullname: 'John Smith', role: 'Operative' }
+    },
+    {
+      id: 'presence2',
+      user_id: 'user2',
+      status: 'away',
+      last_seen: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
+      current_location: 'Site B',
+      device_info: { type: 'desktop', platform: 'windows' },
+      updated_at: new Date().toISOString(),
+      user: { fullname: 'Jane Doe', role: 'Supervisor' }
+    },
+    {
+      id: 'presence3',
+      user_id: 'user3',
+      status: 'busy',
+      last_seen: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
+      current_location: 'Office',
+      device_info: { type: 'tablet', platform: 'ios' },
+      custom_status: 'In meeting',
+      updated_at: new Date().toISOString(),
+      user: { fullname: 'Mike Johnson', role: 'Project Manager' }
+    }
+  ];
+
+  // Update current user presence (mock implementation)
   const updatePresence = useCallback(async (
     status: 'online' | 'away' | 'busy' | 'offline' = 'online',
     location?: string,
@@ -31,147 +66,158 @@ export const useUserPresence = () => {
     if (!user) return;
 
     try {
-      await supabase.rpc('update_user_presence', {
-        p_status: status,
-        p_location: location,
-        p_custom_status: customStatus
+      // Mock presence update
+      console.log('Updating presence:', {
+        user_id: user.id,
+        status,
+        location,
+        customStatus,
+        timestamp: new Date().toISOString()
       });
+
+      // Update local state if current user
+      const updatedPresence: UserPresence = {
+        id: `presence_${user.id}`,
+        user_id: user.id,
+        status,
+        last_seen: new Date().toISOString(),
+        current_location: location,
+        device_info: { type: 'browser', platform: 'web' },
+        custom_status: customStatus,
+        updated_at: new Date().toISOString(),
+        user: { fullname: 'Current User', role: 'User' }
+      };
+
+      setPresenceData(prev => ({
+        ...prev,
+        [user.id]: updatedPresence
+      }));
     } catch (error) {
       console.error('Error updating presence:', error);
     }
   }, [user]);
 
-  // Fetch all user presence data
+  // Fetch all user presence data (mock implementation)
   const fetchPresence = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_presence')
-        .select(`
-          *,
-          user:Users!user_presence_user_id_fkey (
-            fullname,
-            role
-          )
-        `);
-
-      if (error) throw error;
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       const presenceMap: Record<string, UserPresence> = {};
-      const online: UserPresence[] = [];
-
-      (data || []).forEach((item: any) => {
-        const presence: UserPresence = {
-          id: item.id,
-          user_id: item.user_id,
-          status: item.status,
-          last_seen: item.last_seen,
-          current_location: item.current_location,
-          device_info: item.device_info,
-          custom_status: item.custom_status,
-          updated_at: item.updated_at,
-          user: item.user
-        };
-
-        presenceMap[item.user_id] = presence;
-
-        if (item.status === 'online' || item.status === 'away' || item.status === 'busy') {
-          online.push(presence);
-        }
+      mockPresence.forEach(presence => {
+        presenceMap[presence.user_id] = presence;
       });
 
       setPresenceData(presenceMap);
-      setOnlineUsers(online);
+      setOnlineUsers(mockPresence.filter(p => p.status === 'online'));
     } catch (error) {
       console.error('Error fetching presence:', error);
     }
   }, []);
 
-  // Set up real-time presence subscription
-  useEffect(() => {
+  // Get user presence by ID
+  const getUserPresence = useCallback((userId: string): UserPresence | null => {
+    return presenceData[userId] || null;
+  }, [presenceData]);
+
+  // Get users by status
+  const getUsersByStatus = useCallback((status: UserPresence['status']): UserPresence[] => {
+    return Object.values(presenceData).filter(presence => presence.status === status);
+  }, [presenceData]);
+
+  // Get users at location
+  const getUsersAtLocation = useCallback((location: string): UserPresence[] => {
+    return Object.values(presenceData).filter(presence => 
+      presence.current_location?.toLowerCase().includes(location.toLowerCase())
+    );
+  }, [presenceData]);
+
+  // Set custom status
+  const setCustomStatus = useCallback(async (status: string) => {
     if (!user) return;
 
-    // Update presence to online when component mounts
-    updatePresence('online', window.location.pathname);
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('presence-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_presence'
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const presence = payload.new as UserPresence;
-            setPresenceData(prev => ({
-              ...prev,
-              [presence.user_id]: presence
-            }));
-
-            if (presence.status === 'online' || presence.status === 'away' || presence.status === 'busy') {
-              setOnlineUsers(prev => {
-                const filtered = prev.filter(p => p.user_id !== presence.user_id);
-                return [...filtered, presence];
-              });
-            } else {
-              setOnlineUsers(prev => prev.filter(p => p.user_id !== presence.user_id));
-            }
-          } else if (payload.eventType === 'DELETE') {
-            const presence = payload.old as UserPresence;
-            setPresenceData(prev => {
-              const { [presence.user_id]: removed, ...rest } = prev;
-              return rest;
-            });
-            setOnlineUsers(prev => prev.filter(p => p.user_id !== presence.user_id));
-          }
-        }
-      )
-      .subscribe();
-
-    // Update presence periodically
-    const presenceInterval = setInterval(() => {
-      updatePresence('online', window.location.pathname);
-    }, 30000); // Every 30 seconds
-
-    // Handle page visibility changes
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        updatePresence('away');
-      } else {
-        updatePresence('online', window.location.pathname);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Handle page unload
-    const handleBeforeUnload = () => {
-      updatePresence('offline');
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      supabase.removeChannel(channel);
-      clearInterval(presenceInterval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      updatePresence('offline');
-    };
+    try {
+      await updatePresence('online', undefined, status);
+    } catch (error) {
+      console.error('Error setting custom status:', error);
+    }
   }, [user, updatePresence]);
 
-  // Initial fetch
+  // Go offline
+  const goOffline = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      await updatePresence('offline');
+    } catch (error) {
+      console.error('Error going offline:', error);
+    }
+  }, [user, updatePresence]);
+
+  // Start heartbeat (mock implementation)
+  const startHeartbeat = useCallback(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      updatePresence('online');
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [user, updatePresence]);
+
+  // Track location (mock implementation)
+  const trackLocation = useCallback(async (location: string) => {
+    if (!user) return;
+
+    try {
+      await updatePresence('online', location);
+    } catch (error) {
+      console.error('Error tracking location:', error);
+    }
+  }, [user, updatePresence]);
+
+  // Initialize presence
   useEffect(() => {
     fetchPresence();
-  }, [fetchPresence]);
+    
+    if (user) {
+      updatePresence('online');
+      const cleanup = startHeartbeat();
+      
+      // Update presence when user becomes active
+      const handleActivity = () => updatePresence('online');
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          updatePresence('away');
+        } else {
+          updatePresence('online');
+        }
+      };
+
+      document.addEventListener('click', handleActivity);
+      document.addEventListener('keypress', handleActivity);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        cleanup?.();
+        document.removeEventListener('click', handleActivity);
+        document.removeEventListener('keypress', handleActivity);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        goOffline();
+      };
+    }
+  }, [user, fetchPresence, updatePresence, startHeartbeat, goOffline]);
 
   return {
     presenceData,
     onlineUsers,
     updatePresence,
-    fetchPresence
+    fetchPresence,
+    getUserPresence,
+    getUsersByStatus,
+    getUsersAtLocation,
+    setCustomStatus,
+    goOffline,
+    trackLocation
   };
 };

@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface Assignment {
@@ -41,6 +39,57 @@ export const useSmartAssignment = (props?: UseSmartAssignmentProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Mock data
+  const mockAssignments: Assignment[] = [
+    {
+      id: 'assign1',
+      user_id: 'user1',
+      plot_id: 'plot1',
+      work_type: 'Excavation',
+      assigned_date: '2024-01-15',
+      expected_completion: '2024-01-22',
+      status: 'in_progress',
+      notes: 'Phase 1 excavation work'
+    },
+    {
+      id: 'assign2',
+      user_id: 'user2',
+      plot_id: 'plot2',
+      work_type: 'Foundation',
+      assigned_date: '2024-01-16',
+      expected_completion: '2024-01-30',
+      status: 'assigned',
+      notes: 'Foundation laying for main building'
+    }
+  ];
+
+  const mockUsers = [
+    {
+      id: 'user1',
+      fullname: 'John Smith',
+      role: 'Operative',
+      skills: ['Excavation', 'Heavy Machinery', 'Safety'],
+      currentproject: 'proj1',
+      employmentstatus: 'Active'
+    },
+    {
+      id: 'user2',
+      fullname: 'Jane Doe',
+      role: 'Supervisor',
+      skills: ['Foundation', 'Project Management', 'Quality Control'],
+      currentproject: 'proj1',
+      employmentstatus: 'Active'
+    },
+    {
+      id: 'user3',
+      fullname: 'Mike Johnson',
+      role: 'Specialist',
+      skills: ['Electrical', 'Wiring', 'Safety', 'Testing'],
+      currentproject: 'proj2',
+      employmentstatus: 'Active'
+    }
+  ];
+
   useEffect(() => {
     fetchAssignments();
     if (props) {
@@ -51,13 +100,9 @@ export const useSmartAssignment = (props?: UseSmartAssignmentProps) => {
   const fetchAssignments = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('Plot_Assignments')
-        .select('*')
-        .order('assigned_date', { ascending: false });
-
-      if (error) throw error;
-      setAssignments(data || []);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setAssignments(mockAssignments);
     } catch (err: any) {
       console.error('Error fetching assignments:', err);
       setError(err.message);
@@ -73,16 +118,14 @@ export const useSmartAssignment = (props?: UseSmartAssignmentProps) => {
   ): Promise<SkillMatch[]> => {
     try {
       setLoading(true);
-      const { data: users, error } = await supabase
-        .from('Users')
-        .select('id, fullname, role, skills, currentproject, employmentstatus')
-        .eq('employmentstatus', 'Active');
-
-      if (error) throw error;
-
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const users = mockUsers.filter(user => user.employmentstatus === 'Active');
       const skillMatches: SkillMatch[] = [];
 
-      for (const user of users || []) {
+      for (const user of users) {
         let matchScore = 0;
         const userSkills = user.skills || [];
         
@@ -116,14 +159,12 @@ export const useSmartAssignment = (props?: UseSmartAssignmentProps) => {
           matchScore += 10;
         }
 
-        // Get current workload
-        const { data: currentAssignments } = await supabase
-          .from('Plot_Assignments')
-          .select('id')
-          .eq('user_id', user.id)
-          .in('status', ['assigned', 'in_progress']);
-
-        const currentWorkload = currentAssignments?.length || 0;
+        // Get current workload (mock)
+        const currentAssignments = mockAssignments.filter(assignment => 
+          assignment.user_id === user.id && 
+          ['assigned', 'in_progress'].includes(assignment.status)
+        );
+        const currentWorkload = currentAssignments.length;
 
         // Availability penalty for overloaded users
         if (currentWorkload > 3) {
@@ -173,22 +214,19 @@ export const useSmartAssignment = (props?: UseSmartAssignmentProps) => {
 
   const assignUser = async (userId: string, workPackageId: string, notes?: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('Plot_Assignments')
-        .insert({
-          user_id: userId,
-          plot_id: workPackageId,
-          work_type: props?.workType || 'General',
-          assigned_date: new Date().toISOString().split('T')[0],
-          expected_completion: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          status: 'assigned',
-          notes: notes || ''
-        });
+      const newAssignment: Assignment = {
+        id: `assign_${Date.now()}`,
+        user_id: userId,
+        plot_id: workPackageId,
+        work_type: props?.workType || 'General',
+        assigned_date: new Date().toISOString().split('T')[0],
+        expected_completion: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        status: 'assigned',
+        notes: notes || ''
+      };
 
-      if (error) throw error;
-
+      setAssignments(prev => [newAssignment, ...prev]);
       toast.success('Assignment created successfully');
-      await fetchAssignments();
       return true;
     } catch (error: any) {
       console.error('Error creating assignment:', error);
@@ -206,22 +244,19 @@ export const useSmartAssignment = (props?: UseSmartAssignmentProps) => {
     notes?: string
   ): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('Plot_Assignments')
-        .insert({
-          user_id: userId,
-          plot_id: plotId,
-          work_type: workType,
-          assigned_date: new Date().toISOString().split('T')[0],
-          expected_completion: expectedCompletion,
-          status: 'assigned',
-          notes: notes || ''
-        });
+      const newAssignment: Assignment = {
+        id: `assign_${Date.now()}`,
+        user_id: userId,
+        plot_id: plotId,
+        work_type: workType,
+        assigned_date: new Date().toISOString().split('T')[0],
+        expected_completion: expectedCompletion,
+        status: 'assigned',
+        notes: notes || ''
+      };
 
-      if (error) throw error;
-
+      setAssignments(prev => [newAssignment, ...prev]);
       toast.success('Assignment created successfully');
-      await fetchAssignments();
       return true;
     } catch (error: any) {
       console.error('Error creating assignment:', error);
@@ -236,21 +271,16 @@ export const useSmartAssignment = (props?: UseSmartAssignmentProps) => {
     notes?: string
   ): Promise<boolean> => {
     try {
-      const updateData: any = { status };
-      if (notes) updateData.notes = notes;
-      if (status === 'completed') {
-        updateData.actual_completion = new Date().toISOString().split('T')[0];
-      }
-
-      const { error } = await supabase
-        .from('Plot_Assignments')
-        .update(updateData)
-        .eq('id', assignmentId);
-
-      if (error) throw error;
+      setAssignments(prev => prev.map(assignment => {
+        if (assignment.id === assignmentId) {
+          const updateData: any = { ...assignment, status };
+          if (notes) updateData.notes = notes;
+          return updateData;
+        }
+        return assignment;
+      }));
 
       toast.success('Assignment updated successfully');
-      await fetchAssignments();
       return true;
     } catch (error: any) {
       console.error('Error updating assignment:', error);
@@ -261,30 +291,27 @@ export const useSmartAssignment = (props?: UseSmartAssignmentProps) => {
 
   const getWorkloadAnalysis = async (userId: string) => {
     try {
-      const { data: assignments, error } = await supabase
-        .from('Plot_Assignments')
-        .select('*')
-        .eq('user_id', userId)
-        .in('status', ['assigned', 'in_progress']);
-
-      if (error) throw error;
+      const assignments = mockAssignments.filter(assignment => 
+        assignment.user_id === userId && 
+        ['assigned', 'in_progress'].includes(assignment.status)
+      );
 
       const currentWeekStart = new Date();
       currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
       
-      const upcomingDeadlines = assignments?.filter(assignment => {
+      const upcomingDeadlines = assignments.filter(assignment => {
         const deadline = new Date(assignment.expected_completion);
         const weekFromNow = new Date();
         weekFromNow.setDate(weekFromNow.getDate() + 7);
         return deadline <= weekFromNow;
-      }) || [];
+      });
 
       return {
-        totalAssignments: assignments?.length || 0,
+        totalAssignments: assignments.length,
         upcomingDeadlines: upcomingDeadlines.length,
-        overdue: assignments?.filter(a => 
+        overdue: assignments.filter(a => 
           new Date(a.expected_completion) < new Date()
-        ).length || 0
+        ).length
       };
     } catch (error: any) {
       console.error('Error getting workload analysis:', error);

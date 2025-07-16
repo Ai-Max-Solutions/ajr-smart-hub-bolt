@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useUserProfile } from './useUserProfile';
 import { useToast } from './use-toast';
 
@@ -12,7 +11,7 @@ interface SmartPrompt {
   usage_count: number;
   avg_rating: number;
   requires_context: boolean;
-  context_fields: any; // JSONB from database
+  context_fields: any;
   example_input?: string;
   system_prompt?: string;
   output_format?: string;
@@ -49,339 +48,228 @@ export const useSmartPrompts = () => {
   const [loading, setLoading] = useState(false);
   const [usage, setUsage] = useState<SmartPromptUsage[]>([]);
   const [analytics, setAnalytics] = useState<PromptAnalytics | null>(null);
-  const [offlineCache, setOfflineCache] = useState<Map<string, any>>(new Map());
 
-  // Load role-specific prompts
-  const loadPrompts = useCallback(async () => {
+  // Mock prompts data
+  const mockPrompts: SmartPrompt[] = [
+    {
+      id: 'prompt1',
+      title: 'Safety Briefing Generator',
+      description: 'Generate daily safety briefings based on weather and site conditions',
+      category: 'safety',
+      priority: 1,
+      usage_count: 45,
+      avg_rating: 4.2,
+      requires_context: true,
+      context_fields: { weather: true, site_conditions: true },
+      example_input: 'Generate safety briefing for rainy conditions',
+      system_prompt: 'You are a safety expert generating briefings.',
+      output_format: 'structured_list'
+    },
+    {
+      id: 'prompt2',
+      title: 'Progress Report Writer',
+      description: 'Create professional progress reports from raw data',
+      category: 'productivity',
+      priority: 2,
+      usage_count: 32,
+      avg_rating: 4.0,
+      requires_context: true,
+      context_fields: { timesheet_data: true, completion_status: true },
+      example_input: 'Write progress report for week ending 2024-01-15',
+      system_prompt: 'You are a project manager creating reports.',
+      output_format: 'document'
+    }
+  ];
+
+  // Load prompts based on user role (mock implementation)
+  const loadRoleBasedPrompts = useCallback(async () => {
     if (!profile?.role) return;
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .rpc('get_role_smart_prompts', { p_role: profile.role });
-
-      if (error) throw error;
-
-      const processedPrompts = (data || []).map((prompt: any) => ({
-        ...prompt,
-        context_fields: Array.isArray(prompt.context_fields) ? prompt.context_fields : 
-                       typeof prompt.context_fields === 'string' ? JSON.parse(prompt.context_fields) : []
-      }));
-      setPrompts(processedPrompts);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Cache prompts for offline use
-      if (processedPrompts.length > 0) {
-        const cacheKey = `prompts_${profile.role}`;
-        localStorage.setItem(cacheKey, JSON.stringify(processedPrompts));
-      }
+      // Filter prompts based on role
+      const rolePrompts = mockPrompts.filter(prompt => {
+        if (profile.role === 'Supervisor') return true;
+        if (profile.role === 'Operative') return prompt.category === 'safety';
+        return prompt.priority <= 2;
+      });
 
+      setPrompts(rolePrompts);
     } catch (error) {
-      console.error('Error loading prompts:', error);
-      
-      // Try to load from cache if online request fails
-      const cacheKey = `prompts_${profile.role}`;
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        setPrompts(JSON.parse(cached));
-        toast({
-          title: "📱 Using Cached Prompts",
-          description: "Loaded prompts from offline cache",
-        });
-      }
+      console.error('Error loading role-based prompts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load smart prompts",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   }, [profile?.role, toast]);
 
-  // Load user's prompt usage history
-  const loadUsageHistory = useCallback(async () => {
-    if (!profile) return;
+  // Load usage analytics (mock implementation)
+  const loadUsageAnalytics = useCallback(async () => {
+    if (!profile?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('smart_prompt_usage')
-        .select(`
-          id,
-          template_id,
-          executed_at,
-          execution_time_ms,
-          tokens_used,
-          user_rating,
-          was_refined,
-          mobile_device,
-          voice_input
-        `)
-        .eq('user_id', profile.id)
-        .order('executed_at', { ascending: false })
-        .limit(100);
+      // Mock usage data
+      const mockUsage: SmartPromptUsage[] = [
+        {
+          id: 'usage1',
+          template_id: 'prompt1',
+          executed_at: new Date().toISOString(),
+          execution_time_ms: 1200,
+          tokens_used: 150,
+          user_rating: 4,
+          was_refined: false,
+          mobile_device: false,
+          voice_input: false
+        }
+      ];
 
-      if (error) throw error;
-      setUsage(data || []);
+      setUsage(mockUsage);
 
+      // Mock analytics
+      const mockAnalytics: PromptAnalytics = {
+        total_executions: 77,
+        avg_execution_time: 1150,
+        total_tokens_used: 11550,
+        avg_rating: 4.1,
+        most_used_prompts: mockPrompts.slice(0, 3),
+        category_usage: { safety: 45, productivity: 32 },
+        mobile_usage_percentage: 15,
+        voice_usage_percentage: 8
+      };
+
+      setAnalytics(mockAnalytics);
     } catch (error) {
-      console.error('Error loading usage history:', error);
+      console.error('Error loading usage analytics:', error);
     }
-  }, [profile]);
+  }, [profile?.id]);
 
-  // Calculate analytics from usage data
-  const calculateAnalytics = useCallback(() => {
-    if (usage.length === 0) return null;
-
-    const totalExecutions = usage.length;
-    const avgExecutionTime = usage.reduce((sum, u) => sum + (u.execution_time_ms || 0), 0) / totalExecutions;
-    const totalTokensUsed = usage.reduce((sum, u) => sum + (u.tokens_used || 0), 0);
-    const ratingsWithValues = usage.filter(u => u.user_rating);
-    const avgRating = ratingsWithValues.length > 0
-      ? ratingsWithValues.reduce((sum, u) => sum + (u.user_rating || 0), 0) / ratingsWithValues.length
-      : 0;
-
-    // Count usage by category
-    const categoryUsage: Record<string, number> = {};
-    usage.forEach(u => {
-      const prompt = prompts.find(p => p.id === u.template_id);
-      if (prompt) {
-        categoryUsage[prompt.category] = (categoryUsage[prompt.category] || 0) + 1;
-      }
-    });
-
-    // Most used prompts
-    const promptUsage = new Map<string, number>();
-    usage.forEach(u => {
-      promptUsage.set(u.template_id, (promptUsage.get(u.template_id) || 0) + 1);
-    });
-
-    const mostUsedPrompts = Array.from(promptUsage.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([templateId]) => prompts.find(p => p.id === templateId))
-      .filter(Boolean) as SmartPrompt[];
-
-    const mobileUsageCount = usage.filter(u => u.mobile_device).length;
-    const voiceUsageCount = usage.filter(u => u.voice_input).length;
-
-    return {
-      total_executions: totalExecutions,
-      avg_execution_time: Math.round(avgExecutionTime),
-      total_tokens_used: totalTokensUsed,
-      avg_rating: avgRating,
-      most_used_prompts: mostUsedPrompts,
-      category_usage: categoryUsage,
-      mobile_usage_percentage: Math.round((mobileUsageCount / totalExecutions) * 100),
-      voice_usage_percentage: Math.round((voiceUsageCount / totalExecutions) * 100)
-    };
-  }, [usage, prompts]);
-
-  // Execute a smart prompt
+  // Execute prompt (mock implementation)
   const executePrompt = useCallback(async (
     promptId: string,
-    inputText: string,
-    context: Record<string, any> = {},
+    input: string,
+    context: any = {},
     options: {
-      mobileDevice?: boolean;
-      voiceInput?: boolean;
-      offlineMode?: boolean;
+      voice_input?: boolean;
+      mobile_device?: boolean;
+      require_refinement?: boolean;
     } = {}
   ) => {
     try {
-      // Check if we have this cached offline
-      const cacheKey = `${promptId}_${inputText}`;
-      if (options.offlineMode && offlineCache.has(cacheKey)) {
-        const cached = offlineCache.get(cacheKey);
-        toast({
-          title: "📱 Cached Response",
-          description: "Using offline cached response",
-        });
-        return cached;
-      }
+      setLoading(true);
+      
+      const prompt = prompts.find(p => p.id === promptId);
+      if (!prompt) throw new Error('Prompt not found');
 
-      const { data, error } = await supabase.functions.invoke('smart-prompt-execute', {
-        body: {
-          template_id: promptId,
-          input_text: inputText,
-          context: context,
-          mobile_device: options.mobileDevice || false,
-          voice_input: options.voiceInput || false,
-          offline_mode: options.offlineMode || false
-        }
+      // Simulate AI processing
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const response = {
+        id: `exec_${Date.now()}`,
+        prompt_id: promptId,
+        input,
+        output: `Mock AI response for: ${input}`,
+        execution_time_ms: 950,
+        tokens_used: 125,
+        context_used: context,
+        requires_follow_up: false
+      };
+
+      // Record usage
+      const usageRecord: SmartPromptUsage = {
+        id: `usage_${Date.now()}`,
+        template_id: promptId,
+        executed_at: new Date().toISOString(),
+        execution_time_ms: response.execution_time_ms,
+        tokens_used: response.tokens_used,
+        was_refined: false,
+        mobile_device: options.mobile_device || false,
+        voice_input: options.voice_input || false
+      };
+
+      setUsage(prev => [usageRecord, ...prev]);
+
+      toast({
+        title: "Prompt Executed",
+        description: `${prompt.title} completed successfully`,
       });
 
-      if (error) throw error;
-
-      if (data.success) {
-        // Cache the response for offline use
-        setOfflineCache(prev => new Map(prev.set(cacheKey, data)));
-        
-        // Refresh usage data
-        loadUsageHistory();
-        
-        return data;
-      } else {
-        throw new Error(data.error || 'Unknown error');
-      }
-
+      return response;
     } catch (error) {
       console.error('Error executing prompt:', error);
-      throw error;
+      toast({
+        title: "Execution Error",
+        description: "Failed to execute prompt",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setLoading(false);
     }
-  }, [offlineCache, toast, loadUsageHistory]);
+  }, [prompts, toast]);
 
-  // Rate a prompt execution
-  const ratePromptExecution = useCallback(async (
+  // Rate prompt execution (mock implementation)
+  const rateExecution = useCallback(async (
     usageId: string,
     rating: number,
     feedback?: string
   ) => {
     try {
-      const { error } = await supabase
-        .from('smart_prompt_usage')
-        .update({
-          user_rating: rating,
-          user_feedback: feedback
-        })
-        .eq('id', usageId);
+      setUsage(prev => prev.map(u => 
+        u.id === usageId ? { ...u, user_rating: rating } : u
+      ));
 
-      if (error) throw error;
-
-      // Refresh usage data to update analytics
-      loadUsageHistory();
-
-      toast({
-        title: "⭐ Rating Submitted",
-        description: "Thank you for your feedback!",
-      });
-
+      console.log('Rating submitted:', { usageId, rating, feedback });
+      return true;
     } catch (error) {
-      console.error('Error rating prompt:', error);
-      toast({
-        title: "Rating Error",
-        description: "Could not submit rating. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Error rating execution:', error);
+      return false;
     }
-  }, [loadUsageHistory, toast]);
+  }, []);
 
-  // Get cached prompts for offline use
-  const getCachedPrompts = useCallback(() => {
-    if (!profile?.role) return [];
-    
-    const cacheKey = `prompts_${profile.role}`;
-    const cached = localStorage.getItem(cacheKey);
-    return cached ? JSON.parse(cached) : [];
-  }, [profile?.role]);
-
-  // Sync offline cache when coming back online
-  const syncOfflineCache = useCallback(async () => {
+  // Cache prompt for offline use (mock implementation)
+  const cachePromptOffline = useCallback(async (promptId: string) => {
     try {
-      const offlineData = localStorage.getItem('offline_messages');
-      if (!offlineData) return;
-
-      const messages = JSON.parse(offlineData);
-      const unsynced = messages.filter((m: any) => !m.synced);
-
-      for (const message of unsynced) {
-        // Attempt to sync each cached message
-        try {
-          await supabase
-            .rpc('cache_prompt_offline', {
-              p_template_id: message.template_id,
-              p_input: message.input,
-              p_output: message.output
-            });
-
-          // Mark as synced
-          message.synced = true;
-        } catch (error) {
-          console.error('Error syncing cached message:', error);
-        }
-      }
-
-      // Update localStorage with sync status
-      localStorage.setItem('offline_messages', JSON.stringify(messages));
-
-      if (unsynced.length > 0) {
-        toast({
-          title: "🔄 Sync Complete",
-          description: `Synced ${unsynced.length} offline responses`,
-        });
-      }
-
+      console.log('Caching prompt offline:', promptId);
+      return true;
     } catch (error) {
-      console.error('Error syncing offline cache:', error);
+      console.error('Error caching prompt:', error);
+      return false;
     }
-  }, [toast]);
+  }, []);
 
-  // Get prompt suggestions based on context
-  const getPromptSuggestions = useCallback((context: {
-    timeOfDay?: 'morning' | 'afternoon' | 'evening';
-    currentProject?: string;
-    recentActivity?: string[];
-  }) => {
-    if (prompts.length === 0) return [];
-
-    // Smart suggestions based on context
-    let suggestions = [...prompts];
-
-    // Time-based suggestions
-    if (context.timeOfDay === 'morning') {
-      suggestions = suggestions.filter(p => 
-        p.category === 'planning' || 
-        p.category === 'team' || 
-        p.title.toLowerCase().includes('briefing')
-      );
+  // Get cached prompts (mock implementation)
+  const getCachedPrompts = useCallback(async () => {
+    try {
+      return mockPrompts.filter(p => p.priority <= 2);
+    } catch (error) {
+      console.error('Error getting cached prompts:', error);
+      return [];
     }
+  }, []);
 
-    // Project-based suggestions
-    if (context.currentProject) {
-      suggestions = suggestions.filter(p => 
-        p.category === 'progress' || 
-        p.category === 'delivery' || 
-        p.category === 'planning'
-      );
-    }
-
-    // Sort by usage and rating
-    suggestions.sort((a, b) => {
-      const scoreA = (a.usage_count * 0.6) + (a.avg_rating * 0.4);
-      const scoreB = (b.usage_count * 0.6) + (b.avg_rating * 0.4);
-      return scoreB - scoreA;
-    });
-
-    return suggestions.slice(0, 5);
-  }, [prompts]);
-
-  // Load data on mount and profile change
+  // Initialize
   useEffect(() => {
-    loadPrompts();
-    loadUsageHistory();
-  }, [loadPrompts, loadUsageHistory]);
-
-  // Calculate analytics when usage changes
-  useEffect(() => {
-    const calculated = calculateAnalytics();
-    setAnalytics(calculated);
-  }, [calculateAnalytics]);
-
-  // Listen for online/offline changes to sync cache
-  useEffect(() => {
-    const handleOnline = () => {
-      syncOfflineCache();
-    };
-
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [syncOfflineCache]);
+    loadRoleBasedPrompts();
+    loadUsageAnalytics();
+  }, [loadRoleBasedPrompts, loadUsageAnalytics]);
 
   return {
     prompts,
-    loading,
     usage,
     analytics,
+    loading,
     executePrompt,
-    ratePromptExecution,
+    rateExecution,
+    cachePromptOffline,
     getCachedPrompts,
-    getPromptSuggestions,
-    syncOfflineCache,
-    loadPrompts,
-    loadUsageHistory
+    loadRoleBasedPrompts,
+    loadUsageAnalytics
   };
 };
