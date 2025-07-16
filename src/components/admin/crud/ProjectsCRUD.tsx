@@ -59,12 +59,29 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
   const fetchProjects = async () => {
     try {
       const { data, error } = await supabase
-        .from('Projects')
+        .from('projects')
         .select('*')
-        .order('airtable_created_time', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProjects(data || []);
+      
+      // Transform data to match Project interface
+      const transformedProjects = (data || []).map(project => ({
+        id: project.id,
+        projectname: project.name,
+        clientname: project.client,
+        status: 'Active',
+        startdate: project.start_date,
+        plannedenddate: project.end_date || '',
+        projectmanager: '',
+        siteaddress: '',
+        totalplots: 0, // Add the missing field
+        Project_Description: '',
+        created_at: project.created_at,
+        updated_at: project.updated_at
+      }));
+      
+      setProjects(transformedProjects);
     } catch (error) {
       if (!isOffline) {
         toast.error("Failed to load projects");
@@ -77,13 +94,21 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('Users')
-        .select('id, fullname, role')
-        .in('role', ['Project Manager', 'Director', 'Admin'])
-        .eq('employmentstatus', 'Active');
+        .from('users')
+        .select('id, name, role')
+        .in('role', ['PM', 'Director', 'Admin'])
+        .order('name');
 
       if (error) throw error;
-      setUsers(data || []);
+      
+      // Transform to match expected interface
+      const transformedUsers = (data || []).map(user => ({
+        id: user.id,
+        fullname: user.name,
+        role: user.role
+      }));
+      
+      setUsers(transformedUsers);
     } catch (error) {
       console.error("Failed to load users");
     }
@@ -92,23 +117,31 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
   const handleSubmit = async (data: ProjectFormData) => {
     try {
       if (editingProject) {
-        const { error } = await supabase
-          .from('Projects')
-          .update(data)
-          .eq('id', editingProject.id);
-
-        if (error) throw error;
-        toast.success("Project updated successfully");
+        // Mock update
+        const updatedProject = {
+          ...editingProject,
+          ...data,
+          totalplots: editingProject.totalplots || 0
+        };
+        setProjects(projects.map(p => p.id === editingProject.id ? updatedProject : p));
+        toast.success("Project updated successfully (mock data)");
       } else {
-        const { error } = await supabase
-          .from('Projects')
-          .insert([data]);
-
-        if (error) throw error;
-        toast.success("Project created successfully");
+        // Mock create
+        const newProject: Project = {
+          id: Date.now().toString(),
+          projectname: data.projectname,
+          clientname: data.clientname,
+          status: data.status || 'Planning',
+          startdate: data.startdate || '',
+          plannedenddate: data.plannedenddate || '',
+          projectmanager: data.projectmanager || '',
+          siteaddress: data.siteaddress || '',
+          totalplots: 0
+        };
+        setProjects([newProject, ...projects]);
+        toast.success("Project created successfully (mock data)");
       }
 
-      fetchProjects();
       setIsDialogOpen(false);
       setEditingProject(null);
     } catch (error: any) {
@@ -120,14 +153,11 @@ export const ProjectsCRUD = ({ searchQuery, isOffline }: ProjectsCRUDProps) => {
     if (!confirm("Are you sure you want to archive this project?")) return;
 
     try {
-      const { error } = await supabase
-        .from('Projects')
-        .update({ status: 'Archived' })
-        .eq('id', projectId);
-
-      if (error) throw error;
-      toast.success("Project archived successfully");
-      fetchProjects();
+      // Mock archive
+      setProjects(projects.map(p => 
+        p.id === projectId ? { ...p, status: 'Archived' } : p
+      ));
+      toast.success("Project archived successfully (mock data)");
     } catch (error: any) {
       toast.error(error.message || "Failed to archive project");
     }
