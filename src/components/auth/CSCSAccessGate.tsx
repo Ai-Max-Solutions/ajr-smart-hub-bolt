@@ -71,23 +71,6 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
           return;
         }
 
-        // Skip CSCS checks if user hasn't completed onboarding yet
-        if (!userData.onboarding_completed) {
-          console.log('[CSCSAccessGate] User onboarding not completed, bypassing CSCS check', {
-            onboarding_completed: userData.onboarding_completed,
-            firstname: userData.firstname,
-            lastname: userData.lastname
-          });
-          setCSCSStatus({
-            is_valid: true,
-            status: 'onboarding_incomplete',
-            reason: 'Onboarding in progress',
-            requires_upload: false
-          });
-          setLoading(false);
-          return;
-        }
-
         // Query CSCS cards - try with auth ID first, then whalesync ID if needed
         console.log('[CSCSAccessGate] Querying CSCS cards with auth ID:', user.id);
         let { data: cscsCard, error: cscsError } = await supabase
@@ -131,43 +114,45 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
           return;
         }
 
-        if (cscsCard) {
-          // User has a CSCS card, check if it's valid (not expired)
-          const today = new Date();
-          const expiryDate = new Date(cscsCard.expiry_date);
-          
-          console.log('[CSCSAccessGate] Card found:', {
-            cardNumber: cscsCard.card_number,
-            expiryDate: cscsCard.expiry_date,
-            isValid: expiryDate > today
+        // KEY CHANGE: If no CSCS card exists, skip validation entirely
+        if (!cscsCard) {
+          console.log('[CSCSAccessGate] No CSCS card found - skipping validation entirely (user can proceed)');
+          setCSCSStatus({
+            is_valid: true,
+            status: 'no_card_uploaded',
+            reason: 'No CSCS card uploaded yet - validation skipped',
+            requires_upload: false
           });
-          
-          if (expiryDate > today) {
-            // Card is valid
-            console.log('[CSCSAccessGate] CSCS card is valid, allowing access');
-            setCSCSStatus({
-              is_valid: true,
-              status: 'valid',
-              reason: 'CSCS card is valid',
-              requires_upload: false
-            });
-          } else {
-            // Card is expired
-            console.log('[CSCSAccessGate] CSCS card is expired');
-            setCSCSStatus({
-              is_valid: false,
-              status: 'expired',
-              reason: 'CSCS card has expired',
-              requires_upload: true
-            });
-          }
+          setLoading(false);
+          return;
+        }
+
+        // User has a CSCS card, now validate it
+        const today = new Date();
+        const expiryDate = new Date(cscsCard.expiry_date);
+        
+        console.log('[CSCSAccessGate] Card found, validating:', {
+          cardNumber: cscsCard.card_number,
+          expiryDate: cscsCard.expiry_date,
+          isValid: expiryDate > today
+        });
+        
+        if (expiryDate > today) {
+          // Card is valid
+          console.log('[CSCSAccessGate] CSCS card is valid, allowing access');
+          setCSCSStatus({
+            is_valid: true,
+            status: 'valid',
+            reason: 'CSCS card is valid',
+            requires_upload: false
+          });
         } else {
-          // No CSCS card found, user needs to upload
-          console.log('[CSCSAccessGate] No CSCS card found, requiring upload');
+          // Card is expired
+          console.log('[CSCSAccessGate] CSCS card is expired');
           setCSCSStatus({
             is_valid: false,
-            status: 'missing',
-            reason: 'No CSCS card uploaded',
+            status: 'expired',
+            reason: 'CSCS card has expired',
             requires_upload: true
           });
         }
