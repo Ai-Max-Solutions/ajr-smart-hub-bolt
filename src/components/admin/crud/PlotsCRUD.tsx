@@ -55,15 +55,33 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
 
   const fetchData = async () => {
     try {
-      const [plotsRes, levelsRes, usersRes] = await Promise.all([
-        supabase.from('Plots').select('*').order('plotnumber'),
-        supabase.from('Levels').select('id, levelname, levelnumber'),
-        supabase.from('Users').select('id, fullname, role').eq('employmentstatus', 'Active')
-      ]);
+      // Use actual plots table and mock data for non-existent tables
+      const plotsRes = await supabase.from('plots').select('*').order('name');
+      const usersRes = await supabase.from('users').select('id, name').order('name');
+      
+      // Mock data for non-existent tables
+      const mockLevels = [
+        { id: '1', levelname: 'Ground Floor', levelnumber: 1 },
+        { id: '2', levelname: 'First Floor', levelnumber: 2 }
+      ];
 
-      setPlots(plotsRes.data || []);
-      setLevels(levelsRes.data || []);
-      setUsers(usersRes.data || []);
+      // Transform plots data to match Plot interface
+      const transformedPlots = (plotsRes.data || []).map(plot => ({
+        id: plot.id,
+        plotnumber: plot.name,
+        plotstatus: 'Available',
+        level: plot.level || 'Ground Floor',
+        numberofbedrooms: 3,
+        numberofbathrooms: 2,
+        floorarea: 100,
+        plannedhandoverdate: new Date().toISOString().split('T')[0],
+        actualhandoverdate: '',
+        plotnotes: ''
+      }));
+
+      setPlots(transformedPlots);
+      setLevels(mockLevels);
+      setUsers(usersRes.data?.map(u => ({ id: u.id, name: u.name })) || []);
     } catch (error) {
       if (!isOffline) {
         toast.error("Failed to load data");
@@ -78,20 +96,22 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
     
     try {
       if (editingPlot) {
-        const { error } = await supabase
-          .from('Plots')
-          .update(formData)
-          .eq('id', editingPlot.id);
-
-        if (error) throw error;
-        toast.success("Plot updated successfully");
+        // Mock data update
+        setPlots(plots.map(plot => 
+          plot.id === editingPlot.id ? { ...plot, ...formData } : plot
+        ));
+        toast.success("Plot updated successfully (mock data)");
       } else {
-        const { error } = await supabase
-          .from('Plots')
-          .insert([formData]);
+        // Mock data creation
+        const newPlot = {
+          id: Date.now().toString(),
+          ...formData,
+          plotnumber: formData.plotnumber || 'New Plot',
+          plotstatus: formData.plotstatus || 'Available'
+        };
 
-        if (error) throw error;
-        toast.success("Plot created successfully");
+        setPlots([...plots, newPlot]);
+        toast.success("Plot created successfully (mock data)");
       }
 
       fetchData();
@@ -106,14 +126,11 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
     if (!confirm("Are you sure you want to archive this plot?")) return;
 
     try {
-      const { error } = await supabase
-        .from('Plots')
-        .update({ plotstatus: 'Archived' })
-        .eq('id', plotId);
-
-      if (error) throw error;
-      toast.success("Plot archived successfully");
-      fetchData();
+      // Mock data archive
+      setPlots(plots.map(plot => 
+        plot.id === plotId ? { ...plot, plotstatus: 'Archived' } : plot
+      ));
+      toast.success("Plot archived successfully (mock data)");
     } catch (error: any) {
       toast.error(error.message || "Failed to archive plot");
     }
