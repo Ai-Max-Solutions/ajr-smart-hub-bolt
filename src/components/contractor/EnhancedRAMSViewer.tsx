@@ -17,7 +17,7 @@ import {
   Calendar,
   Building2
 } from 'lucide-react';
-import SignaturePad from 'react-signature-canvas';
+import { SignatureCanvas } from '@/components/ui/signature-canvas';
 
 interface RAMSDocument {
   id: string;
@@ -58,7 +58,7 @@ const EnhancedRAMSViewer = ({
   const [readingTime, setReadingTime] = useState(0);
   const [isReading, setIsReading] = useState(false);
   const [hasStartedReading, setHasStartedReading] = useState(false);
-  const signaturePadRef = useRef<SignaturePad>(null);
+  const [currentSignature, setCurrentSignature] = useState<string>('');
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -97,23 +97,21 @@ const EnhancedRAMSViewer = ({
   };
 
   const clearSignature = () => {
-    console.log('Clearing signature pad...');
-    signaturePadRef.current?.clear();
+    console.log('Clearing signature...');
+    setCurrentSignature('');
   };
 
   const handleSign = () => {
     console.log('Attempting to sign...', { 
-      padExists: !!signaturePadRef.current, 
-      isEmpty: signaturePadRef.current?.isEmpty() 
+      hasSignature: !!currentSignature 
     });
     
-    if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
-      const signature = signaturePadRef.current.toDataURL();
+    if (currentSignature) {
       console.log('Signature captured successfully');
       stopReading();
-      onSigned(signature, readingTime);
+      onSigned(currentSignature, readingTime);
     } else {
-      console.log('Cannot sign - pad is empty or not available');
+      console.log('Cannot sign - no signature provided');
     }
   };
 
@@ -339,33 +337,23 @@ const EnhancedRAMSViewer = ({
                     By signing below, you confirm that you have read, understood, and will comply with all safety procedures outlined in this document.
                   </p>
                   
-                  <div className="border border-border rounded-lg bg-background p-4">
-                    <SignaturePad
-                      ref={signaturePadRef}
-                      canvasProps={{
-                        className: 'w-full h-32 rounded-lg',
-                        style: { 
-                          touchAction: 'none',
-                          cursor: 'crosshair',
-                          border: 'none',
-                          display: 'block'
-                        }
-                      }}
-                      onBegin={() => console.log('Started signing')}
-                      onEnd={() => console.log('Finished signing stroke')}
+                  <div className="border border-border rounded-lg bg-background">
+                    <SignatureCanvas
+                      onSignature={setCurrentSignature}
+                      onCancel={clearSignature}
+                      title="Sign to acknowledge you have read and understood this document"
+                      className="w-full"
                     />
                   </div>
                   
                   <div className="flex gap-2 mt-4">
-                    <Button variant="outline" size="sm" onClick={clearSignature}>
-                      Clear Signature
-                    </Button>
                     <Button 
                       onClick={handleSign}
                       className="btn-primary"
+                      disabled={!currentSignature}
                     >
                       <PenTool className="w-4 h-4 mr-2" />
-                      Sign Document
+                      Complete Signing
                     </Button>
                   </div>
                 </div>
