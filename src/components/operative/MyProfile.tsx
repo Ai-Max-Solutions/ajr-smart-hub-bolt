@@ -41,13 +41,32 @@ export const MyProfile: React.FC = () => {
       if (!user) throw new Error('No authenticated user');
 
       const { data, error } = await supabase
-        .from('Users')
-        .select('*')
+        .from('users')
+        .select('id, name, email, phone, role')
         .eq('supabase_auth_id', user.id)
         .single();
 
       if (error) throw error;
-      return data as UserProfile;
+      
+      // Transform to UserProfile format
+      return {
+        id: data.id,
+        firstname: data.name?.split(' ')[0] || '',
+        lastname: data.name?.split(' ')[1] || '',
+        fullname: data.name || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        role: data.role || 'Operative',
+        skills: [],
+        address: '',
+        employmentstatus: 'Active',
+        performance_rating: 0,
+        avatar_url: '',
+        onboarding_completed: true,
+        last_sign_in: new Date().toISOString(),
+        airtable_created_time: new Date().toISOString(),
+        auth_provider: 'supabase'
+      } as UserProfile;
     },
   });
 
@@ -58,7 +77,11 @@ export const MyProfile: React.FC = () => {
 
       const { data, error } = await supabase
         .from('users')
-        .update(updates)
+        .update({
+          name: updates.fullname || updates.firstname + ' ' + updates.lastname,
+          email: updates.email,
+          phone: updates.phone
+        })
         .eq('supabase_auth_id', user.id)
         .select()
         .single();
