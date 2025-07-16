@@ -183,6 +183,13 @@ export type Database = {
             foreignKeyName: "ai_compliance_predictions_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "ai_compliance_predictions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -545,6 +552,13 @@ export type Database = {
           recommended_actions?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "analytics_predictions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
           {
             foreignKeyName: "analytics_predictions_project_id_fkey"
             columns: ["project_id"]
@@ -937,6 +951,42 @@ export type Database = {
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
+      }
+      audit_trail: {
+        Row: {
+          change_reason: string | null
+          changed_at: string | null
+          changed_by: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          operation: string
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          change_reason?: string | null
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          operation: string
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          change_reason?: string | null
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          operation?: string
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
       }
       auth_migration: {
         Row: {
@@ -1337,6 +1387,13 @@ export type Database = {
             foreignKeyName: "compliance_dashboard_stats_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "compliance_dashboard_stats_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -1386,6 +1443,13 @@ export type Database = {
           total_documents?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "compliance_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
           {
             foreignKeyName: "compliance_snapshots_project_id_fkey"
             columns: ["project_id"]
@@ -1643,6 +1707,13 @@ export type Database = {
             foreignKeyName: "contractor_project_assignments_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "contractor_project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -1824,6 +1895,13 @@ export type Database = {
             foreignKeyName: "contractor_work_assignments_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "contractor_work_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -1905,6 +1983,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "cost_tracking_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "cost_tracking_project_id_fkey"
@@ -2055,6 +2140,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Blocks"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "delivery_bookings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "delivery_bookings_project_id_fkey"
@@ -2512,6 +2604,13 @@ export type Database = {
             foreignKeyName: "document_versions_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "document_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -2631,6 +2730,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "documents_project_id_fkey"
@@ -3170,6 +3276,13 @@ export type Database = {
             foreignKeyName: "equipment_tracking_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "equipment_tracking_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -3313,6 +3426,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Plots"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "evidence_chain_records_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "evidence_chain_records_project_id_fkey"
@@ -3651,6 +3771,13 @@ export type Database = {
           witnesses?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "incident_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
           {
             foreignKeyName: "incident_reports_project_id_fkey"
             columns: ["project_id"]
@@ -4085,6 +4212,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Plots"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "job_tracker_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "job_tracker_project_id_fkey"
@@ -4571,6 +4705,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Blocks"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "location_tracking_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "location_tracking_project_id_fkey"
@@ -5099,6 +5240,13 @@ export type Database = {
             foreignKeyName: "on_hire_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "on_hire_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -5429,6 +5577,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Plots"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "plot_job_status_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "plot_job_status_project_id_fkey"
@@ -5976,6 +6131,13 @@ export type Database = {
             foreignKeyName: "pod_register_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "pod_register_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -6468,6 +6630,13 @@ export type Database = {
             foreignKeyName: "project_assignments_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -6540,6 +6709,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_team_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
           {
             foreignKeyName: "project_team_project_id_fkey"
             columns: ["project_id"]
@@ -6656,6 +6832,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "project_teams_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "project_teams_project_id_fkey"
@@ -7033,6 +7216,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "qr_posters_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "qr_posters_project_id_fkey"
@@ -7624,6 +7814,13 @@ export type Database = {
             foreignKeyName: "rams_documents_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "rams_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -7860,6 +8057,13 @@ export type Database = {
             foreignKeyName: "role_invitations_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "role_invitations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -8089,6 +8293,13 @@ export type Database = {
             foreignKeyName: "fk_signatures_project_id"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_signatures_project_id"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -8184,6 +8395,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "site_notices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "site_notices_project_id_fkey"
@@ -8301,6 +8519,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "smart_notifications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
           {
             foreignKeyName: "smart_notifications_project_id_fkey"
             columns: ["project_id"]
@@ -8770,6 +8995,13 @@ export type Database = {
             foreignKeyName: "smart_schedules_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "smart_schedules_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -9035,6 +9267,13 @@ export type Database = {
             foreignKeyName: "task_plan_rams_register_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -9225,6 +9464,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "task_plan_signatures_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "task_plan_signatures_project_id_fkey"
@@ -9541,6 +9787,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "task_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "task_plans_project_id_fkey"
@@ -9943,6 +10196,13 @@ export type Database = {
             foreignKeyName: "toolbox_talks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "toolbox_talks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -10280,6 +10540,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Plots"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_job_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "user_job_assignments_project_id_fkey"
@@ -10684,6 +10951,13 @@ export type Database = {
             foreignKeyName: "user_rate_cards_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "user_rate_cards_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -11012,6 +11286,13 @@ export type Database = {
             foreignKeyName: "users_currentproject_foreign"
             columns: ["currentproject"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "users_currentproject_foreign"
+            columns: ["currentproject"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -11269,6 +11550,13 @@ export type Database = {
             foreignKeyName: "work_categories_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "work_categories_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -11428,6 +11716,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Plots"
             referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "work_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "work_packages_project_id_fkey"
@@ -11788,6 +12083,27 @@ export type Database = {
         }
         Relationships: []
       }
+      project_summary: {
+        Row: {
+          active_plots: number | null
+          actualenddate: string | null
+          clientname: string | null
+          completed_plots: number | null
+          completion_percentage: number | null
+          last_handover_date: string | null
+          pending_plots: number | null
+          plannedenddate: string | null
+          project_id: string | null
+          project_manager_name: string | null
+          projectname: string | null
+          projectuid: string | null
+          startdate: string | null
+          status: string | null
+          team_size: number | null
+          totalplots: number | null
+        }
+        Relationships: []
+      }
       qualification_status_view: {
         Row: {
           category_color: string | null
@@ -11940,6 +12256,13 @@ export type Database = {
             foreignKeyName: "users_currentproject_foreign"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "users_currentproject_foreign"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
@@ -12050,6 +12373,13 @@ export type Database = {
           workinghours: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "users_currentproject_foreign"
+            columns: ["currentproject"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
           {
             foreignKeyName: "users_currentproject_foreign"
             columns: ["currentproject"]
@@ -12230,6 +12560,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_inactive_collaborations: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      cleanup_old_audit_records: {
         Args: Record<PropertyKey, never>
         Returns: number
       }
@@ -12549,6 +12883,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Json
       }
+      get_user_dashboard_stats: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_user_management_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -12660,6 +12998,10 @@ export type Database = {
           details: string
           impact: string
         }[]
+      }
+      optimize_project_metrics: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       perform_database_maintenance: {
         Args: Record<PropertyKey, never>
