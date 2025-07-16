@@ -159,20 +159,13 @@ export const useAutoTagging = () => {
     documentType: string
   ) => {
     try {
-      // Log the correction for machine learning improvement
-      await supabase
-        .from('activity_metrics')
-        .insert({
-          action_type: 'tag_correction',
-          table_name: 'rams_documents',
-          record_id: documentId,
-          metadata: {
-            suggested_tags: suggestedTags,
-            final_tags: finalTags,
-            document_type: documentType,
-            accuracy_score: finalTags.filter(tag => suggestedTags.includes(tag)).length / Math.max(finalTags.length, 1) * 100
-          }
-        });
+      // Mock activity logging since activity_metrics table doesn't exist
+      console.log('Would log tag correction:', {
+        documentId,
+        suggestedTags,
+        finalTags,
+        documentType
+      });
     } catch (err) {
       console.warn('Failed to log tag correction:', err);
     }

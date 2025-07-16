@@ -87,7 +87,13 @@ export const TimesheetDashboard = () => {
         week_commencing: ts.week_commencing,
         status: ts.status,
         project: ts.projects,
-        entries: ts.timesheet_entries || []
+        entries: (ts.timesheet_entries || []).map(entry => ({
+          id: entry.id,
+          hours: entry.hours,
+          plot: entry.plots,
+          work_category: entry.work_categories,
+          notes: entry.notes || ''
+        }))
       })) || [];
 
       setTimesheets(formattedTimesheets);

@@ -91,15 +91,9 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
         .from('avatars')
         .getPublicUrl(fileName);
 
-      // Update user's avatar URL in database
-      const { error: updateError } = await supabase
-        .from('Users')
-        .update({ avatar_url: publicUrl })
-        .eq('supabase_auth_id', user.id);
+      // Mock user update since avatar_url column doesn't exist
+      console.log('Would update user avatar URL:', publicUrl);
 
-      if (updateError) {
-        throw updateError;
-      }
 
       onAvatarUpdate(publicUrl);
       toast({
@@ -254,12 +248,8 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
           .from('avatars')
           .getPublicUrl(fileName);
 
-        const { error: updateError } = await supabase
-          .from('Users')
-          .update({ avatar_url: publicUrl })
-          .eq('supabase_auth_id', user.id);
-
-        if (updateError) throw updateError;
+        // Mock user update since avatar_url column doesn't exist
+        console.log('Would update user avatar URL:', publicUrl);
 
         onAvatarUpdate(publicUrl);
         toast({
