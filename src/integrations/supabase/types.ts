@@ -376,8 +376,8 @@ export type Database = {
             foreignKeyName: "ai_conversations_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: "user_view"
+            referencedColumns: ["auth_id"]
           },
         ]
       }
@@ -14561,6 +14561,15 @@ export type Database = {
           | Record<PropertyKey, never>
           | { p_card_number: string; p_expiry_date: string }
         Returns: Json
+      }
+      validate_data_consistency: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          issue_type: string
+          table_name: string
+          issue_count: number
+          description: string
+        }[]
       }
       validate_qr_document: {
         Args: {
