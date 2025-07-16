@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,7 @@ interface OnboardingCompleteProps {
 const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -94,10 +96,11 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
       return;
     }
 
-    // Clear onboarding data from localStorage
+    // Clear onboarding data from localStorage (but keep onboardingCompleted)
     localStorage.removeItem('onboardingData');
-    // Redirect to dashboard
-    window.location.href = '/';
+    
+    // Use React Router navigation instead of window.location to avoid full page reload
+    navigate('/', { replace: true });
   };
 
   return (
