@@ -129,12 +129,16 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           
         // Call AI analysis function
         console.log('Calling CSCS card analyzer with URL:', imageUrl);
+        console.log('Current user session:', await supabase.auth.getSession());
+        
         const { data: analysis, error: analysisError } = await supabase.functions
           .invoke('cscs-card-analyzer', {
             body: { imageUrl }
           });
           
         console.log('Analysis response:', { analysis, analysisError });
+        console.log('Full analysis data:', JSON.stringify(analysis, null, 2));
+        console.log('Full error data:', JSON.stringify(analysisError, null, 2));
           
         if (analysisError) {
           console.error('Analysis error details:', {

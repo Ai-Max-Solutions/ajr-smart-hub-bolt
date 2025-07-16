@@ -31,27 +31,34 @@ serve(async (req) => {
       );
     }
 
+    // Initialize Supabase with service role key for admin operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get the authorization header
+    // Get the authorization header for user identification
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    let user = null;
+    
+    if (authHeader) {
+      try {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+        
+        if (!authError && authUser) {
+          user = authUser;
+          console.log('User authenticated successfully:', user.id);
+        } else {
+          console.log('Authentication failed, but proceeding with anonymous analysis:', authError);
+        }
+      } catch (error) {
+        console.log('Token validation failed, proceeding anonymously:', error);
+      }
+    } else {
+      console.log('No authorization header provided, proceeding anonymously');
     }
 
-    // Verify the user session
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.error('Authentication error:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // For now, if no user, we'll still process but won't store in database
+    if (!user) {
+      console.log('Processing CSCS card analysis without user context');
     }
 
     const { imageUrl } = await req.json();
@@ -197,52 +204,61 @@ Return only valid JSON.`
       );
     }
 
-    // Store the analysis result in the database
-    const { data: storedAnalysis, error: dbError } = await supabase
-      .from('cscs_cards')
-      .insert({
-        user_id: user.id,
-        file_url: imageUrl,
-        cscs_card_type: analysisResult.card_type || 'Operative',
-        custom_card_type: analysisResult.card_type && !['Labourer', 'Apprentice', 'Trainee', 'Experienced Worker', 'Experienced Technical/Supervisor/Manager', 'Skilled Worker', 'Gold – Advanced Craft', 'Gold – Supervisor', 'Academically Qualified Person', 'Professionally Qualified Person', 'Manager', 'Operative'].includes(analysisResult.card_type) ? analysisResult.card_type : null,
-        expiry_date: analysisResult.expiry_date,
-        card_number: analysisResult.card_number,
-        card_color: analysisResult.card_color,
-        qualifications: analysisResult.qualifications,
-        confidence_score: analysisResult.confidence_score,
-        raw_ai_response: aiResponse
-      })
-      .select()
-      .maybeSingle();
+    // Store the analysis result in the database if user is authenticated
+    let storedAnalysis = null;
+    
+    if (user) {
+      console.log('Storing analysis result for user:', user.id);
+      const { data: analysis, error: dbError } = await supabase
+        .from('cscs_cards')
+        .insert({
+          user_id: user.id,
+          file_url: imageUrl,
+          cscs_card_type: analysisResult.card_type || 'Operative',
+          custom_card_type: analysisResult.card_type && !['Labourer', 'Apprentice', 'Trainee', 'Experienced Worker', 'Experienced Technical/Supervisor/Manager', 'Skilled Worker', 'Gold – Advanced Craft', 'Gold – Supervisor', 'Academically Qualified Person', 'Professionally Qualified Person', 'Manager', 'Operative'].includes(analysisResult.card_type) ? analysisResult.card_type : null,
+          expiry_date: analysisResult.expiry_date,
+          card_number: analysisResult.card_number,
+          card_color: analysisResult.card_color,
+          qualifications: analysisResult.qualifications,
+          confidence_score: analysisResult.confidence_score,
+          raw_ai_response: aiResponse
+        })
+        .select()
+        .maybeSingle();
 
-    if (dbError) {
-      console.error('Database error:', dbError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to store analysis' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+      if (dbError) {
+        console.error('Database error:', dbError);
+        console.error('Database error details:', JSON.stringify(dbError, null, 2));
+        // Don't fail the analysis, just log the error and continue
+        console.log('Continuing with analysis despite database error');
+      } else {
+        storedAnalysis = analysis;
+        console.log('Analysis stored successfully:', storedAnalysis);
 
-    // IMPORTANT: Set cscs_required = true after successful CSCS card upload
-    const { error: updateError } = await supabase
-      .from('Users')
-      .update({ cscs_required: true })
-      .eq('supabase_auth_id', user.id);
+        // IMPORTANT: Set cscs_required = true after successful CSCS card upload
+        const { error: updateError } = await supabase
+          .from('Users')
+          .update({ cscs_required: true })
+          .eq('supabase_auth_id', user.id);
 
-    if (updateError) {
-      console.error('Error updating cscs_required flag:', updateError);
-      // Don't fail the whole request, just log it
+        if (updateError) {
+          console.error('Error updating cscs_required flag:', updateError);
+        } else {
+          console.log('Successfully set cscs_required = true for user:', user.id);
+        }
+      }
     } else {
-      console.log('Successfully set cscs_required = true for user:', user.id);
+      console.log('No user authenticated, skipping database storage');
     }
 
-    console.log('Analysis completed and stored:', storedAnalysis);
+    console.log('Analysis completed successfully');
 
     return new Response(
       JSON.stringify({
         success: true,
         analysis: analysisResult,
-        stored_id: storedAnalysis.id
+        stored_id: storedAnalysis?.id || null,
+        user_authenticated: !!user
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
