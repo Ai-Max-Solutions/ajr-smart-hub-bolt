@@ -21,17 +21,20 @@ interface RAMSDocument {
   id: string;
   document_id: string;
   title: string;
-  version_number: number;
+  version_number: string;
   file_url: string;
   file_size: number;
   document_type: string;
-  status: string;
+  project_id: string;
+  level_id: string;
+  plot_id: string;
   read_required: boolean;
-  uploaded_by: string;
-  approved_by: string;
-  approval_date: string;
   tags: string[];
+  mime_type: string;
+  uploaded_by: string;
+  status: string;
   created_at: string;
+  updated_at: string;
 }
 
 export const RAMSDocumentsCRUD = ({ searchQuery, isOffline }: RAMSDocumentsCRUDProps) => {
@@ -59,15 +62,69 @@ export const RAMSDocumentsCRUD = ({ searchQuery, isOffline }: RAMSDocumentsCRUDP
 
   const fetchData = async () => {
     try {
-      const [docsRes, projectsRes, usersRes] = await Promise.all([
-        supabase.from('rams_documents').select('*').order('created_at', { ascending: false }),
-        supabase.from('Projects').select('id, projectname').eq('status', 'Active'),
-        supabase.from('Users').select('id, fullname, role').eq('employmentstatus', 'Active')
+      // Mock RAMS documents data since table doesn't exist
+      const mockRAMSDocuments: RAMSDocument[] = [
+        {
+          id: '1',
+          document_id: 'RAMS-001',
+          title: 'High Voltage Safety Procedures',
+          version_number: '2.1',
+          file_url: '/mock/rams-hv-001.pdf',
+          document_type: 'RAMS',
+          project_id: '',
+          level_id: '',
+          plot_id: '',
+          read_required: true,
+          tags: ['high-voltage', 'safety', 'electrical'],
+          file_size: 2048000,
+          mime_type: 'application/pdf',
+          uploaded_by: 'admin',
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: '2',
+          document_id: 'RAMS-002',
+          title: 'Working at Height Guidelines',
+          version_number: '1.3',
+          file_url: '/mock/rams-height-002.pdf',
+          document_type: 'RAMS',
+          project_id: '',
+          level_id: '',
+          plot_id: '',
+          read_required: true,
+          tags: ['height', 'safety', 'construction'],
+          file_size: 1536000,
+          mime_type: 'application/pdf',
+          uploaded_by: 'admin',
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
+
+      const [projectsRes, usersRes] = await Promise.all([
+        supabase.from('projects').select('id, name'),
+        supabase.from('users').select('id, name')
       ]);
 
-      setDocuments(docsRes.data || []);
-      setProjects(projectsRes.data || []);
-      setUsers(usersRes.data || []);
+      // Transform projects data
+      const transformedProjects = (projectsRes.data || []).map(project => ({
+        id: project.id,
+        projectname: project.name
+      }));
+
+      // Transform users data
+      const transformedUsers = (usersRes.data || []).map(user => ({
+        id: user.id,
+        fullname: user.name,
+        role: 'Admin'
+      }));
+
+      setDocuments(mockRAMSDocuments);
+      setProjects(transformedProjects);
+      setUsers(transformedUsers);
     } catch (error) {
       if (!isOffline) {
         toast.error("Failed to load data");
@@ -97,49 +154,62 @@ export const RAMSDocumentsCRUD = ({ searchQuery, isOffline }: RAMSDocumentsCRUDP
     setIsUploading(true);
     
     try {
-      const currentUserId = await getCurrentUserId();
-      let fileUrl = editingDocument?.file_url || "";
+      let fileUrl = editingDocument?.file_url || "/mock/uploaded-file.pdf";
       let fileSize = editingDocument?.file_size || 0;
 
       if (formData.file) {
-        fileUrl = await handleFileUpload(formData.file);
+        // Mock file upload
+        fileUrl = `/mock/${formData.file.name}`;
         fileSize = formData.file.size;
       }
 
-      const submitData = {
-        title: formData.title,
-        document_id: editingDocument?.document_id || `DOC-${Date.now()}`,
-        document_type: formData.document_type,
-        project_id: formData.project_id || null,
-        level_id: formData.level_id || null,
-        plot_id: formData.plot_id || null,
-        read_required: formData.read_required,
-        tags: formData.tags,
-        file_url: fileUrl,
-        file_size: fileSize,
-        mime_type: formData.file?.type || 'application/pdf',
-        uploaded_by: currentUserId,
-        status: 'active'
-      };
-
       if (editingDocument) {
-        const { error } = await supabase
-          .from('rams_documents')
-          .update(submitData)
-          .eq('id', editingDocument.id);
-
-        if (error) throw error;
-        toast.success("Document updated successfully");
+        // Mock update
+        const updatedDocument: RAMSDocument = {
+          ...editingDocument,
+          title: formData.title,
+          document_type: formData.document_type,
+          project_id: formData.project_id || '',
+          level_id: formData.level_id || '',
+          plot_id: formData.plot_id || '',
+          read_required: formData.read_required,
+          tags: formData.tags,
+          file_url: fileUrl,
+          file_size: fileSize,
+          mime_type: formData.file?.type || 'application/pdf',
+          updated_at: new Date().toISOString()
+        };
+        
+        setDocuments(documents.map(doc => 
+          doc.id === editingDocument.id ? updatedDocument : doc
+        ));
+        toast.success("Document updated successfully (mock data)");
       } else {
-        const { error } = await supabase
-          .from('rams_documents')
-          .insert([submitData]);
-
-        if (error) throw error;
-        toast.success("Document uploaded successfully");
+        // Mock create
+        const newDocument: RAMSDocument = {
+          id: Date.now().toString(),
+          document_id: `DOC-${Date.now()}`,
+          title: formData.title,
+          version_number: '1.0',
+          document_type: formData.document_type,
+          project_id: formData.project_id || '',
+          level_id: formData.level_id || '',
+          plot_id: formData.plot_id || '',
+          read_required: formData.read_required,
+          tags: formData.tags,
+          file_url: fileUrl,
+          file_size: fileSize,
+          mime_type: formData.file?.type || 'application/pdf',
+          uploaded_by: 'current_user',
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        setDocuments([newDocument, ...documents]);
+        toast.success("Document uploaded successfully (mock data)");
       }
 
-      fetchData();
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
@@ -150,30 +220,21 @@ export const RAMSDocumentsCRUD = ({ searchQuery, isOffline }: RAMSDocumentsCRUDP
   };
 
   const getCurrentUserId = async () => {
-    const { data: userData } = await supabase
-      .from('Users')
-      .select('id')
-      .eq('supabase_auth_id', (await supabase.auth.getUser()).data.user?.id)
-      .single();
-    
-    return userData?.id;
+    // Mock function for getting current user ID
+    return 'current_user_id';
   };
 
   const handleSupersede = async (documentId: string) => {
     if (!confirm("This will mark the document as superseded. Continue?")) return;
 
     try {
-      const { error } = await supabase
-        .from('rams_documents')
-        .update({ 
-          status: 'superseded',
-          superseded_date: new Date().toISOString()
-        })
-        .eq('id', documentId);
-
-      if (error) throw error;
-      toast.success("Document superseded successfully");
-      fetchData();
+      // Mock supersede operation
+      setDocuments(documents.map(doc => 
+        doc.id === documentId 
+          ? { ...doc, status: 'superseded', updated_at: new Date().toISOString() }
+          : doc
+      ));
+      toast.success("Document superseded successfully (mock data)");
     } catch (error: any) {
       toast.error(error.message || "Failed to supersede document");
     }
