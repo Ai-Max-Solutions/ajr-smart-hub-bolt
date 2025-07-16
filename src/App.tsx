@@ -50,7 +50,7 @@ function App() {
               
               {/* Protected routes with navigation */}
               <Route path="/" element={
-                <RouteProtection fallbackPath="/auth" requireCSCS={false}>
+                <RouteProtection fallbackPath="/auth" requireCSCS={true}>
                   <AppLayout>
                     <IndexWrapper />
                   </AppLayout>
