@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { RouteProtection } from "@/components/auth/RouteProtection";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { IndexWrapper } from "@/components/dashboard/IndexWrapper";
 import Index from "./pages/Index";
 import DocumentStatusChecker from "./pages/DocumentStatusChecker";
 import OnboardingFlow from "./pages/OnboardingFlow";
@@ -51,7 +52,7 @@ function App() {
               <Route path="/" element={
                 <RouteProtection fallbackPath="/auth" requireCSCS={false}>
                   <AppLayout>
-                    <Index />
+                    <IndexWrapper />
                   </AppLayout>
                 </RouteProtection>
               } />

@@ -18,9 +18,9 @@ const Index = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
 
-  // Check onboarding status and redirect if needed
+  // Get user profile data
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
+    const getUserProfile = async () => {
       if (!user || !session) {
         setProfileLoading(false);
         return;
@@ -40,60 +40,14 @@ const Index = () => {
         }
 
         setUserProfile(userData);
-
-        // Smart onboarding completion check
-        if (!userData.onboarding_completed && userData.firstname && userData.lastname && userData.employmentstatus === 'Active') {
-          console.log('[Index] User has profile data but onboarding_completed is false. Checking CSCS cards...');
-          
-          // Check if user has valid CSCS cards
-          const { data: cscsCards, error: cscsError } = await supabase
-            .from('cscs_cards')
-            .select('*')
-            .or(`user_id.eq.${user.id},user_id.eq.${userData.whalesync_postgres_id}`)
-            .gte('expiry_date', new Date().toISOString().split('T')[0]); // Cards that haven't expired
-
-          if (!cscsError && cscsCards && cscsCards.length > 0) {
-            console.log('[Index] Found valid CSCS cards. Auto-completing onboarding...');
-            
-            // User has valid CSCS cards and complete profile - auto-complete onboarding
-            const { error: updateError } = await supabase
-              .from('Users')
-              .update({ onboarding_completed: true })
-              .eq('supabase_auth_id', user.id);
-
-            if (updateError) {
-              console.error('Error updating onboarding status:', updateError);
-            } else {
-              console.log('[Index] Onboarding marked as completed');
-              setUserProfile(prev => ({ ...prev, onboarding_completed: true }));
-            }
-          } else {
-            // No valid CSCS cards, redirect to onboarding
-            window.location.href = '/onboarding/personal-details';
-            return;
-          }
-        }
-
-        // Check if onboarding is still incomplete after smart check
-        if (!userData.onboarding_completed && !userData.firstname) {
-          window.location.href = '/onboarding/personal-details';
-          return;
-        }
-
-        // Check if names are missing
-        if (!userData.firstname || !userData.lastname) {
-          window.location.href = '/onboarding/personal-details';
-          return;
-        }
-
         setProfileLoading(false);
       } catch (error) {
-        console.error('Error checking onboarding status:', error);
+        console.error('Error checking user profile:', error);
         setProfileLoading(false);
       }
     };
 
-    checkOnboardingStatus();
+    getUserProfile();
   }, [user, session]);
 
   // Show loading while checking onboarding status
