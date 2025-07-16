@@ -280,7 +280,7 @@ const AdminReports = () => {
         currentrevision,
         lastupdateddate,
         trade,
-        project:Projects(projectname)
+        Projects(projectname)
       `)
       .gte("lastupdateddate", format(startDate, "yyyy-MM-dd"))
       .lte("lastupdateddate", format(endDate, "yyyy-MM-dd"))
@@ -302,7 +302,7 @@ const AdminReports = () => {
       drawingdescription: item.drawingdescription,
       currentrevision: item.currentrevision,
       lastupdateddate: item.lastupdateddate,
-      project_name: item.project?.projectname,
+      project_name: "N/A", // TODO: Fix project relation after schema update
       trade: item.trade
     }));
 

@@ -44,12 +44,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Handle user data asynchronously without blocking
           setTimeout(async () => {
             try {
-              // Check if user exists in Users table and onboarding status
+              // Check if user exists using the new unified view
               const { data: userData } = await supabase
-                .from('Users')
-                .select('whalesync_postgres_id, firstname, lastname, onboarding_completed')
-                .eq('supabase_auth_id', session.user.id)
-                .single();
+                .from('user_view')
+                .select('auth_id, whalesync_postgres_id, firstname, lastname, system_role')
+                .eq('auth_id', session.user.id)
+                .maybeSingle();
               
               // Update last sign in for the user
               await supabase
@@ -57,10 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 .update({ last_sign_in: new Date().toISOString() })
                 .eq('supabase_auth_id', session.user.id);
               
-              // If user hasn't completed onboarding, redirect to onboarding flow
-              if (userData && !userData.onboarding_completed) {
-                return;
-              }
+              // Check if user needs onboarding (placeholder for future implementation)
               
               // If user profile is incomplete (no names), redirect to personal details
               if (userData && (!userData.firstname || !userData.lastname)) {

@@ -33,11 +33,13 @@ export const useUserProfile = () => {
       }
 
       try {
+        // Use the unified user_view for consistent data access
         const { data, error } = await supabase
-          .from('Users')
+          .from('user_view')
           .select(`
+            auth_id,
+            auth_email,
             whalesync_postgres_id,
-            email,
             firstname,
             lastname,
             fullname,
@@ -49,16 +51,16 @@ export const useUserProfile = () => {
             phone,
             primaryskill
           `)
-          .eq('supabase_auth_id', user.id)
-          .single();
+          .eq('auth_id', user.id)
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching user profile:', error);
           setError(error.message);
         } else if (data) {
           setProfile({
-            id: data.whalesync_postgres_id,
-            email: data.email,
+            id: data.auth_id, // Use auth.users.id as primary identifier
+            email: data.auth_email || '',
             firstname: data.firstname || '',
             lastname: data.lastname || '',
             fullname: data.fullname || '',
@@ -69,6 +71,22 @@ export const useUserProfile = () => {
             skills: data.skills,
             phone: data.phone,
             primaryskill: data.primaryskill
+          });
+        } else {
+          // If no profile found, the user needs to complete their profile
+          setProfile({
+            id: user.id,
+            email: user.email || '',
+            firstname: '',
+            lastname: '',
+            fullname: '',
+            role: 'Operative',
+            system_role: 'Worker',
+            employmentstatus: 'Active',
+            currentproject: undefined,
+            skills: undefined,
+            phone: '',
+            primaryskill: ''
           });
         }
       } catch (err) {
