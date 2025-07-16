@@ -76,16 +76,14 @@ export const usePersonalizedAI = () => {
       let context = '';
       
       if (options.includeRecentActivity) {
-        const { data: activity } = await supabase
-          .from('activity_metrics')
-          .select('action_type, table_name, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
+        // Mock recent activity data
+        const mockActivity = [
+          { action_type: 'view', table_name: 'timesheets' },
+          { action_type: 'create', table_name: 'projects' },
+          { action_type: 'update', table_name: 'users' }
+        ];
         
-        if (activity?.length) {
-          context += `Recent activity: ${activity.map(a => `${a.action_type} on ${a.table_name}`).join(', ')}. `;
-        }
+        context += `Recent activity: ${mockActivity.map(a => `${a.action_type} on ${a.table_name}`).join(', ')}. `;
       }
 
       if (options.includeProjectContext) {
@@ -94,16 +92,14 @@ export const usePersonalizedAI = () => {
       }
 
       if (options.includeComplianceData) {
-        const { data: compliance } = await supabase
-          .from('compliance_dashboard_stats')
-          .select('compliance_percentage, signatures_required, signatures_completed')
-          .order('calculated_at', { ascending: false })
-          .limit(1)
-          .single();
+        // Mock compliance data
+        const mockCompliance = {
+          compliance_percentage: 85,
+          signatures_required: 10,
+          signatures_completed: 8
+        };
         
-        if (compliance) {
-          context += `Current compliance: ${compliance.compliance_percentage}% (${compliance.signatures_completed}/${compliance.signatures_required} signatures). `;
-        }
+        context += `Current compliance: ${mockCompliance.compliance_percentage}% (${mockCompliance.signatures_completed}/${mockCompliance.signatures_required} signatures). `;
       }
 
       // Call AI chat function
@@ -162,14 +158,11 @@ export const usePersonalizedAI = () => {
 
   const submitFeedback = useCallback(async (messageId: string, feedbackType: 'positive' | 'negative', feedbackText?: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      await supabase.from('ai_feedback').insert({
-        message_id: messageId,
-        user_id: user.id,
-        feedback_type: feedbackType,
-        feedback_value: feedbackText,
+      // Mock feedback submission - log to console for demo
+      console.log('Feedback submitted:', {
+        messageId,
+        feedbackType,
+        feedbackText
       });
 
       toast({
@@ -183,17 +176,14 @@ export const usePersonalizedAI = () => {
 
   const getPersonalizedContext = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return '';
+      // Mock personalized context
+      const mockActivity = [
+        { action_type: 'view', table_name: 'timesheets' },
+        { action_type: 'create', table_name: 'projects' },
+        { action_type: 'update', table_name: 'users' }
+      ];
 
-      const { data: activity } = await supabase
-        .from('activity_metrics')
-        .select('action_type, table_name, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      return activity?.map(a => `${a.action_type} on ${a.table_name}`).join(', ') || '';
+      return mockActivity.map(a => `${a.action_type} on ${a.table_name}`).join(', ');
     } catch (error) {
       console.error('Failed to get personalized context:', error);
       return '';

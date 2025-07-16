@@ -59,15 +59,46 @@ export const useInductionDemo = () => {
   // Load induction materials
   const loadMaterials = useCallback(async (language = 'en') => {
     try {
-      const { data, error } = await supabase
-        .from('induction_materials')
-        .select('*')
-        .eq('language', language)
-        .eq('is_active', true)
-        .order('material_type');
-
-      if (error) throw error;
-      setMaterials(data || []);
+      // Use mock data for demo materials
+      const mockMaterials: InductionMaterial[] = [
+        {
+          id: '1',
+          material_type: 'demo_qr',
+          title: 'Current QR Demo',
+          content_url: null,
+          language: language,
+          is_active: true,
+          metadata: {
+            status: 'current',
+            revision: 'Rev-04',
+            document_type: 'Safety Method Statement'
+          },
+          project_id: null,
+          version: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: '2',
+          material_type: 'demo_qr',
+          title: 'Superseded QR Demo',
+          content_url: null,
+          language: language,
+          is_active: true,
+          metadata: {
+            status: 'superseded',
+            revision: 'Rev-02',
+            document_type: 'Safety Method Statement',
+            superseded_by: 'Rev-04'
+          },
+          project_id: null,
+          version: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
+      
+      setMaterials(mockMaterials);
     } catch (error) {
       console.error('Error loading induction materials:', error);
       toast({
@@ -90,26 +121,24 @@ export const useInductionDemo = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
-      const { data, error } = await supabase.rpc('start_induction', {
-        p_user_id: user.id,
-        p_project_id: projectId,
-        p_language: language,
-        p_device_info: deviceInfo
-      });
+      // Create mock induction data
+      const mockInduction: InductionProgress = {
+        id: `induction_${Date.now()}`,
+        user_id: user.id,
+        induction_type: 'qr_demo',
+        status: 'in_progress',
+        current_step: 0,
+        completion_percentage: 0,
+        language_preference: language,
+        device_info: deviceInfo,
+        created_at: new Date().toISOString(),
+        completed_at: null,
+        supervisor_id: null,
+        project_id: projectId || null
+      };
 
-      if (error) throw error;
-
-      // Fetch the created induction
-      const { data: induction, error: fetchError } = await supabase
-        .from('induction_progress')
-        .select('*')
-        .eq('id', data)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      setCurrentInduction(induction);
-      setCurrentStep(induction.current_step || 0);
+      setCurrentInduction(mockInduction);
+      setCurrentStep(0);
       setStepStartTime(new Date());
       await loadMaterials(language);
 
@@ -118,7 +147,7 @@ export const useInductionDemo = () => {
         description: "Welcome to the QR Scan Demo!",
       });
 
-      return data;
+      return mockInduction.id;
     } catch (error) {
       console.error('Error starting induction:', error);
       toast({
@@ -143,15 +172,7 @@ export const useInductionDemo = () => {
     const timeTaken = Math.round((new Date().getTime() - stepStartTime.getTime()) / 1000);
 
     try {
-      const { data, error } = await supabase.rpc('complete_induction_step', {
-        p_induction_id: currentInduction.id,
-        p_step_number: (currentInduction.current_step || 0) + 1,
-        p_step_data: interactionData
-      });
-
-      if (error) throw error;
-
-      // Update local state
+      // Update local state (mock implementation)
       setCurrentInduction(prev => prev ? {
         ...prev,
         current_step: (prev.current_step || 0) + 1,
@@ -161,20 +182,13 @@ export const useInductionDemo = () => {
       setCurrentStep(prev => prev + 1);
       setStepStartTime(new Date());
 
-      // Log analytics
-      await supabase
-        .from('learning_analytics')
-        .insert({
-          user_id: currentInduction.user_id,
-          induction_id: currentInduction.id,
-          metric_type: 'completion_time',
-          metric_value: timeTaken,
-          metric_data: {
-            step: stepName,
-            success_score: successScore,
-            interaction_data: interactionData
-          }
-        });
+      // Mock analytics logging (console log for demo)
+      console.log('Step completed:', {
+        step: stepName,
+        time_taken: timeTaken,
+        success_score: successScore,
+        interaction_data: interactionData
+      });
 
       return true;
     } catch (error) {
@@ -275,29 +289,14 @@ export const useInductionDemo = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data, error } = await supabase
-        .from('induction_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .in('status', ['not_started', 'in_progress'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        setCurrentInduction(data);
-        setCurrentStep(data.current_step || 0);
-        await loadMaterials(data.language_preference || 'en');
-      }
-
-      return data;
+      // Mock implementation - no existing induction by default
+      // In a real app, this would check for existing induction progress
+      return null;
     } catch (error) {
       console.error('Error getting current induction:', error);
       return null;
     }
-  }, [loadMaterials]);
+  }, []);
 
   // Load current induction on mount
   useEffect(() => {
