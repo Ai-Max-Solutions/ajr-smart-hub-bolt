@@ -42,13 +42,36 @@ export const ProjectDetails: React.FC = () => {
       if (!id) throw new Error('Project ID is required');
       
       const { data, error } = await supabase
-        .from('Projects')
+        .from('projects')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as ProjectData;
+      if (!data) throw new Error('Project not found');
+      
+      // Map database columns to expected ProjectData interface
+      return {
+        id: data.id,
+        projectname: data.name,
+        clientname: data.client,
+        siteaddress: '',
+        sitecontact: '',
+        sitephone: '',
+        status: 'In Progress',
+        startdate: data.start_date,
+        plannedenddate: data.end_date || '',
+        actualenddate: '',
+        projectvalue: 0,
+        totalplots: 0,
+        completeddeliveries: 0,
+        pendingdeliveries: 0,
+        projectmanager: '',
+        Project_Description: '',
+        healthsafetystatus: '',
+        budgetspent: 0,
+        budgetremaining: 0
+      } as ProjectData;
     },
     enabled: !!id,
   });

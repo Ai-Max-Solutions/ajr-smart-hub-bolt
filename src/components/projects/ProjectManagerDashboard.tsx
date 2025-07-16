@@ -54,15 +54,15 @@ const ProjectManagerDashboard = () => {
     try {
       // Fetch projects
       const { data: projectsData } = await supabase
-        .from('Projects')
-        .select('id, projectname, status')
+        .from('projects')
+        .select('id, name, code')
         .limit(10);
 
       // Mock data for dashboard display
       const mockProjects: Project[] = (projectsData || []).map((project, index) => ({
         id: project.id,
-        projectname: project.projectname,
-        status: project.status || 'Active',
+        projectname: project.name,
+        status: 'Active',
         progress: Math.floor(Math.random() * 100),
         team_size: Math.floor(Math.random() * 20) + 5,
         deadline: new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],

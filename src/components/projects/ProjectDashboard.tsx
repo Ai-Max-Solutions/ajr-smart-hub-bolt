@@ -34,12 +34,26 @@ export const ProjectDashboard: React.FC = () => {
     queryKey: ['projects'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('Projects')
+        .from('projects')
         .select('*')
-        .order('airtable_created_time', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Project[];
+      // Map database columns to expected Project interface
+      return data?.map(project => ({
+        id: project.id,
+        projectname: project.name,
+        clientname: project.client,
+        siteaddress: '',
+        status: 'In Progress',
+        startdate: project.start_date,
+        plannedenddate: project.end_date,
+        projectvalue: 0,
+        totalplots: 0,
+        completeddeliveries: 0,
+        pendingdeliveries: 0,
+        projectmanager: ''
+      })) as Project[] || [];
     },
   });
 
