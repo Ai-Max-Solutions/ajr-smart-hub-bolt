@@ -13465,6 +13465,20 @@ export type Database = {
           },
         ]
       }
+      relationship_health: {
+        Row: {
+          category: string | null
+          orphaned_blocks: number | null
+          orphaned_levels: number | null
+          orphaned_plots: number | null
+          relationship: string | null
+          total_blocks: number | null
+          total_levels: number | null
+          total_plots: number | null
+          total_projects: number | null
+        }
+        Relationships: []
+      }
       signup_monitoring: {
         Row: {
           complete_profiles: number | null
@@ -13863,6 +13877,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      cleanup_orphaned_references: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          cleanup_action: string
+          records_affected: number
+        }[]
+      }
       complete_induction_step: {
         Args: {
           p_induction_id: string
@@ -13981,6 +14002,16 @@ export type Database = {
       daily_user_maintenance: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      database_health_check: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          check_category: string
+          check_name: string
+          status: string
+          details: string
+          recommendation: string
+        }[]
       }
       debug_last_auth_metadata: {
         Args: Record<PropertyKey, never>
@@ -14511,6 +14542,15 @@ export type Database = {
       user_is_document_controller: {
         Args: { user_uuid: string }
         Returns: boolean
+      }
+      validate_all_relationships: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          table_name: string
+          column_name: string
+          invalid_count: number
+          sample_invalid_ids: string[]
+        }[]
       }
       validate_array_relationships: {
         Args: Record<PropertyKey, never>
