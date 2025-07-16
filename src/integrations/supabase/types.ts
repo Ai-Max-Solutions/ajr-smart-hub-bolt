@@ -41,6 +41,240 @@ export type Database = {
         }
         Relationships: []
       }
+      contractor_companies: {
+        Row: {
+          company_name: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contractor_profiles: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enhanced_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          evidence_chain_hash: string | null
+          gdpr_retention_category: string | null
+          id: string
+          ip_address: string | null
+          legal_hold: boolean | null
+          record_id: string | null
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          evidence_chain_hash?: string | null
+          gdpr_retention_category?: string | null
+          id?: string
+          ip_address?: string | null
+          legal_hold?: boolean | null
+          record_id?: string | null
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          evidence_chain_hash?: string | null
+          gdpr_retention_category?: string | null
+          id?: string
+          ip_address?: string | null
+          legal_hold?: boolean | null
+          record_id?: string | null
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string
+          id: string
+          projectname: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          projectname: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          projectname?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rams_documents: {
+        Row: {
+          created_at: string
+          document_version: string
+          id: string
+          is_current_version: boolean | null
+          title: string
+          updated_at: string
+          work_types: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          document_version: string
+          id?: string
+          is_current_version?: boolean | null
+          title: string
+          updated_at?: string
+          work_types?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          document_version?: string
+          id?: string
+          is_current_version?: boolean | null
+          title?: string
+          updated_at?: string
+          work_types?: string[] | null
+        }
+        Relationships: []
+      }
+      task_plan_rams_register: {
+        Row: {
+          contractor_id: string | null
+          created_at: string
+          created_by: string | null
+          date_issued: string
+          date_signed: string | null
+          id: string
+          project_id: string | null
+          project_name: string
+          rams_document_id: string | null
+          rams_name: string
+          responsible_person: string
+          signed_by: string | null
+          status: string | null
+          subcontractor_company: string
+          updated_at: string
+          version: string
+          work_activity: string
+          work_activity_id: string | null
+        }
+        Insert: {
+          contractor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_issued?: string
+          date_signed?: string | null
+          id?: string
+          project_id?: string | null
+          project_name: string
+          rams_document_id?: string | null
+          rams_name: string
+          responsible_person: string
+          signed_by?: string | null
+          status?: string | null
+          subcontractor_company: string
+          updated_at?: string
+          version: string
+          work_activity: string
+          work_activity_id?: string | null
+        }
+        Update: {
+          contractor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_issued?: string
+          date_signed?: string | null
+          id?: string
+          project_id?: string | null
+          project_name?: string
+          rams_document_id?: string | null
+          rams_name?: string
+          responsible_person?: string
+          signed_by?: string | null
+          status?: string | null
+          subcontractor_company?: string
+          updated_at?: string
+          version?: string
+          work_activity?: string
+          work_activity_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_plan_rams_register_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_rams_document_id_fkey"
+            columns: ["rams_document_id"]
+            isOneToOne: false
+            referencedRelation: "rams_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_plan_rams_register_work_activity_id_fkey"
+            columns: ["work_activity_id"]
+            isOneToOne: false
+            referencedRelation: "work_activity_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       taskplanrams: {
         Row: {
           created_at: string
@@ -94,6 +328,36 @@ export type Database = {
           fullname?: string | null
           id?: string
           role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      work_activity_categories: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
