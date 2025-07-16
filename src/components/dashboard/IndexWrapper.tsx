@@ -43,11 +43,14 @@ export const IndexWrapper = () => {
         // If onboarding is completed and CSCS is required, check for valid CSCS card
         if (userData.cscs_required) {
           console.log('[IndexWrapper] Checking CSCS status for onboarded user');
-          const { data: cscsCards } = await supabase
+          // Query with both possible user ID references to handle Whalesync/Supabase mapping
+          const { data: cscsCards, error: cscsError } = await supabase
             .from('cscs_cards')
             .select('*')
-            .or(`user_id.eq.${user.id},whalesync_user_id.eq.${userData.whalesync_postgres_id}`)
+            .or(`user_id.eq.${user.id},user_id.eq.${userData.whalesync_postgres_id}`)
             .order('created_at', { ascending: false });
+
+          console.log('[IndexWrapper] CSCS cards query result:', { cscsCards, cscsError, userAuthId: user.id, userWhalesyncId: userData.whalesync_postgres_id });
 
           const validCard = cscsCards?.find(card => {
             const expiryDate = new Date(card.expiry_date);

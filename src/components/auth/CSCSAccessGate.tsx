@@ -33,7 +33,13 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
 
   // Early bailout for onboarding routes - return children immediately
   if (location.pathname.startsWith('/onboarding')) {
-    console.info('[CSCS] early bailout for onboarding route');
+    console.info('[CSCS] Gate Skipped: onboarding route, no DB query attempted');
+    return <>{children}</>;
+  }
+
+  // Early bailout for auth routes
+  if (location.pathname.startsWith('/auth')) {
+    console.info('[CSCS] Gate Skipped: auth route, no DB query attempted');
     return <>{children}</>;
   }
 
