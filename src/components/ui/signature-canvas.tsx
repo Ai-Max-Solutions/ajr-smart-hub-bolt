@@ -34,8 +34,8 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
     canvas.height = rect.height * window.devicePixelRatio;
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-    // Set drawing styles - use white for visibility on dark backgrounds
-    ctx.strokeStyle = '#ffffff';
+    // Set drawing styles - black signature on white background for maximum visibility
+    ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
