@@ -48,8 +48,8 @@ const OperativeDashboard = () => {
       
       try {
         const { data, error } = await supabase
-          .from('Users')
-          .select('firstname, lastname, avatar_url')
+          .from('users')
+          .select('name, phone')
           .eq('supabase_auth_id', session.user.id)
           .single();
 
@@ -61,15 +61,14 @@ const OperativeDashboard = () => {
           if (error.code === 'PGRST116') {
             console.log('User not found in database, creating basic record...');
             const { data: insertData, error: insertError } = await supabase
-              .from('Users')
+              .from('users')
               .insert({
                 supabase_auth_id: session.user.id,
-                email: session.user.email,
-                firstname: session.user.user_metadata?.first_name || 'User',
-                lastname: session.user.user_metadata?.last_name || '',
+                email: session.user.email || '',
+                name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
                 role: 'Operative'
               })
-              .select('firstname, lastname, avatar_url')
+              .select('name, phone')
               .single();
             
             if (insertError) {
@@ -80,12 +79,18 @@ const OperativeDashboard = () => {
                 lastname: session.user.user_metadata?.last_name || ''
               });
             } else {
-              setUserData(insertData);
+              setUserData({
+                firstname: insertData?.name?.split(' ')[0] || 'User',
+                lastname: insertData?.name?.split(' ').slice(1).join(' ') || ''
+              });
             }
           }
         } else {
           console.log('Setting userData:', data);
-          setUserData(data);
+          setUserData({
+            firstname: data?.name?.split(' ')[0] || 'User',
+            lastname: data?.name?.split(' ').slice(1).join(' ') || ''
+          });
         }
       } catch (err) {
         console.error('Error:', err);

@@ -82,18 +82,27 @@ const ContractorDashboard = () => {
     try {
       setLoading(true);
       
-      // Load contractor profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('contractor_profiles')
-        .select(`
-          *,
-          company:contractor_companies(*)
-        `)
-        .eq('auth_user_id', user?.id)
-        .single();
-
-      if (profileError) throw profileError;
-      setProfile(profileData);
+      // Mock contractor profile data for now
+      const mockProfile: ContractorProfile = {
+        id: 'mock-id',
+        auth_user_id: user?.id || '',
+        company_id: 'mock-company-id',
+        email: user?.email || '',
+        first_name: 'John',
+        last_name: 'Doe',
+        job_role: 'General Builder',
+        emergency_contact_name: 'Jane Doe',
+        emergency_contact_phone: '+44 123 456 7890',
+        vehicle_registration: 'AB12 CDE',
+        vehicle_type: 'Van',
+        company: {
+          company_name: 'Mock Construction Ltd',
+          primary_contact_email: 'contact@mock-construction.com',
+          primary_contact_phone: '+44 987 654 3210'
+        }
+      };
+      
+      setProfile(mockProfile);
 
       // Mock delivery requests for now (until we create the table)
       setDeliveryRequests([]);

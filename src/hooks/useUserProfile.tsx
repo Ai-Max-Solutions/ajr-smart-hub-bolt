@@ -82,9 +82,19 @@ export const useUserProfile = () => {
       setLoading(true);
       setError(null);
 
+      // Map UserProfile updates to database schema
+      const dbUpdates: any = {};
+      if (updates.firstname || updates.lastname) {
+        dbUpdates.name = `${updates.firstname || profile.firstname} ${updates.lastname || profile.lastname}`.trim();
+      }
+      if (updates.phone) dbUpdates.phone = updates.phone;
+      if (updates.role && ['Operative', 'Supervisor', 'Admin', 'PM', 'Director'].includes(updates.role)) {
+        dbUpdates.role = updates.role;
+      }
+
       const { error } = await supabase
         .from('users')
-        .update(updates)
+        .update(dbUpdates)
         .eq('supabase_auth_id', user.id);
 
       if (error) throw error;

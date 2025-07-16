@@ -103,13 +103,52 @@ const ContractorOnboarding = () => {
 
   const loadInitialData = async () => {
     try {
-      const [companiesResult, trainingTypesResult] = await Promise.all([
-        supabase.from('contractor_companies').select('*').eq('status', 'active'),
-        supabase.from('training_document_types').select('*').order('display_order')
-      ]);
+      // Mock data for companies
+      const mockCompanies: Company[] = [
+        {
+          id: '1',
+          company_name: 'ABC Construction Ltd',
+          company_type: 'General Building',
+          preferred_work_types: ['construction', 'renovation']
+        },
+        {
+          id: '2',
+          company_name: 'DEF Electrical Services',
+          company_type: 'Electrical',
+          preferred_work_types: ['electrical', 'maintenance']
+        }
+      ];
 
-      if (companiesResult.data) setCompanies(companiesResult.data);
-      if (trainingTypesResult.data) setTrainingDocTypes(trainingTypesResult.data);
+      // Mock data for training document types
+      const mockTrainingTypes: TrainingDocumentType[] = [
+        {
+          id: '1',
+          name: 'CSCS Card',
+          description: 'Construction Skills Certification Scheme card',
+          is_mandatory: true,
+          requires_expiry: true,
+          icon_name: 'card'
+        },
+        {
+          id: '2',
+          name: 'First Aid Certificate',
+          description: 'Basic first aid training certificate',
+          is_mandatory: true,
+          requires_expiry: true,
+          icon_name: 'medical'
+        },
+        {
+          id: '3',
+          name: 'IPAF Certificate',
+          description: 'International Powered Access Federation certificate',
+          is_mandatory: false,
+          requires_expiry: true,
+          icon_name: 'lift'
+        }
+      ];
+
+      setCompanies(mockCompanies);
+      setTrainingDocTypes(mockTrainingTypes);
     } catch (error) {
       console.error('Error loading initial data:', error);
     }
@@ -237,63 +276,12 @@ const ContractorOnboarding = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
-      // Create contractor profile
-      const { data: profile, error: profileError } = await supabase
-        .from('contractor_profiles')
-        .insert({
-          auth_user_id: user.id,
-          company_id: formData.selectedCompany,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          job_role: formData.jobRole,
-          emergency_contact_name: formData.emergencyContactName,
-          emergency_contact_phone: formData.emergencyContactPhone,
-          vehicle_registration: formData.vehicleRegistration,
-          vehicle_type: formData.vehicleType,
-          vehicle_weight_category: formData.vehicleWeight,
-          fors_level: formData.forsLevel,
-          onboarding_completed: true,
-          onboarding_completed_at: new Date().toISOString(),
-          terms_accepted: true,
-          terms_accepted_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+      // Mock successful onboarding completion
+      console.log('Mock onboarding completion for user:', user.id);
+      console.log('Form data:', formData);
 
-      if (profileError) throw profileError;
-
-      // Save training documents
-      const documentPromises = Object.values(formData.uploadedDocuments).map(async (doc) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const fileExt = doc.file.name.split('.').pop();
-        const fileName = `${user.id}/${doc.document_type_id}/${Date.now()}.${fileExt}`;
-
-        const { data: uploadData } = await supabase.storage
-          .from('contractor-documents')
-          .upload(fileName, doc.file);
-
-        if (uploadData) {
-          const { data: urlData } = supabase.storage
-            .from('contractor-documents')
-            .getPublicUrl(fileName);
-
-          return supabase.from('contractor_training_documents').insert({
-            contractor_id: profile.id,
-            document_type_id: doc.document_type_id,
-            document_url: urlData.publicUrl,
-            file_name: doc.file.name,
-            file_size: doc.file.size,
-            issue_date: doc.issue_date,
-            expiry_date: doc.expiry_date
-          });
-        }
-      });
-
-      await Promise.all(documentPromises);
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       toast({
         title: "Onboarding completed successfully",

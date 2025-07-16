@@ -28,8 +28,8 @@ const Index = () => {
 
       try {
         const { data: userData, error } = await supabase
-          .from('Users')
-          .select('onboarding_completed, firstname, lastname, id, employmentstatus')
+          .from('users')
+          .select('*')
           .eq('supabase_auth_id', user.id)
           .single();
 
