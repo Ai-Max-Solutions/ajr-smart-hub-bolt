@@ -8,6 +8,7 @@ export const IndexWrapper = () => {
   const { user, session } = useAuth();
   const [loading, setLoading] = useState(true);
   const [shouldRedirectToOnboarding, setShouldRedirectToOnboarding] = useState(false);
+  const [shouldRedirectToCSCS, setShouldRedirectToCSCS] = useState(false);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -19,7 +20,7 @@ export const IndexWrapper = () => {
       try {
         const { data: userData, error } = await supabase
           .from('Users')
-          .select('onboarding_completed, firstname, lastname')
+          .select('onboarding_completed, firstname, lastname, cscs_required, whalesync_postgres_id')
           .eq('supabase_auth_id', user.id)
           .single();
 
@@ -35,6 +36,30 @@ export const IndexWrapper = () => {
         if (!userData.onboarding_completed || !userData.firstname || !userData.lastname) {
           console.log('[IndexWrapper] User needs onboarding, redirecting...');
           setShouldRedirectToOnboarding(true);
+          setLoading(false);
+          return;
+        }
+
+        // If onboarding is completed and CSCS is required, check for valid CSCS card
+        if (userData.cscs_required) {
+          console.log('[IndexWrapper] Checking CSCS status for onboarded user');
+          const { data: cscsCards } = await supabase
+            .from('cscs_cards')
+            .select('*')
+            .or(`user_id.eq.${user.id},whalesync_user_id.eq.${userData.whalesync_postgres_id}`)
+            .order('created_at', { ascending: false });
+
+          const validCard = cscsCards?.find(card => {
+            const expiryDate = new Date(card.expiry_date);
+            return expiryDate > new Date();
+          });
+
+          if (!validCard) {
+            console.log('[IndexWrapper] No valid CSCS card found, redirecting to CSCS upload');
+            setShouldRedirectToCSCS(true);
+            setLoading(false);
+            return;
+          }
         }
 
         setLoading(false);
@@ -60,6 +85,10 @@ export const IndexWrapper = () => {
 
   if (shouldRedirectToOnboarding) {
     return <Navigate to="/onboarding/personal-details" replace />;
+  }
+
+  if (shouldRedirectToCSCS) {
+    return <Navigate to="/onboarding/cscs" replace />;
   }
 
   return <Index />;

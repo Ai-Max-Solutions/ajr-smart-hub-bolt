@@ -50,7 +50,7 @@ function App() {
               
               {/* Protected routes with navigation */}
               <Route path="/" element={
-                <RouteProtection fallbackPath="/auth" requireCSCS={true}>
+                <RouteProtection fallbackPath="/auth" requireCSCS={false}>
                   <AppLayout>
                     <IndexWrapper />
                   </AppLayout>
@@ -71,7 +71,7 @@ function App() {
               <Route 
                 path="/operative/*" 
                 element={
-                  <RouteProtection requiredResource="my_dashboard">
+                  <RouteProtection requiredResource="my_dashboard" requireCSCS={true}>
                     <AppLayout>
                       <OperativePortal />
                     </AppLayout>

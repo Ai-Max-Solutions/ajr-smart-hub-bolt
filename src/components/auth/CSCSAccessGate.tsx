@@ -29,7 +29,7 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
   const [cscsStatus, setCSCSStatus] = useState<CSCSStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  console.info('[CSCS] gate mounted', location.pathname);
+  console.info('[CSCS] Gate Attempt:', location.pathname, 'User:', user?.email);
 
   // Early bailout for onboarding routes - return children immediately
   if (location.pathname.startsWith('/onboarding')) {
