@@ -223,19 +223,6 @@ Return only valid JSON.`
       );
     }
 
-    // IMPORTANT: Set cscs_required = true after successful CSCS card upload
-    const { error: updateError } = await supabase
-      .from('Users')
-      .update({ cscs_required: true })
-      .eq('supabase_auth_id', user.id);
-
-    if (updateError) {
-      console.error('Error updating cscs_required flag:', updateError);
-      // Don't fail the whole request, just log it
-    } else {
-      console.log('Successfully set cscs_required = true for user:', user.id);
-    }
-
     console.log('Analysis completed and stored:', storedAnalysis);
 
     return new Response(

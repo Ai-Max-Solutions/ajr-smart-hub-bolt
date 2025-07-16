@@ -10869,7 +10869,6 @@ export type Database = {
           clientfeedback: string | null
           contracttype: string | null
           cscs_last_validated: string | null
-          cscs_required: boolean
           cscs_upload_required: boolean | null
           cscs_uploaded_at: string | null
           cscs_validation_status: string | null
@@ -10951,7 +10950,6 @@ export type Database = {
           clientfeedback?: string | null
           contracttype?: string | null
           cscs_last_validated?: string | null
-          cscs_required?: boolean
           cscs_upload_required?: boolean | null
           cscs_uploaded_at?: string | null
           cscs_validation_status?: string | null
@@ -11033,7 +11031,6 @@ export type Database = {
           clientfeedback?: string | null
           contracttype?: string | null
           cscs_last_validated?: string | null
-          cscs_required?: boolean
           cscs_upload_required?: boolean | null
           cscs_uploaded_at?: string | null
           cscs_validation_status?: string | null
