@@ -1,14 +1,81 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Clock, AlertCircle, ArrowRight, Download } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle, ArrowRight, Download, Loader2 } from 'lucide-react';
 import { OnboardingData } from '@/pages/OnboardingFlow';
+import { useAuth } from '@/components/auth/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface OnboardingCompleteProps {
   data: OnboardingData;
 }
 
 const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    // Save onboarding data to database when component mounts
+    saveOnboardingData();
+  }, []);
+
+  const saveOnboardingData = async () => {
+    if (!user || saved) return;
+
+    setSaving(true);
+    try {
+      // Update user's basic information
+      const { error: userError } = await supabase
+        .from('users')
+        .update({
+          name: `${data.firstName} ${data.lastName}`.trim(),
+          phone: data.emergencyContact.phone, // Use emergency contact phone as primary phone for now
+        })
+        .eq('supabase_auth_id', user.id);
+
+      if (userError) {
+        console.error('Error updating user:', userError);
+        throw userError;
+      }
+
+      // For now, we'll store the onboarding completion in localStorage
+      // In a real implementation, you would create additional tables for:
+      // - emergency_contacts
+      // - cscs_cards  
+      // - user_work_types
+      // - signed_documents
+      const onboardingRecord = {
+        userId: user.id,
+        completedAt: new Date().toISOString(),
+        emergencyContact: data.emergencyContact,
+        cscsCard: data.cscsCard,
+        workTypes: data.selectedWorkTypes,
+        signedRAMS: data.signedRAMS,
+      };
+
+      localStorage.setItem('onboardingCompleted', JSON.stringify(onboardingRecord));
+      
+      setSaved(true);
+      toast({
+        title: "Onboarding Complete!",
+        description: "Your information has been saved successfully.",
+      });
+    } catch (error: any) {
+      console.error('Error saving onboarding data:', error);
+      toast({
+        title: "Error saving data",
+        description: "There was an issue saving your information. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDownloadCertificate = () => {
     // Mock download functionality
     const link = document.createElement('a');
@@ -18,6 +85,15 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
   };
 
   const goToDashboard = () => {
+    if (!saved && !saving) {
+      toast({
+        title: "Saving in progress",
+        description: "Please wait while we save your information.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Clear onboarding data from localStorage
     localStorage.removeItem('onboardingData');
     // Redirect to dashboard
@@ -182,6 +258,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
           variant="outline" 
           onClick={handleDownloadCertificate} 
           className="h-14 text-lg font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-md"
+          disabled={saving}
         >
           <Download className="w-5 h-5 mr-3" />
           📄 Download Certificate
@@ -189,9 +266,19 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
         <Button 
           onClick={goToDashboard} 
           className="h-14 text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg transition-all duration-200 transform hover:scale-105"
+          disabled={saving || !saved}
         >
-          <ArrowRight className="w-5 h-5 mr-3" />
-          🚀 Go to Dashboard
+          {saving ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+              💾 Saving...
+            </>
+          ) : (
+            <>
+              <ArrowRight className="w-5 h-5 mr-3" />
+              🚀 Go to Dashboard
+            </>
+          )}
         </Button>
       </div>
 

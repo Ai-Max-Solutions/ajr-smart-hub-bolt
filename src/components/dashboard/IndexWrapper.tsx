@@ -4,10 +4,16 @@ import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Index from '@/pages/Index';
 
+interface OnboardingCheckResult {
+  needsOnboarding: boolean;
+  redirectPath: string;
+  missingSteps: string[];
+}
+
 export const IndexWrapper = () => {
   const { user, session } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [shouldRedirectToOnboarding, setShouldRedirectToOnboarding] = useState(false);
+  const [onboardingResult, setOnboardingResult] = useState<OnboardingCheckResult | null>(null);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -17,29 +23,68 @@ export const IndexWrapper = () => {
       }
 
       try {
+        console.log('[IndexWrapper] Checking onboarding status for user:', user.id);
+        
         const { data: userData, error } = await supabase
           .from('users')
-          .select('name, phone')
+          .select('name, phone, role')
           .eq('supabase_auth_id', user.id)
           .single();
 
         if (error) {
           console.error('[IndexWrapper] Error fetching user data:', error);
+          // If user doesn't exist, they definitely need onboarding
+          setOnboardingResult({
+            needsOnboarding: true,
+            redirectPath: '/onboarding/personal-details',
+            missingSteps: ['personal-details', 'emergency-contact', 'cscs-card']
+          });
           setLoading(false);
           return;
         }
 
         console.log('[IndexWrapper] User data:', userData);
 
-        // Check if user needs to complete onboarding (for now, skip onboarding)
-        // if (!userData.name || !userData.phone) {
-        //   console.log('[IndexWrapper] User needs onboarding, redirecting...');
-        //   setShouldRedirectToOnboarding(true);
-        // }
+        // Check for missing essential information
+        const missingSteps: string[] = [];
+        
+        // Check personal details
+        if (!userData.name || !userData.phone) {
+          missingSteps.push('personal-details');
+        }
+
+        // Check if user has completed full onboarding
+        const onboardingCompleted = localStorage.getItem('onboardingCompleted');
+        if (!onboardingCompleted && userData.name) {
+          // User has basic info but hasn't completed full onboarding flow
+          missingSteps.push('emergency-contact', 'cscs-card', 'work-types');
+        }
+
+        if (missingSteps.length > 0) {
+          console.log('[IndexWrapper] User needs onboarding. Missing steps:', missingSteps);
+          setOnboardingResult({
+            needsOnboarding: true,
+            redirectPath: `/onboarding/${missingSteps[0]}`,
+            missingSteps
+          });
+        } else {
+          console.log('[IndexWrapper] User has completed onboarding');
+          setOnboardingResult({
+            needsOnboarding: false,
+            redirectPath: '',
+            missingSteps: []
+          });
+        }
 
         setLoading(false);
       } catch (error) {
         console.error('[IndexWrapper] Error checking onboarding status:', error);
+        // On error, assume onboarding is needed to be safe
+        setOnboardingResult({
+          needsOnboarding: true,
+          redirectPath: '/onboarding/personal-details',
+          missingSteps: ['personal-details']
+        });
         setLoading(false);
       }
     };
@@ -52,14 +97,15 @@ export const IndexWrapper = () => {
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Checking your profile...</p>
         </div>
       </div>
     );
   }
 
-  if (shouldRedirectToOnboarding) {
-    return <Navigate to="/onboarding/personal-details" replace />;
+  if (onboardingResult?.needsOnboarding) {
+    console.log('[IndexWrapper] Redirecting to onboarding:', onboardingResult.redirectPath);
+    return <Navigate to={onboardingResult.redirectPath} replace />;
   }
 
   return <Index />;

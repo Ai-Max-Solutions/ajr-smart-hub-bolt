@@ -88,7 +88,7 @@ const OnboardingFlow = () => {
       
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Routes>
-          <Route path="/" element={<Navigate to="/onboarding/signup" replace />} />
+          <Route path="/" element={<Navigate to="/onboarding/personal-details" replace />} />
           <Route 
             path="/signup" 
             element={
