@@ -12698,6 +12698,16 @@ export type Database = {
       }
     }
     Views: {
+      data_integrity_audit: {
+        Row: {
+          array_length: number | null
+          column_name: string | null
+          has_orphans: boolean | null
+          record_id: string | null
+          table_name: string | null
+        }
+        Relationships: []
+      }
       mandatory_qualification_compliance: {
         Row: {
           expiring_count: number | null
@@ -13268,6 +13278,15 @@ export type Database = {
       check_user_profile_exists: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      clean_orphaned_array_elements: {
+        Args: {
+          source_table: string
+          source_column: string
+          target_table: string
+          target_column?: string
+        }
+        Returns: number
       }
       cleanup_inactive_collaborations: {
         Args: Record<PropertyKey, never>
@@ -13952,6 +13971,14 @@ export type Database = {
           p_device_info?: Json
         }
         Returns: Json
+      }
+      validate_uuid_array_elements: {
+        Args: {
+          uuid_array: string[]
+          target_table: string
+          target_column?: string
+        }
+        Returns: boolean
       }
       warm_cache_for_user: {
         Args: { p_user_id: string }
