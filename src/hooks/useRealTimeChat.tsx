@@ -63,7 +63,7 @@ export const useRealTimeChat = () => {
             notification_settings
           )
         `)
-        .eq('chat_room_participants.user_id', user.user_id)
+        .eq('chat_room_participants.user_id', user.id)
         .eq('is_active', true)
         .order('updated_at', { ascending: false });
 
@@ -177,7 +177,7 @@ export const useRealTimeChat = () => {
         .from('chat_messages')
         .insert({
           room_id: roomId,
-          user_id: user.user_id,
+          user_id: user.id,
           message_type: messageType,
           content: content.trim(),
           reply_to_message_id: replyToId,
@@ -256,7 +256,7 @@ export const useRealTimeChat = () => {
         .from('chat_room_participants')
         .update({ last_read_at: new Date().toISOString() })
         .eq('room_id', roomId)
-        .eq('user_id', user.user_id);
+        .eq('user_id', user.id);
 
       // Update local state
       setRooms(prev => prev.map(room => 
@@ -296,7 +296,7 @@ export const useRealTimeChat = () => {
               return {
                 ...room,
                 updated_at: newMessage.created_at,
-                unread_count: newMessage.user_id !== user.user_id 
+                unread_count: newMessage.user_id !== user.id 
                   ? (room.unread_count || 0) + 1 
                   : room.unread_count
               };

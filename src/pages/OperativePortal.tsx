@@ -22,13 +22,13 @@ import {
 import MyPayslips from '@/components/operative/MyPayslips';
 import MyQualifications from '@/components/compliance/MyQualifications';
 import MyTraining from '@/components/training/MyTraining';
-import SiteNotices from '@/components/notices/SiteNotices';
+import { SiteNotices } from '@/components/notices/SiteNotices';
 import MyInductions from '@/components/inductions/MyInductions';
 import MySignatures from '@/components/signatures/MySignatures';
 import MyDataRetention from '@/components/retention/MyDataRetention';
 import PrivacyDashboard from '@/components/security/PrivacyDashboard';
 import MyTimesheets from '@/components/operative/MyTimesheets';
-import MyProfile from '@/components/operative/MyProfile';
+import { MyProfile } from '@/components/operative/MyProfile';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();

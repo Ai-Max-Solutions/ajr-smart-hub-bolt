@@ -5,7 +5,7 @@ import SignUp from '@/components/onboarding/SignUp';
 import PersonalDetails from '@/components/onboarding/PersonalDetails';
 import WorkTypeSelection from '@/components/onboarding/WorkTypeSelection';
 import OnboardingComplete from '@/components/onboarding/OnboardingComplete';
-import PersonalDetailsStep from '@/components/onboarding/PersonalDetailsStep';
+import { PersonalDetailsStep } from '@/components/onboarding/PersonalDetailsStep';
 
 export interface OnboardingData {
   // Sign up data

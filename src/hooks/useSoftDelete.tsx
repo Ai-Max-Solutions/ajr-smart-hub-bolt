@@ -35,7 +35,7 @@ export const useSoftDelete = () => {
       }
 
       // Perform soft delete by setting deleted_at timestamp
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from(table)
         .update({
           deleted_at: new Date().toISOString(),
@@ -47,8 +47,8 @@ export const useSoftDelete = () => {
       if (error) throw error;
 
       // Log the deletion action
-      await supabase
-        .from('audit_logs')
+      await (supabase as any)
+        .from('audit_log')
         .insert({
           action: 'SOFT_DELETE',
           table_name: table,
@@ -97,7 +97,7 @@ export const useSoftDelete = () => {
       }
 
       // Restore by clearing deletion fields
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from(table)
         .update({
           deleted_at: null,
@@ -109,8 +109,8 @@ export const useSoftDelete = () => {
       if (error) throw error;
 
       // Log the restoration action
-      await supabase
-        .from('audit_logs')
+      await (supabase as any)
+        .from('audit_log')
         .insert({
           action: 'RESTORE',
           table_name: table,
@@ -155,14 +155,14 @@ export const useSoftDelete = () => {
       }
 
       // Get record data before deletion for audit
-      const { data: recordData } = await supabase
+      const { data: recordData } = await (supabase as any)
         .from(table)
         .select('*')
         .eq('id', recordId)
         .single();
 
       // Perform permanent deletion
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from(table)
         .delete()
         .eq('id', recordId);
@@ -170,8 +170,8 @@ export const useSoftDelete = () => {
       if (error) throw error;
 
       // Log the permanent deletion
-      await supabase
-        .from('audit_logs')
+      await (supabase as any)
+        .from('audit_log')
         .insert({
           action: 'PERMANENT_DELETE',
           table_name: table,

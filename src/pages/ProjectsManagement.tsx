@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import ProjectDashboard from '@/components/projects/ProjectDashboard';
-import ProjectDetails from '@/components/projects/ProjectDetails';
+import { ProjectDashboard } from '@/components/projects/ProjectDashboard';
+import { ProjectDetails } from '@/components/projects/ProjectDetails';
 import CreateProject from '@/components/projects/CreateProject';
 import ProjectHeader from '@/components/projects/ProjectHeader';
 

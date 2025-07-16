@@ -34,7 +34,7 @@ export const useRealTimeNotifications = () => {
       const { data, error } = await supabase
         .from('real_time_notifications')
         .select('*')
-        .eq('user_id', user.user_id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -77,7 +77,7 @@ export const useRealTimeNotifications = () => {
         .from('real_time_notifications')
         .update({ read_at: new Date().toISOString() })
         .eq('id', notificationId)
-        .eq('user_id', user.user_id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -98,7 +98,7 @@ export const useRealTimeNotifications = () => {
       const { error } = await supabase
         .from('real_time_notifications')
         .update({ read_at: new Date().toISOString() })
-        .eq('user_id', user.user_id)
+        .eq('user_id', user.id)
         .is('read_at', null);
 
       if (error) throw error;
@@ -121,7 +121,7 @@ export const useRealTimeNotifications = () => {
         .from('real_time_notifications')
         .delete()
         .eq('id', notificationId)
-        .eq('user_id', user.user_id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -178,7 +178,7 @@ export const useRealTimeNotifications = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'real_time_notifications',
-          filter: `user_id=eq.${user.user_id}`
+          filter: `user_id=eq.${user.id}`
         },
         (payload) => {
           const newNotification = payload.new as Notification;
@@ -201,7 +201,7 @@ export const useRealTimeNotifications = () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'real_time_notifications',
-          filter: `user_id=eq.${user.user_id}`
+          filter: `user_id=eq.${user.id}`
         },
         (payload) => {
           const updatedNotification = payload.new as Notification;
