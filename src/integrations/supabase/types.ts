@@ -6475,7 +6475,6 @@ export type Database = {
           surname: string | null
           system_role: string | null
           username: string | null
-          whalesync_user_id: string | null
         }
         Insert: {
           airtable_last_sync?: string | null
@@ -6488,7 +6487,6 @@ export type Database = {
           surname?: string | null
           system_role?: string | null
           username?: string | null
-          whalesync_user_id?: string | null
         }
         Update: {
           airtable_last_sync?: string | null
@@ -6501,45 +6499,8 @@ export type Database = {
           surname?: string | null
           system_role?: string | null
           username?: string | null
-          whalesync_user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_whalesync_user_id_fkey"
-            columns: ["whalesync_user_id"]
-            isOneToOne: false
-            referencedRelation: "mandatory_qualification_compliance"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "profiles_whalesync_user_id_fkey"
-            columns: ["whalesync_user_id"]
-            isOneToOne: false
-            referencedRelation: "task_plan_compliance_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "profiles_whalesync_user_id_fkey"
-            columns: ["whalesync_user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_extended"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "profiles_whalesync_user_id_fkey"
-            columns: ["whalesync_user_id"]
-            isOneToOne: false
-            referencedRelation: "user_qualification_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "profiles_whalesync_user_id_fkey"
-            columns: ["whalesync_user_id"]
-            isOneToOne: false
-            referencedRelation: "Users"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-        ]
+        Relationships: []
       }
       project_assignments: {
         Row: {
