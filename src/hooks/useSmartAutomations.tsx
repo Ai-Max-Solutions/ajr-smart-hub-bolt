@@ -113,7 +113,7 @@ export const useSmartAutomations = () => {
       const { data: teamData } = await supabase
         .from('Users')
         .select(`
-          whalesync_postgres_id,
+          id,
           role,
           skills,
           qualifications(qualification_type, expiry_date)
@@ -206,7 +206,7 @@ const analyzeSkillGaps = (teamData: any[]) => {
     );
     
     if (missingSkills.length > 0) {
-      gaps.push({ user_id: member.whalesync_postgres_id, missing: missingSkills });
+      gaps.push({ user_id: member.id, missing: missingSkills });
     }
   });
   

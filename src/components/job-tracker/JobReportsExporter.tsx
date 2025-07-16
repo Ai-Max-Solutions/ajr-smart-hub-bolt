@@ -41,7 +41,7 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
     try {
       const { data, error } = await supabase
         .from('Projects')
-        .select('whalesync_postgres_id, projectname, projectnumber')
+        .select('id, projectname, projectnumber')
         .order('projectname');
 
       if (error) throw error;
@@ -217,7 +217,7 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
       link.setAttribute('href', url);
       
       const projectName = selectedProject 
-        ? projects.find(p => p.whalesync_postgres_id === selectedProject)?.projectname || 'Project'
+        ? projects.find(p => p.id === selectedProject)?.projectname || 'Project'
         : 'AllProjects';
       
       const dateStr = dateRange?.from 

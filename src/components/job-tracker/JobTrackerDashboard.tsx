@@ -67,7 +67,7 @@ export const JobTrackerDashboard = () => {
     try {
       const { data: projectsData, error } = await supabase
         .from('Projects')
-        .select('whalesync_postgres_id, projectname, projectnumber, status')
+        .select('id, projectname, projectnumber, status')
         .order('projectname');
 
       if (error) throw error;
@@ -313,7 +313,7 @@ export const JobTrackerDashboard = () => {
           <SelectContent>
             <SelectItem value="">All Projects</SelectItem>
             {projects.map(project => (
-              <SelectItem key={project.whalesync_postgres_id} value={project.whalesync_postgres_id}>
+              <SelectItem key={project.id} value={project.id}>
                 {project.projectname}
               </SelectItem>
             ))}

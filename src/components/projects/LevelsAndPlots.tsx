@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,7 @@ import {
 import PlotDetailsCard from './PlotDetailsCard';
 
 interface Plot {
-  whalesync_postgres_id: string;
+  id: string;
   plotnumber: string;
   plotstatus: string;
   completion_percentage: number;
@@ -40,7 +39,7 @@ interface Plot {
 }
 
 interface Level {
-  whalesync_postgres_id: string;
+  id: string;
   levelname: string;
   levelnumber: number;
   levelstatus: string;
@@ -55,7 +54,7 @@ interface LevelsAndPlotsProps {
 // Mock expanded plot data using correct property names
 const mockPlotsData: Record<string, Plot> = {
   'B01': { 
-    whalesync_postgres_id: 'plot-b01', 
+    id: 'plot-b01', 
     plotnumber: 'B01', 
     plotstatus: 'completed', 
     completion_percentage: 100,
@@ -67,7 +66,7 @@ const mockPlotsData: Record<string, Plot> = {
     completedDate: '2024-01-15' 
   },
   'B02': { 
-    whalesync_postgres_id: 'plot-b02', 
+    id: 'plot-b02', 
     plotnumber: 'B02', 
     plotstatus: 'completed', 
     completion_percentage: 100,
@@ -79,7 +78,7 @@ const mockPlotsData: Record<string, Plot> = {
     completedDate: '2024-01-16' 
   },
   'B03': { 
-    whalesync_postgres_id: 'plot-b03', 
+    id: 'plot-b03', 
     plotnumber: 'B03', 
     plotstatus: 'in-progress', 
     completion_percentage: 65,
@@ -90,7 +89,7 @@ const mockPlotsData: Record<string, Plot> = {
     assignedTo: 'Sarah Wilson' 
   },
   'B04': { 
-    whalesync_postgres_id: 'plot-b04', 
+    id: 'plot-b04', 
     plotnumber: 'B04', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -100,7 +99,7 @@ const mockPlotsData: Record<string, Plot> = {
     level: 'basement'
   },
   'B05': { 
-    whalesync_postgres_id: 'plot-b05', 
+    id: 'plot-b05', 
     plotnumber: 'B05', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -110,7 +109,7 @@ const mockPlotsData: Record<string, Plot> = {
     level: 'basement'
   },
   'B06': { 
-    whalesync_postgres_id: 'plot-b06', 
+    id: 'plot-b06', 
     plotnumber: 'B06', 
     plotstatus: 'on-hold', 
     completion_percentage: 30,
@@ -121,7 +120,7 @@ const mockPlotsData: Record<string, Plot> = {
     assignedTo: 'Tom Brown' 
   },
   'G01': { 
-    whalesync_postgres_id: 'plot-g01', 
+    id: 'plot-g01', 
     plotnumber: 'G01', 
     plotstatus: 'completed', 
     completion_percentage: 100,
@@ -133,7 +132,7 @@ const mockPlotsData: Record<string, Plot> = {
     completedDate: '2024-01-18' 
   },
   'G02': { 
-    whalesync_postgres_id: 'plot-g02', 
+    id: 'plot-g02', 
     plotnumber: 'G02', 
     plotstatus: 'completed', 
     completion_percentage: 100,
@@ -145,7 +144,7 @@ const mockPlotsData: Record<string, Plot> = {
     completedDate: '2024-01-19' 
   },
   'G03': { 
-    whalesync_postgres_id: 'plot-g03', 
+    id: 'plot-g03', 
     plotnumber: 'G03', 
     plotstatus: 'completed', 
     completion_percentage: 100,
@@ -157,7 +156,7 @@ const mockPlotsData: Record<string, Plot> = {
     completedDate: '2024-01-20' 
   },
   'G04': { 
-    whalesync_postgres_id: 'plot-g04', 
+    id: 'plot-g04', 
     plotnumber: 'G04', 
     plotstatus: 'in-progress', 
     completion_percentage: 80,
@@ -168,7 +167,7 @@ const mockPlotsData: Record<string, Plot> = {
     assignedTo: 'Chris White' 
   },
   'G05': { 
-    whalesync_postgres_id: 'plot-g05', 
+    id: 'plot-g05', 
     plotnumber: 'G05', 
     plotstatus: 'in-progress', 
     completion_percentage: 45,
@@ -179,7 +178,7 @@ const mockPlotsData: Record<string, Plot> = {
     assignedTo: 'Jenny Brown' 
   },
   'G06': { 
-    whalesync_postgres_id: 'plot-g06', 
+    id: 'plot-g06', 
     plotnumber: 'G06', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -189,7 +188,7 @@ const mockPlotsData: Record<string, Plot> = {
     level: 'ground'
   },
   'G07': { 
-    whalesync_postgres_id: 'plot-g07', 
+    id: 'plot-g07', 
     plotnumber: 'G07', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -199,7 +198,7 @@ const mockPlotsData: Record<string, Plot> = {
     level: 'ground'
   },
   'G08': { 
-    whalesync_postgres_id: 'plot-g08', 
+    id: 'plot-g08', 
     plotnumber: 'G08', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -209,7 +208,7 @@ const mockPlotsData: Record<string, Plot> = {
     level: 'ground'
   },
   'F01': { 
-    whalesync_postgres_id: 'plot-f01', 
+    id: 'plot-f01', 
     plotnumber: 'F01', 
     plotstatus: 'completed', 
     completion_percentage: 100,
@@ -221,7 +220,7 @@ const mockPlotsData: Record<string, Plot> = {
     completedDate: '2024-01-21' 
   },
   'F02': { 
-    whalesync_postgres_id: 'plot-f02', 
+    id: 'plot-f02', 
     plotnumber: 'F02', 
     plotstatus: 'completed', 
     completion_percentage: 100,
@@ -233,7 +232,7 @@ const mockPlotsData: Record<string, Plot> = {
     completedDate: '2024-01-22' 
   },
   'F03': { 
-    whalesync_postgres_id: 'plot-f03', 
+    id: 'plot-f03', 
     plotnumber: 'F03', 
     plotstatus: 'completed', 
     completion_percentage: 100,
@@ -245,7 +244,7 @@ const mockPlotsData: Record<string, Plot> = {
     completedDate: '2024-01-23' 
   },
   'F04': { 
-    whalesync_postgres_id: 'plot-f04', 
+    id: 'plot-f04', 
     plotnumber: 'F04', 
     plotstatus: 'in-progress', 
     completion_percentage: 70,
@@ -256,7 +255,7 @@ const mockPlotsData: Record<string, Plot> = {
     assignedTo: 'Sophie Davis' 
   },
   'F05': { 
-    whalesync_postgres_id: 'plot-f05', 
+    id: 'plot-f05', 
     plotnumber: 'F05', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -266,7 +265,7 @@ const mockPlotsData: Record<string, Plot> = {
     level: 'first'
   },
   'F06': { 
-    whalesync_postgres_id: 'plot-f06', 
+    id: 'plot-f06', 
     plotnumber: 'F06', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -276,7 +275,7 @@ const mockPlotsData: Record<string, Plot> = {
     level: 'first'
   },
   'F07': { 
-    whalesync_postgres_id: 'plot-f07', 
+    id: 'plot-f07', 
     plotnumber: 'F07', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -286,7 +285,7 @@ const mockPlotsData: Record<string, Plot> = {
     level: 'first'
   },
   'F08': { 
-    whalesync_postgres_id: 'plot-f08', 
+    id: 'plot-f08', 
     plotnumber: 'F08', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -296,7 +295,7 @@ const mockPlotsData: Record<string, Plot> = {
     level: 'first'
   },
   'S01': { 
-    whalesync_postgres_id: 'plot-s01', 
+    id: 'plot-s01', 
     plotnumber: 'S01', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -306,7 +305,7 @@ const mockPlotsData: Record<string, Plot> = {
     level: 'second'
   },
   'S02': { 
-    whalesync_postgres_id: 'plot-s02', 
+    id: 'plot-s02', 
     plotnumber: 'S02', 
     plotstatus: 'pending', 
     completion_percentage: 0,
@@ -485,7 +484,7 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
       <div className="space-y-4">
         {levels?.map((level) => {
           const plots = level.plots?.map((plotId: string) => mockPlotsData[plotId] || { 
-            whalesync_postgres_id: `plot-${plotId}`, 
+            id: `plot-${plotId}`, 
             plotnumber: plotId, 
             plotstatus: 'pending',
             completion_percentage: 0,
@@ -541,7 +540,7 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                       {plots.map((plot: Plot) => (
                         <Card 
-                          key={plot.whalesync_postgres_id} 
+                          key={plot.id} 
                           className="card-hover cursor-pointer"
                           onClick={() => handlePlotClick(plot)}
                         >
@@ -581,7 +580,7 @@ const LevelsAndPlots = ({ projectId, levels }: LevelsAndPlotsProps) => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <PlotDetailsCard 
             plot={{
-              id: selectedPlot.whalesync_postgres_id,
+              id: selectedPlot.id,
               name: selectedPlot.plotnumber,
               status: selectedPlot.plotstatus as "completed" | "in-progress" | "pending" | "on-hold",
               level: levels?.find(level => level.plots?.includes(selectedPlot.plotnumber))?.name || 'Unknown Level',

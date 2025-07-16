@@ -49,7 +49,7 @@ export const NotificationAnalytics: React.FC = () => {
     try {
       const { data: projectsData, error } = await supabase
         .from('Projects')
-        .select('whalesync_postgres_id, projectname')
+        .select('id, projectname')
         .order('projectname');
 
       if (error) throw error;
@@ -147,7 +147,7 @@ export const NotificationAnalytics: React.FC = () => {
           <SelectContent>
             <SelectItem value="all">All Projects</SelectItem>
             {projects.map((project) => (
-              <SelectItem key={project.whalesync_postgres_id} value={project.whalesync_postgres_id}>
+              <SelectItem key={project.id} value={project.id}>
                 {project.projectname}
               </SelectItem>
             ))}
