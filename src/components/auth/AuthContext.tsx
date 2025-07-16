@@ -44,12 +44,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Handle user data asynchronously without blocking
           setTimeout(async () => {
             try {
-              // Check if user exists using the new unified view
-              const { data: userData } = await supabase
-                .from('user_view')
-                .select('auth_id, whalesync_postgres_id, firstname, lastname, system_role')
-                .eq('auth_id', session.user.id)
-                .maybeSingle();
+               // Check if user exists using the new unified view
+               const { data: userData } = await supabase
+                 .from('user_view')
+                 .select('auth_id, id, firstname, lastname, system_role')
+                 .eq('auth_id', session.user.id)
+                 .maybeSingle();
               
               // Update last sign in for the user
               await supabase
@@ -64,11 +64,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 return;
               }
               
-              // Check CSCS card status
-              if (userData) {
-                const { data: cscsStatus } = await supabase.rpc('check_user_cscs_status', {
-                  p_user_id: userData.whalesync_postgres_id
-                });
+               // Check CSCS card status
+               if (userData) {
+                 const { data: cscsStatus } = await supabase.rpc('check_user_cscs_status', {
+                   p_user_id: userData.id
+                 });
                 
                 // If CSCS card is missing, expired, or invalid, redirect to CSCS onboarding
                 if (cscsStatus && typeof cscsStatus === 'object' && 'is_valid' in cscsStatus && !cscsStatus.is_valid) {
@@ -116,26 +116,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error };
       }
 
-      // If user was created, also create entry in Users table
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('Users')
-          .insert({
-            supabase_auth_id: data.user.id,
-            email: data.user.email,
-            firstname: userData?.first_name || '',
-            lastname: userData?.last_name || '',
-            fullname: userData?.full_name || `${userData?.first_name || ''} ${userData?.last_name || ''}`.trim(),
-            role: 'Operative',
-            employmentstatus: 'Active',
-            auth_provider: 'supabase',
-            system_role: 'Worker'
-          });
-
-        if (profileError) {
-          console.error('Error creating user profile:', profileError);
-        }
-      }
+      // The triggers handle user profile creation automatically
+      // No need to manually insert into Users table
 
       toast.success('Account created! Please check your email to verify your account.');
       return { error: null };
@@ -161,40 +143,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error };
       }
 
-      // Check if user has a record in Users table, create if missing
-      if (data.user) {
-        const { data: existingUser, error: userError } = await supabase
-          .from('Users')
-          .select('whalesync_postgres_id')
-          .eq('supabase_auth_id', data.user.id)
-          .single();
-
-        if (userError && userError.code === 'PGRST116') {
-          // User doesn't exist in Users table, create record
-          const { error: createError } = await supabase
-            .from('Users')
-            .insert({
-              supabase_auth_id: data.user.id,
-              email: data.user.email,
-              firstname: '',
-              lastname: '',
-              fullname: '',
-              role: 'Operative',
-              employmentstatus: 'Active',
-              auth_provider: 'supabase',
-              system_role: 'Worker',
-              onboarding_completed: false,
-              cscs_upload_required: true,
-              cscs_validation_status: 'pending'
-            });
-
-          if (createError) {
-            console.error('Error creating user profile:', createError);
-            toast.error('Error setting up user profile');
-            return { error: createError };
-          }
-        }
-      }
+      // The triggers handle user profile creation automatically
+      // No need to manually check or create Users table entries
 
       return { error: null };
     } catch (error: any) {
