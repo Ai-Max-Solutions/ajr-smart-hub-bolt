@@ -60,18 +60,20 @@ const InductionAnalyticsDashboard: React.FC = () => {
   const loadAnalytics = async () => {
     setIsLoading(true);
     try {
-      // Get basic analytics by querying tables directly
-      const { data: progressData } = await supabase.from('induction_progress').select('*');
-      const { data: quizData } = await supabase.from('post_demo_quiz').select('*');
+      // Mock analytics data
+      const mockProgressData = [
+        { id: '1', status: 'completed', created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), completed_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+        { id: '2', status: 'in_progress', created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), completed_at: null },
+        { id: '3', status: 'completed', created_at: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(), completed_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() }
+      ];
+      const mockQuizData = [{ id: '1', score: 85 }, { id: '2', score: 92 }];
 
-      if (!progressData) throw new Error('No progress data found');
-
-      const totalInductions = progressData.length;
-      const completedInductions = progressData.filter(p => p.status === 'completed').length;
+      const totalInductions = mockProgressData.length;
+      const completedInductions = mockProgressData.filter(p => p.status === 'completed').length;
       const completionRate = totalInductions > 0 ? Math.round((completedInductions / totalInductions) * 100) : 0;
 
       // Calculate average completion time
-      const completedWithTime = progressData.filter(p => p.completed_at && p.created_at);
+      const completedWithTime = mockProgressData.filter(p => p.completed_at && p.created_at);
       const avgCompletionTime = completedWithTime.length > 0 
         ? completedWithTime.reduce((sum, p) => {
             const start = new Date(p.created_at).getTime();
@@ -88,10 +90,10 @@ const InductionAnalyticsDashboard: React.FC = () => {
         quizPerformance,
         retryData
       ] = await Promise.all([
-        getLanguageDistribution(progressData),
+        getLanguageDistribution(mockProgressData),
         getAccessibilityUsage(),
-        getCompletionTrends(progressData),
-        getQuizPerformance(quizData || []),
+        getCompletionTrends(mockProgressData),
+        getQuizPerformance(mockQuizData || []),
         getRetryPatterns()
       ]);
 

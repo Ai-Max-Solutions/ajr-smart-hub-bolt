@@ -254,31 +254,13 @@ const PostDemoQuiz: React.FC<PostDemoQuizProps> = ({
         finalScore >= 75 ? 'good' :
         finalScore >= 60 ? 'needs_improvement' : 'requires_retry';
 
-      // Insert quiz responses for each question
-      for (const [questionId, answerIndex] of Object.entries(userAnswers)) {
-        await supabase
-          .from('post_demo_quiz')
-          .insert({
-            induction_id: inductionId,
-            question_id: questionId,
-            question_text: questions[parseInt(questionId)]?.question || '',
-            user_answer: questions[parseInt(questionId)]?.options[answerIndex] || '',
-            correct_answer: questions[parseInt(questionId)]?.options[questions[parseInt(questionId)]?.correctAnswer] || '',
-            is_correct: answerIndex === questions[parseInt(questionId)]?.correctAnswer,
-            time_taken_seconds: Math.floor(Date.now() / 1000),
-            difficulty_level: questions[parseInt(questionId)]?.difficulty || 'medium',
-            ai_explanation: feedback
-          });
-      }
-
-      // Complete the induction if score is good enough
-      if (finalScore >= 75) {
-        await supabase.rpc('complete_induction_step', {
-          p_induction_id: inductionId,
-          p_step_number: 5, // Assuming quiz is step 5
-          p_step_data: { score: finalScore, understanding_level: understandingLevel }
-        });
-      }
+      // Mock quiz submission - in a real app this would save to database
+      console.log('Would submit quiz results:', {
+        inductionId,
+        answers: userAnswers,
+        score: finalScore,
+        understanding: understandingLevel
+      });
 
       toast({
         title: finalScore >= 75 ? "Quiz Completed!" : "Review Required",

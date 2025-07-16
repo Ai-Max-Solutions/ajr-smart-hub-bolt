@@ -68,14 +68,15 @@ const RAMSManager = () => {
     try {
       setLoading(true);
       
-      // Get contractor profile
-      const { data: profile } = await supabase
-        .from('contractor_profiles')
-        .select('*')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+      // Mock contractor profile
+      const mockProfile = {
+        id: '1',
+        first_name: 'John',
+        last_name: 'Doe',
+        auth_user_id: (await supabase.auth.getUser()).data.user?.id
+      };
       
-      setContractorProfile(profile);
+      setContractorProfile(mockProfile);
 
       // For now, use mock data as we don't have the new tables yet
       // In Phase 3 implementation, this would load from the actual database

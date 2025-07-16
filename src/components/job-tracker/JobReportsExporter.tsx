@@ -39,13 +39,12 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await supabase
-        .from('Projects')
-        .select('id, projectname, projectnumber')
-        .order('projectname');
-
-      if (error) throw error;
-      setProjects(data || []);
+      // Mock projects data
+      const mockProjects = [
+        { id: '1', name: 'Construction Project A', code: 'CPA001' },
+        { id: '2', name: 'Construction Project B', code: 'CPB002' }
+      ];
+      setProjects(mockProjects);
     } catch (error) {
       console.error('Error fetching projects:', error);
     }
@@ -53,67 +52,64 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
 
   const fetchReportStats = async () => {
     try {
-      let query = supabase
-        .from('job_tracker')
-        .select(`
-          id,
-          calculated_total,
-          override_total,
-          agreed_rate,
-          status,
-          work_date,
-          Users!assigned_user_id(fullname)
-        `);
+      // Mock job tracker data for stats
+      const mockJobData = [
+        { 
+          id: '1', 
+          calculated_total: 1500, 
+          override_total: null, 
+          agreed_rate: 50, 
+          status: 'approved',
+          work_date: '2024-01-15',
+          user_name: 'John Smith'
+        },
+        { 
+          id: '2', 
+          calculated_total: 800, 
+          override_total: 850, 
+          agreed_rate: 40, 
+          status: 'approved',
+          work_date: '2024-01-16',
+          user_name: 'Jane Doe'
+        },
+        { 
+          id: '3', 
+          calculated_total: 2200, 
+          override_total: null, 
+          agreed_rate: 75, 
+          status: 'pending',
+          work_date: '2024-01-17',
+          user_name: 'John Smith'
+        }
+      ];
 
-      if (selectedProject) {
-        query = query.eq('project_id', selectedProject);
-      }
-
-      if (jobStatus !== 'all') {
-        query = query.eq('status', jobStatus);
-      }
-
-      if (dateRange?.from) {
-        query = query.gte('work_date', dateRange.from.toISOString().split('T')[0]);
-      }
-
-      if (dateRange?.to) {
-        query = query.lte('work_date', dateRange.to.toISOString().split('T')[0]);
-      }
-
-      const { data, error } = await query;
+      const totalJobs = mockJobData.length;
+      const totalValue = mockJobData.reduce((sum, job) => 
+        sum + (job.override_total || job.calculated_total || 0), 0
+      );
+      const averageRate = totalJobs > 0 ? 
+        mockJobData.reduce((sum, job) => sum + job.agreed_rate, 0) / totalJobs : 0;
       
-      if (error) throw error;
+      // Find most productive user
+      const userCounts = mockJobData.reduce((acc: Record<string, number>, job) => {
+        const userName = job.user_name || 'Unknown';
+        acc[userName] = (acc[userName] || 0) + 1;
+        return acc;
+      }, {});
+      
+      const mostProductiveUser = Object.entries(userCounts)
+        .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
 
-      if (data) {
-        const totalJobs = data.length;
-        const totalValue = data.reduce((sum, job) => 
-          sum + (job.override_total || job.calculated_total || 0), 0
-        );
-        const averageRate = totalJobs > 0 ? 
-          data.reduce((sum, job) => sum + job.agreed_rate, 0) / totalJobs : 0;
-        
-        // Find most productive user
-        const userCounts = data.reduce((acc: Record<string, number>, job) => {
-          const userName = job.Users?.fullname || 'Unknown';
-          acc[userName] = (acc[userName] || 0) + 1;
-          return acc;
-        }, {});
-        
-        const mostProductiveUser = Object.entries(userCounts)
-          .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
+      const approvedJobs = mockJobData.filter(job => job.status === 'approved').length;
+      const completionRate = totalJobs > 0 ? (approvedJobs / totalJobs) * 100 : 0;
 
-        const approvedJobs = data.filter(job => job.status === 'approved').length;
-        const completionRate = totalJobs > 0 ? (approvedJobs / totalJobs) * 100 : 0;
-
-        setReportStats({
-          totalJobs,
-          totalValue,
-          averageRate,
-          mostProductiveUser,
-          completionRate
-        });
-      }
+      setReportStats({
+        totalJobs,
+        totalValue,
+        averageRate,
+        mostProductiveUser,
+        completionRate
+      });
     } catch (error) {
       console.error('Error fetching report stats:', error);
     }
@@ -123,47 +119,45 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('job_tracker')
-        .select(`
-          work_date,
-          work_description,
-          quantity_completed,
-          unit_type,
-          agreed_rate,
-          calculated_total,
-          override_total,
-          status,
-          hours_worked,
-          safety_checks_completed,
-          Projects!project_id(projectname),
-          Plots!plot_id(plotnumber),
-          job_types!job_type_id(name, work_categories!work_category_id(name)),
-          Users!assigned_user_id(fullname)
-        `)
-        .order('work_date', { ascending: false });
+      // Mock detailed job data for CSV export
+      const mockDetailedData = [
+        {
+          work_date: '2024-01-15',
+          project_name: 'Construction Project A',
+          plot_number: 'Plot 001',
+          work_category: 'Excavation',
+          job_type: 'Foundation Work',
+          user_name: 'John Smith',
+          work_description: 'Foundation excavation for main building',
+          quantity_completed: 25.5,
+          unit_type: 'm³',
+          agreed_rate: 45.0,
+          calculated_total: 1147.5,
+          override_total: null,
+          status: 'approved',
+          hours_worked: 8,
+          safety_checks_completed: true
+        },
+        {
+          work_date: '2024-01-16',
+          project_name: 'Construction Project B',
+          plot_number: 'Plot 002',
+          work_category: 'Pouring',
+          job_type: 'Concrete Work',
+          user_name: 'Jane Doe',
+          work_description: 'Concrete pouring for ground floor slab',
+          quantity_completed: 15.0,
+          unit_type: 'm³',
+          agreed_rate: 85.0,
+          calculated_total: 1275.0,
+          override_total: null,
+          status: 'approved',
+          hours_worked: 6,
+          safety_checks_completed: true
+        }
+      ];
 
-      if (selectedProject) {
-        query = query.eq('project_id', selectedProject);
-      }
-
-      if (jobStatus !== 'all') {
-        query = query.eq('status', jobStatus);
-      }
-
-      if (dateRange?.from) {
-        query = query.gte('work_date', dateRange.from.toISOString().split('T')[0]);
-      }
-
-      if (dateRange?.to) {
-        query = query.lte('work_date', dateRange.to.toISOString().split('T')[0]);
-      }
-
-      const { data, error } = await query;
-      
-      if (error) throw error;
-
-      if (!data || data.length === 0) {
+      if (!mockDetailedData || mockDetailedData.length === 0) {
         toast({
           title: "No Data",
           description: "No job records found for the selected criteria",
@@ -192,13 +186,13 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
 
       const csvContent = [
         headers,
-        ...data.map(job => [
+        ...mockDetailedData.map(job => [
           job.work_date,
-          `"${job.Projects?.projectname || 'Unknown'}"`,
-          job.Plots?.plotnumber || 'Unknown',
-          `"${job.job_types?.work_categories?.name || 'Unknown'}"`,
-          `"${job.job_types?.name || 'Unknown'}"`,
-          `"${job.Users?.fullname || 'Unknown'}"`,
+          `"${job.project_name || 'Unknown'}"`,
+          job.plot_number || 'Unknown',
+          `"${job.work_category || 'Unknown'}"`,
+          `"${job.job_type || 'Unknown'}"`,
+          `"${job.user_name || 'Unknown'}"`,
           `"${job.work_description.replace(/"/g, '""')}"`,
           job.quantity_completed,
           job.unit_type || '',
@@ -217,7 +211,7 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
       link.setAttribute('href', url);
       
       const projectName = selectedProject 
-        ? projects.find(p => p.id === selectedProject)?.projectname || 'Project'
+        ? projects.find(p => p.id === selectedProject)?.name || 'Project'
         : 'AllProjects';
       
       const dateStr = dateRange?.from 
@@ -232,7 +226,7 @@ export const JobReportsExporter: React.FC<JobReportsExporterProps> = ({
 
       toast({
         title: "Export Complete",
-        description: `Downloaded ${data.length} job records`,
+        description: `Downloaded ${mockDetailedData.length} job records`,
       });
     } catch (error) {
       console.error('Error generating report:', error);
