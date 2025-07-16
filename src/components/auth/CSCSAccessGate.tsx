@@ -31,6 +31,12 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
 
   console.info('[CSCS] gate mounted', location.pathname);
 
+  // Early bailout for onboarding routes - return children immediately
+  if (location.pathname.startsWith('/onboarding')) {
+    console.info('[CSCS] early bailout for onboarding route');
+    return <>{children}</>;
+  }
+
   useEffect(() => {
     const checkCSCSStatus = async () => {
       // EARLY EXIT: Skip CSCS validation for onboarding routes
