@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -25,11 +25,19 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
   fallback 
 }) => {
   const { user, session } = useAuth();
+  const location = useLocation();
   const [cscsStatus, setCSCSStatus] = useState<CSCSStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkCSCSStatus = async () => {
+      // EARLY EXIT: Skip CSCS validation for onboarding routes
+      if (location.pathname.startsWith('/onboarding')) {
+        console.log('[CSCSAccessGate] On onboarding route, skipping CSCS validation');
+        setLoading(false);
+        return;
+      }
+
       if (!user || !session) {
         console.log('[CSCSAccessGate] No user or session, allowing access');
         setLoading(false);
@@ -39,10 +47,10 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
       console.log('[CSCSAccessGate] Checking CSCS status for user:', user.id);
 
       try {
-        // First get the user's whalesync_postgres_id and onboarding status from the Users table
+        // First get the user's data including cscs_required flag
         const { data: userData, error: userError } = await supabase
           .from('Users')
-          .select('whalesync_postgres_id, email, onboarding_completed, firstname, lastname')
+          .select('whalesync_postgres_id, email, onboarding_completed, firstname, lastname, cscs_required')
           .eq('supabase_auth_id', user.id)
           .maybeSingle();
 
@@ -65,6 +73,19 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
             is_valid: true,
             status: 'new_user',
             reason: 'New user - onboarding required',
+            requires_upload: false
+          });
+          setLoading(false);
+          return;
+        }
+
+        // EARLY EXIT: If cscs_required is false, skip all CSCS validation
+        if (!userData.cscs_required) {
+          console.log('[CSCSAccessGate] cscs_required is false, skipping CSCS validation entirely');
+          setCSCSStatus({
+            is_valid: true,
+            status: 'cscs_not_required',
+            reason: 'CSCS validation not required for this user',
             requires_upload: false
           });
           setLoading(false);
@@ -171,7 +192,7 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
     };
 
     checkCSCSStatus();
-  }, [user, session]);
+  }, [user, session, location.pathname]);
 
   // Show loading spinner while checking
   if (loading) {
