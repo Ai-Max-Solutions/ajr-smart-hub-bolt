@@ -14261,6 +14261,16 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      health_check_data_integrity: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          check_name: string
+          status: string
+          issue_count: number
+          details: string
+          fix_sql: string
+        }[]
+      }
       is_document_controller: {
         Args: Record<PropertyKey, never> | { user_id: string }
         Returns: boolean
