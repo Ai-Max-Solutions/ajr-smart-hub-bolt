@@ -28,21 +28,31 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size
+    // Set canvas size with proper scaling
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
 
-    // Set drawing styles - black signature on white background for maximum visibility
+    // Set drawing styles - high contrast black signature on white background
     ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Clear canvas with white background
+    // Clear canvas with solid white background for maximum contrast
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, rect.width, rect.height);
+    
+    // Add a light border to define the signing area
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, 0, rect.width, rect.height);
+    
+    // Reset drawing style
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
   }, []);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -96,8 +106,21 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const rect = canvas.getBoundingClientRect();
+    
+    // Clear canvas with solid white background
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, rect.width, rect.height);
+    
+    // Add a light border to define the signing area
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, 0, rect.width, rect.height);
+    
+    // Reset drawing style
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    
     setHasSignature(false);
   };
 
@@ -120,11 +143,11 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="border-2 border-dashed border-border rounded-lg bg-background">
+        <div className="relative border-2 border-solid border-gray-300 rounded-lg bg-white shadow-sm">
           <canvas
             ref={canvasRef}
-            className="w-full h-32 touch-none cursor-crosshair"
-            style={{ width: '100%', height: '128px' }}
+            className="w-full h-40 touch-none cursor-crosshair rounded-lg"
+            style={{ width: '100%', height: '160px', backgroundColor: '#ffffff' }}
             onMouseDown={startDrawing}
             onMouseMove={draw}
             onMouseUp={stopDrawing}
@@ -133,6 +156,11 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
             onTouchMove={draw}
             onTouchEnd={stopDrawing}
           />
+          {!hasSignature && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <p className="text-gray-400 text-sm font-medium">Please sign here</p>
+            </div>
+          )}
         </div>
         
         <div className="flex gap-2 justify-between">

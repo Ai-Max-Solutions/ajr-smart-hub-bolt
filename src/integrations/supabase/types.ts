@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      contractor_rams_signatures: {
+        Row: {
+          contractor_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_current: boolean
+          rams_document_id: string
+          reading_time_seconds: number
+          signature_data: string
+          signed_at: string
+          updated_at: string
+        }
+        Insert: {
+          contractor_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_current?: boolean
+          rams_document_id: string
+          reading_time_seconds?: number
+          signature_data: string
+          signed_at?: string
+          updated_at?: string
+        }
+        Update: {
+          contractor_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_current?: boolean
+          rams_document_id?: string
+          reading_time_seconds?: number
+          signature_data?: string
+          signed_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_rams_signatures_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_rams_signatures_rams_document_id_fkey"
+            columns: ["rams_document_id"]
+            isOneToOne: false
+            referencedRelation: "rams_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       on_hire_items: {
         Row: {
           category: string
@@ -121,6 +175,51 @@ export type Database = {
         }
         Relationships: []
       }
+      project_rams_requirements: {
+        Row: {
+          created_at: string
+          id: string
+          is_mandatory: boolean
+          project_id: string
+          rams_document_id: string
+          required_work_types: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_mandatory?: boolean
+          project_id: string
+          rams_document_id: string
+          required_work_types?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_mandatory?: boolean
+          project_id?: string
+          rams_document_id?: string
+          required_work_types?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_rams_requirements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_rams_requirements_rams_document_id_fkey"
+            columns: ["rams_document_id"]
+            isOneToOne: false
+            referencedRelation: "rams_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           client: string
@@ -177,6 +276,59 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rams_documents: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          minimum_read_time: number
+          project_id: string | null
+          requires_fresh_signature: boolean
+          risk_level: string
+          title: string
+          updated_at: string
+          version: string
+          work_types: string[]
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          minimum_read_time?: number
+          project_id?: string | null
+          requires_fresh_signature?: boolean
+          risk_level: string
+          title: string
+          updated_at?: string
+          version?: string
+          work_types?: string[]
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          minimum_read_time?: number
+          project_id?: string | null
+          requires_fresh_signature?: boolean
+          risk_level?: string
+          title?: string
+          updated_at?: string
+          version?: string
+          work_types?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rams_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       timesheet_entries: {
         Row: {
@@ -463,6 +615,10 @@ export type Database = {
     Functions: {
       detect_suspicious_activity: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_contractor_rams_compliance: {
+        Args: { p_contractor_id: string; p_project_id?: string }
         Returns: Json
       }
     }
