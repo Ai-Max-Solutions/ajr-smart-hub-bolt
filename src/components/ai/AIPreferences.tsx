@@ -44,7 +44,7 @@ export const AIPreferences: React.FC = () => {
         </CardTitle>
         <div className="flex items-center gap-2">
           <Badge variant="secondary">{profile?.role}</Badge>
-          <Badge variant="outline">{profile?.primaryskill || 'General'}</Badge>
+          <Badge variant="outline">{profile?.employmentstatus || 'Active'}</Badge>
         </div>
       </CardHeader>
       

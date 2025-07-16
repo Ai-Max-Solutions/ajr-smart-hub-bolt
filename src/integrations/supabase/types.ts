@@ -351,36 +351,71 @@ export type Database = {
       }
       users: {
         Row: {
+          airtable_created_time: string | null
           created_at: string
+          currentproject: string | null
           email: string
+          employmentstatus: string | null
+          firstname: string | null
+          fullname: string | null
           id: string
+          internalnotes: string | null
+          last_sign_in: string | null
+          lastname: string | null
           name: string
+          onboarding_completed: boolean | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role_enum"]
           supabase_auth_id: string | null
           updated_at: string
         }
         Insert: {
+          airtable_created_time?: string | null
           created_at?: string
+          currentproject?: string | null
           email: string
+          employmentstatus?: string | null
+          firstname?: string | null
+          fullname?: string | null
           id?: string
+          internalnotes?: string | null
+          last_sign_in?: string | null
+          lastname?: string | null
           name: string
+          onboarding_completed?: boolean | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role_enum"]
           supabase_auth_id?: string | null
           updated_at?: string
         }
         Update: {
+          airtable_created_time?: string | null
           created_at?: string
+          currentproject?: string | null
           email?: string
+          employmentstatus?: string | null
+          firstname?: string | null
+          fullname?: string | null
           id?: string
+          internalnotes?: string | null
+          last_sign_in?: string | null
+          lastname?: string | null
           name?: string
+          onboarding_completed?: boolean | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role_enum"]
           supabase_auth_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_currentproject_fkey"
+            columns: ["currentproject"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_categories: {
         Row: {

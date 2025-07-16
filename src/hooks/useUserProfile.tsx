@@ -12,10 +12,12 @@ interface UserProfile {
   role: string;
   system_role: string;
   employmentstatus: string;
-  currentproject: string;
-  skills: string[];
+  currentproject: string | null;
   phone: string;
-  primaryskill: string;
+  onboarding_completed: boolean;
+  internalnotes: string | null;
+  last_sign_in: string | null;
+  airtable_created_time: string;
 }
 
 export const useUserProfile = () => {
@@ -55,16 +57,18 @@ export const useUserProfile = () => {
         setProfile({
           id: userData.id,
           auth_email: user.email || '',
-          firstname: userData.name?.split(' ')[0] || '',
-          lastname: userData.name?.split(' ').slice(1).join(' ') || '',
-          fullname: userData.name || '',
+          firstname: userData.firstname || '',
+          lastname: userData.lastname || '',
+          fullname: userData.fullname || '',
           role: userData.role,
           system_role: userData.role,
-          employmentstatus: 'Active',
-          currentproject: '',
-          skills: [],
+          employmentstatus: userData.employmentstatus || 'Active',
+          currentproject: userData.currentproject,
           phone: userData.phone || '',
-          primaryskill: ''
+          onboarding_completed: userData.onboarding_completed || false,
+          internalnotes: userData.internalnotes,
+          last_sign_in: userData.last_sign_in,
+          airtable_created_time: userData.airtable_created_time
         });
       }
     } catch (err: any) {
@@ -84,10 +88,13 @@ export const useUserProfile = () => {
 
       // Map UserProfile updates to database schema
       const dbUpdates: any = {};
-      if (updates.firstname || updates.lastname) {
-        dbUpdates.name = `${updates.firstname || profile.firstname} ${updates.lastname || profile.lastname}`.trim();
-      }
-      if (updates.phone) dbUpdates.phone = updates.phone;
+      if (updates.firstname !== undefined) dbUpdates.firstname = updates.firstname;
+      if (updates.lastname !== undefined) dbUpdates.lastname = updates.lastname;
+      if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+      if (updates.employmentstatus !== undefined) dbUpdates.employmentstatus = updates.employmentstatus;
+      if (updates.currentproject !== undefined) dbUpdates.currentproject = updates.currentproject;
+      if (updates.onboarding_completed !== undefined) dbUpdates.onboarding_completed = updates.onboarding_completed;
+      if (updates.internalnotes !== undefined) dbUpdates.internalnotes = updates.internalnotes;
       if (updates.role && ['Operative', 'Supervisor', 'Admin', 'PM', 'Director'].includes(updates.role)) {
         dbUpdates.role = updates.role;
       }
