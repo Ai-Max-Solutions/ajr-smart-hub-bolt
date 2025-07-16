@@ -12929,43 +12929,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_view: {
-        Row: {
-          auth_email: string | null
-          auth_id: string | null
-          avatar_url: string | null
-          currentproject: string | null
-          deactivation_date: string | null
-          employmentstatus: string | null
-          firstname: string | null
-          fullname: string | null
-          last_sign_in: string | null
-          lastname: string | null
-          onboarding_completed: boolean | null
-          performance_rating: number | null
-          phone: string | null
-          primaryskill: string | null
-          role: string | null
-          skills: string[] | null
-          system_role: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "users_currentproject_foreign"
-            columns: ["currentproject"]
-            isOneToOne: false
-            referencedRelation: "project_summary"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "users_currentproject_foreign"
-            columns: ["currentproject"]
-            isOneToOne: false
-            referencedRelation: "Projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       approve_role_request: {
