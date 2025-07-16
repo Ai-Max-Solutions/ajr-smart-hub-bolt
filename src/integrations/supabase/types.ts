@@ -3022,6 +3022,39 @@ export type Database = {
           },
         ]
       }
+      drawing_plots: {
+        Row: {
+          created_at: string | null
+          drawing_id: string
+          plot_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          drawing_id: string
+          plot_id: string
+        }
+        Update: {
+          created_at?: string | null
+          drawing_id?: string
+          plot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drawing_plots_drawing_id_fkey"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "Drawings"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "drawing_plots_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "Plots"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       drawing_revisions: {
         Row: {
           drawing_id: number
@@ -3154,7 +3187,15 @@ export type Database = {
           technicalnotes?: string | null
           whalesync_postgres_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "drawing_revisions_drawing_fkey"
+            columns: ["drawing"]
+            isOneToOne: false
+            referencedRelation: "Drawings"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
       }
       drawings: {
         Row: {
@@ -3304,7 +3345,36 @@ export type Database = {
           trade?: string | null
           whalesync_postgres_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "drawings_block_fkey"
+            columns: ["block"]
+            isOneToOne: false
+            referencedRelation: "Blocks"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "drawings_level_fkey"
+            columns: ["level"]
+            isOneToOne: false
+            referencedRelation: "Levels"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "drawings_project_fkey"
+            columns: ["project"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "drawings_project_fkey"
+            columns: ["project"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
       }
       enhanced_audit_log: {
         Row: {
