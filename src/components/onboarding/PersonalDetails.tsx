@@ -49,10 +49,7 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
     
     if (!data.cscsCard.cardType) newErrors.cscsType = 'Card type is required';
     
-    // CSCS front image is optional now - no checking required
-    if (!data.cscsCard.frontImage) {
-      newErrors.cscsFrontImage = 'Front image of CSCS card is required';
-    }
+    // CSCS upload is now optional - no validation required
 
     // Emergency contact validation
     if (!data.emergencyContact.name.trim()) newErrors.emergencyName = 'Emergency contact name is required';

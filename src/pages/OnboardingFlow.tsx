@@ -22,6 +22,7 @@ export interface OnboardingData {
     cardType: string;
     frontImage?: File;
     backImage?: File;
+    uploadComplete?: boolean;
   };
   emergencyContact: {
     name: string;

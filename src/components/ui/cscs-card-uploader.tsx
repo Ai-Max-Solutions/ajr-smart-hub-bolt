@@ -15,6 +15,7 @@ interface CSCSCardData {
   cardType: string;
   frontImage?: File;
   backImage?: File;
+  uploadComplete?: boolean;
 }
 
 interface CSCSCardUploaderProps {
@@ -155,11 +156,12 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           const result = analysis.analysis;
           setAnalysisResult(result);
           
-          // Auto-populate form fields - default to Operative if AI doesn't know
+          // Auto-populate form fields and mark upload as complete
           updateData({
             number: result.card_number || data.number,
             expiryDate: result.expiry_date ? formatDateForInput(result.expiry_date) : data.expiryDate,
-            cardType: result.card_type || data.cardType || 'Operative'
+            cardType: result.card_type || data.cardType || 'Operative',
+            uploadComplete: true
           });
           
           onAnalysisComplete?.(result);
@@ -305,6 +307,12 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
                   <div className="space-y-2">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                     <p className="text-sm text-muted-foreground">Analyzing card...</p>
+                  </div>
+                ) : data.uploadComplete ? (
+                  <div className="space-y-2">
+                    <CheckCircle className="h-8 w-8 mx-auto text-green-500" />
+                    <p className="text-sm font-medium text-green-600">✅ Card Uploaded & Analyzed</p>
+                    <p className="text-xs text-muted-foreground">Click to change</p>
                   </div>
                 ) : data.frontImage ? (
                   <div className="space-y-2">
