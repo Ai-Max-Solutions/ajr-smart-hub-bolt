@@ -179,7 +179,7 @@ export const UserManagement = () => {
 
       if (error) throw error;
 
-      await logCRUDOperation('CREATE', 'Users', data.id, null, newUser);
+      await logCRUDOperation('CREATE', 'Users', data.id);
       
       setUsers([...users, data]);
       setIsCreateDialogOpen(false);
@@ -210,7 +210,7 @@ export const UserManagement = () => {
 
       if (error) throw error;
 
-      await logCRUDOperation('UPDATE', 'Users', selectedUser.id, selectedUser, updatedData);
+      await logCRUDOperation('UPDATE', 'Users', selectedUser.id);
 
       setUsers(users.map(user => 
         user.id === selectedUser.id ? data : user
@@ -228,8 +228,6 @@ export const UserManagement = () => {
   // Handle user deactivation (soft delete)
   const handleDeactivateUser = async (userId: string) => {
     try {
-      const userToDeactivate = users.find(u => u.id === userId);
-      
       const { error } = await supabase
         .from('Users')
         .update({ 
@@ -240,7 +238,7 @@ export const UserManagement = () => {
 
       if (error) throw error;
 
-      await logCRUDOperation('UPDATE', 'Users', userId, userToDeactivate, { employmentstatus: 'Inactive' });
+      await logCRUDOperation('UPDATE', 'Users', userId);
 
       setUsers(users.map(user => 
         user.id === userId 
@@ -257,8 +255,6 @@ export const UserManagement = () => {
   // Handle user reactivation
   const handleReactivateUser = async (userId: string) => {
     try {
-      const userToReactivate = users.find(u => u.id === userId);
-      
       const { error } = await supabase
         .from('Users')
         .update({ 
@@ -269,7 +265,7 @@ export const UserManagement = () => {
 
       if (error) throw error;
 
-      await logCRUDOperation('UPDATE', 'Users', userId, userToReactivate, { employmentstatus: 'Active' });
+      await logCRUDOperation('UPDATE', 'Users', userId);
 
       setUsers(users.map(user => 
         user.id === userId 

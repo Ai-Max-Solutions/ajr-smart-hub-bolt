@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,9 +47,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             try {
                // Check if user exists using the new unified view
                const { data: userData } = await supabase
-                 .from('user_view')
-                 .select('auth_id, id, firstname, lastname, system_role')
-                 .eq('auth_id', session.user.id)
+                 .from('Users')
+                 .select('id, firstname, lastname, system_role')
+                 .eq('supabase_auth_id', session.user.id)
                  .maybeSingle();
               
               // Update last sign in for the user

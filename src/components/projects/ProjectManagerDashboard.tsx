@@ -1,498 +1,407 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  CheckCircle2, 
-  AlertTriangle, 
-  Clock, 
-  Users, 
-  FileText, 
-  Settings,
-  Send,
-  PoundSterling,
-  Calendar,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  ArrowRight,
-  HardHat,
-  Wrench,
-  MessageSquare,
-  DollarSign,
-  Bot,
-  Megaphone
-} from 'lucide-react';
-import AIDABSAssistant from '@/components/notices/AIDABSAssistant';
-import DABSCreationForm from '@/components/notices/DABSCreationForm';
+import { Calendar, Users, Clock, AlertTriangle, TrendingUp, CheckCircle, FileText } from 'lucide-react';
+import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
+import { DABSCreationForm } from '@/components/notices/DABSCreationForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 
-interface ProjectManagerDashboardProps {
-  projectId: string;
+interface Project {
+  id: string;
+  projectname: string;
+  status: string;
+  progress: number;
+  team_size: number;
+  deadline: string;
+  budget_status: 'on_track' | 'warning' | 'over_budget';
 }
 
-const ProjectManagerDashboard: React.FC<ProjectManagerDashboardProps> = ({ projectId }) => {
-  const [showAIAssistant, setShowAIAssistant] = React.useState(false);
-  const [showDABSForm, setShowDABSForm] = React.useState(false);
-  const [aiGeneratedContent, setAIGeneratedContent] = React.useState<{title: string; content: string} | null>(null);
-  const [projectName, setProjectName] = React.useState<string>('');
-  
-  // Fetch project name when component mounts
-  React.useEffect(() => {
-    const fetchProjectName = async () => {
-      try {
-        // In a real implementation, you'd fetch from your data source
-        setProjectName('Sample Project Name'); // Replace with actual fetch
-      } catch (error) {
-        console.error('Error fetching project name:', error);
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  status: 'available' | 'busy' | 'offline';
+  avatar?: string;
+}
+
+interface RecentActivity {
+  id: string;
+  user: string;
+  action: string;
+  timestamp: string;
+  type: 'update' | 'completion' | 'issue' | 'milestone';
+}
+
+const ProjectManagerDashboard = () => {
+  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [showDABSForm, setShowDABSForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      // Fetch projects
+      const { data: projectsData } = await supabase
+        .from('Projects')
+        .select('id, projectname, status')
+        .limit(10);
+
+      // Mock data for dashboard display
+      const mockProjects: Project[] = (projectsData || []).map((project, index) => ({
+        id: project.id,
+        projectname: project.projectname,
+        status: project.status || 'Active',
+        progress: Math.floor(Math.random() * 100),
+        team_size: Math.floor(Math.random() * 20) + 5,
+        deadline: new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        budget_status: ['on_track', 'warning', 'over_budget'][Math.floor(Math.random() * 3)] as any
+      }));
+
+      setProjects(mockProjects);
+      if (mockProjects.length > 0 && !selectedProject) {
+        setSelectedProject(mockProjects[0].id);
       }
-    };
-    
-    fetchProjectName();
-  }, [projectId]);
 
-  // Mock data - in real implementation, this would come from your data source
-  const mockData = {
-    compliance: {
-      ramsCompliance: { signed: 92, pending: 8 },
-      inductionCompliance: { completed: 100, pending: 0 },
-      toolboxTalks: { signed: 85, overdue: 5, total: 100 },
-      expiringCerts: 3,
-      siteNotices: { new: 1, unsigned: 2, total: 10 }
-    },
-    plots: {
-      open: 3,
-      inProgress: 7,
-      completed: 15,
-      totalTasks: 156,
-      completedTasks: 124,
-      blockers: [
-        { plot: '1.02', issue: 'Missing RAMS', type: 'critical' },
-        { plot: '2.15', issue: 'Operative induction pending', type: 'warning' }
-      ]
-    },
-    timesheets: {
-      pending: 8,
-      disputes: 2,
-      overdue: 3,
-      thisWeekHours: 342,
-      pieceworkUnits: 156
-    },
-    onHire: {
-      totalItems: 23,
-      dueOffHire: 4,
-      overdue: 2,
-      weeklySpend: 2850,
-      ytdSpend: 45600,
-      topSupplier: 'BuildHire Ltd'
-    },
-    costs: {
-      dayRateSpend: 15600,
-      pieceworkSpend: 8900,
-      avgHoursPerOperative: 38.5,
-      budgetVariance: -2.1
-    },
-    alerts: [
-      { type: 'critical', message: '3 operatives non-compliant - Plot access suspended' },
-      { type: 'warning', message: '2 hire items overdue off-hire - £280/day cost' },
-      { type: 'info', message: 'New RAMS version requires 12 re-signatures' }
-    ]
+      // Mock team members data
+      setTeamMembers([
+        { id: '1', name: 'John Smith', role: 'Site Manager', status: 'available' },
+        { id: '2', name: 'Sarah Johnson', role: 'Supervisor', status: 'busy' },
+        { id: '3', name: 'Mike Wilson', role: 'Quality Inspector', status: 'available' },
+        { id: '4', name: 'Emma Davis', role: 'Safety Officer', status: 'offline' }
+      ]);
+
+      // Mock recent activities
+      setRecentActivities([
+        {
+          id: '1',
+          user: 'John Smith',
+          action: 'Completed foundation inspection for Plot 12',
+          timestamp: '2 hours ago',
+          type: 'completion'
+        },
+        {
+          id: '2',
+          user: 'Sarah Johnson',
+          action: 'Updated progress on Block A - Level 2',
+          timestamp: '4 hours ago',
+          type: 'update'
+        },
+        {
+          id: '3',
+          user: 'Mike Wilson',
+          action: 'Reported quality issue in Plot 8',
+          timestamp: '6 hours ago',
+          type: 'issue'
+        },
+        {
+          id: '4',
+          user: 'Emma Davis',
+          action: 'Milestone reached: Phase 1 Safety Checks Complete',
+          timestamp: '1 day ago',
+          type: 'milestone'
+        }
+      ]);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getComplianceStatus = (percentage: number) => {
-    if (percentage >= 90) return { color: 'bg-green-500', status: 'Good', variant: 'default' as const };
-    if (percentage >= 75) return { color: 'bg-yellow-500', status: 'Warning', variant: 'secondary' as const };
-    return { color: 'bg-red-500', status: 'Critical', variant: 'destructive' as const };
+  const getBudgetStatusColor = (status: string) => {
+    switch (status) {
+      case 'on_track': return 'text-green-600 bg-green-100';
+      case 'warning': return 'text-yellow-600 bg-yellow-100';
+      case 'over_budget': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
   };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'completion': return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'update': return <TrendingUp className="h-4 w-4 text-blue-600" />;
+      case 'issue': return <AlertTriangle className="h-4 w-4 text-red-600" />;
+      case 'milestone': return <Calendar className="h-4 w-4 text-purple-600" />;
+      default: return <Clock className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'available': return <div className="w-2 h-2 bg-green-500 rounded-full" />;
+      case 'busy': return <div className="w-2 h-2 bg-yellow-500 rounded-full" />;
+      case 'offline': return <div className="w-2 h-2 bg-gray-400 rounded-full" />;
+      default: return <div className="w-2 h-2 bg-gray-400 rounded-full" />;
+    }
+  };
+
+  const selectedProjectData = projects.find(p => p.id === selectedProject);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 p-6 min-h-screen bg-gradient-subtle">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-primary mb-2">Project Manager Dashboard</h1>
-        <p className="text-muted-foreground">Live project control panel for real-time decision making</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-primary">Project Manager Dashboard</h1>
+          <p className="text-muted-foreground">
+            Oversee project progress, manage teams, and track key metrics
+          </p>
+        </div>
+        
+        <div className="flex gap-2">
+          <Dialog open={showDABSForm} onOpenChange={setShowDABSForm}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <FileText className="h-4 w-4" />
+                Create DABS Notice
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create DABS Notice</DialogTitle>
+              </DialogHeader>
+              <DABSCreationForm 
+                onClose={() => setShowDABSForm(false)} 
+                onCreated={() => {
+                  setShowDABSForm(false);
+                  fetchDashboardData();
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {/* Critical Alerts Banner */}
-      {mockData.alerts.length > 0 && (
-        <Card className="border-l-4 border-l-destructive">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-5 h-5" />
-              Requires Immediate Action
-            </CardTitle>
+      {/* Project Selection */}
+      {projects.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Select Project</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {mockData.alerts.map((alert, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  {alert.type === 'critical' && <XCircle className="w-4 h-4 text-destructive" />}
-                  {alert.type === 'warning' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
-                  {alert.type === 'info' && <AlertCircle className="w-4 h-4 text-blue-500" />}
-                  <span className="text-sm font-medium">{alert.message}</span>
-                </div>
-                <Button size="sm" variant="outline">Action Required</Button>
-              </div>
-            ))}
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projects.map((project) => (
+                <Card 
+                  key={project.id} 
+                  className={`cursor-pointer transition-all ${
+                    selectedProject === project.id 
+                      ? 'ring-2 ring-primary bg-primary/5' 
+                      : 'hover:shadow-md'
+                  }`}
+                  onClick={() => setSelectedProject(project.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold truncate">{project.projectname}</h3>
+                        <Badge variant="outline">{project.status}</Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Progress</span>
+                          <span>{project.progress}%</span>
+                        </div>
+                        <Progress value={project.progress} className="h-2" />
+                      </div>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          <span>{project.team_size} members</span>
+                        </div>
+                        <Badge 
+                          variant="outline" 
+                          className={getBudgetStatusColor(project.budget_status)}
+                        >
+                          {project.budget_status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Compliance Status Panel */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
-              Compliance Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            
-            {/* RAMS Compliance */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">RAMS Signed</span>
-                <Badge variant={getComplianceStatus(mockData.compliance.ramsCompliance.signed).variant}>
-                  {mockData.compliance.ramsCompliance.signed}%
-                </Badge>
-              </div>
-              <Progress value={mockData.compliance.ramsCompliance.signed} className="h-2" />
-              <p className="text-xs text-muted-foreground">{mockData.compliance.ramsCompliance.pending}% pending signature</p>
-            </div>
+      {/* Main Dashboard Content */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="activities">Activities</TabsTrigger>
+        </TabsList>
 
-            {/* Inductions */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Inductions</span>
-                <Badge variant="default">100%</Badge>
-              </div>
-              <Progress value={100} className="h-2" />
-              <p className="text-xs text-green-600">All operatives inducted</p>
-            </div>
+        <TabsContent value="overview" className="space-y-4">
+          {selectedProjectData && (
+            <>
+              {/* Key Metrics */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Project Progress</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{selectedProjectData.progress}%</div>
+                    <Progress value={selectedProjectData.progress} className="mt-2" />
+                  </CardContent>
+                </Card>
 
-            {/* Toolbox Talks */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Toolbox Talks</span>
-                <Badge variant={getComplianceStatus(mockData.compliance.toolboxTalks.signed).variant}>
-                  {mockData.compliance.toolboxTalks.signed}%
-                </Badge>
-              </div>
-              <Progress value={mockData.compliance.toolboxTalks.signed} className="h-2" />
-              <p className="text-xs text-muted-foreground">{mockData.compliance.toolboxTalks.overdue} overdue</p>
-            </div>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Team Size</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{selectedProjectData.team_size}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Active team members
+                    </p>
+                  </CardContent>
+                </Card>
 
-            {/* Quick Actions */}
-            <div className="pt-4 space-y-2">
-              <Button size="sm" variant="outline" className="w-full justify-between">
-                Show Non-Compliant
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="secondary" className="w-full">
-                Send Reminders
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Plots & Handovers */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <HardHat className="w-5 h-5 text-primary" />
-              Plots & Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            
-            {/* Plot Status Overview */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-xl font-bold text-blue-600">{mockData.plots.open}</p>
-                <p className="text-xs text-blue-600">Open</p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-lg">
-                <p className="text-xl font-bold text-yellow-600">{mockData.plots.inProgress}</p>
-                <p className="text-xs text-yellow-600">In Progress</p>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <p className="text-xl font-bold text-green-600">{mockData.plots.completed}</p>
-                <p className="text-xs text-green-600">Completed</p>
-              </div>
-            </div>
-
-            {/* Overall Progress */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Overall Completion</span>
-                <span className="text-sm font-bold">{Math.round((mockData.plots.completedTasks / mockData.plots.totalTasks) * 100)}%</span>
-              </div>
-              <Progress value={(mockData.plots.completedTasks / mockData.plots.totalTasks) * 100} className="h-3" />
-              <p className="text-xs text-muted-foreground">
-                {mockData.plots.completedTasks} of {mockData.plots.totalTasks} tasks completed
-              </p>
-            </div>
-
-            {/* Blockers */}
-            {mockData.plots.blockers.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-destructive">Plot Blockers</h4>
-                {mockData.plots.blockers.map((blocker, index) => (
-                  <div key={index} className="p-2 bg-red-50 rounded border-l-4 border-l-red-500">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Plot {blocker.plot}</span>
-                      <Badge variant={blocker.type === 'critical' ? 'destructive' : 'secondary'} className="text-xs">
-                        {blocker.type}
-                      </Badge>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Deadline</CardTitle>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {Math.ceil((new Date(selectedProjectData.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{blocker.issue}</p>
+                    <p className="text-xs text-muted-foreground">Days remaining</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Budget Status</CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <Badge className={getBudgetStatusColor(selectedProjectData.budget_status)}>
+                      {selectedProjectData.budget_status.replace('_', ' ')}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-1">Current status</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Recent Activities */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activities</CardTitle>
+                  <CardDescription>Latest updates from your project team</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {recentActivities.map((activity) => (
+                      <div key={activity.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                        {getActivityIcon(activity.type)}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{activity.user}</p>
+                          <p className="text-sm text-muted-foreground">{activity.action}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {activity.timestamp}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-4">
+          {selectedProject && (
+            <AnalyticsDashboard projectId={selectedProject} userRole="Project Manager" />
+          )}
+        </TabsContent>
+
+        <TabsContent value="team" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Members</CardTitle>
+              <CardDescription>Current team status and availability</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {teamMembers.map((member) => (
+                  <Card key={member.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-semibold text-primary">
+                            {member.name.split(' ').map(n => n[0]).join('')}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium truncate">{member.name}</h3>
+                            {getStatusIcon(member.status)}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{member.role}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="activities" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Detailed Activity Log</CardTitle>
+              <CardDescription>Complete history of project activities</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recentActivities.map((activity) => (
+                  <div key={activity.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                    {getActivityIcon(activity.type)}
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{activity.user}</span>
+                        <span className="text-sm text-muted-foreground">{activity.timestamp}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{activity.action}</p>
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-
-            <Button size="sm" className="w-full">
-              View Plot Details
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Timesheets & Costs */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-accent" />
-              Timesheets & Costs
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            
-            {/* Pending Approvals */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                <div>
-                  <p className="font-semibold text-yellow-800">Pending Approval</p>
-                  <p className="text-sm text-yellow-600">{mockData.timesheets.pending} timesheets</p>
-                </div>
-                <Badge variant="secondary">{mockData.timesheets.overdue} overdue</Badge>
-              </div>
-              
-              {mockData.timesheets.disputes > 0 && (
-                <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                  <div>
-                    <p className="font-semibold text-red-800">Disputes</p>
-                    <p className="text-sm text-red-600">{mockData.timesheets.disputes} require resolution</p>
-                  </div>
-                  <Button size="sm" variant="outline">Resolve</Button>
-                </div>
-              )}
-            </div>
-
-            {/* This Week Summary */}
-            <div className="space-y-2 pt-2 border-t">
-              <h4 className="text-sm font-medium">This Week</h4>
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="p-2 bg-muted/50 rounded">
-                  <p className="text-lg font-bold">{mockData.timesheets.thisWeekHours}</p>
-                  <p className="text-xs text-muted-foreground">Hours Logged</p>
-                </div>
-                <div className="p-2 bg-muted/50 rounded">
-                  <p className="text-lg font-bold">{mockData.timesheets.pieceworkUnits}</p>
-                  <p className="text-xs text-muted-foreground">Piecework Units</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Cost Breakdown */}
-            <div className="space-y-2 pt-2 border-t">
-              <h4 className="text-sm font-medium">Weekly Spend</h4>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Day Rate:</span>
-                  <span className="font-medium">£{mockData.costs.dayRateSpend.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Piecework:</span>
-                  <span className="font-medium">£{mockData.costs.pieceworkSpend.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm pt-1 border-t">
-                  <span className="font-medium">Total:</span>
-                  <span className="font-bold">£{(mockData.costs.dayRateSpend + mockData.costs.pieceworkSpend).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" variant="default">Approve All</Button>
-              <Button size="sm" variant="outline">Review</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Secondary Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* On-Hire Register */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-orange-500" />
-              On-Hire Equipment
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            
-            {/* Summary Stats */}
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold text-primary">{mockData.onHire.totalItems}</p>
-                <p className="text-xs text-muted-foreground">Items on Hire</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-yellow-600">{mockData.onHire.dueOffHire}</p>
-                <p className="text-xs text-muted-foreground">Due Off-Hire</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-red-600">{mockData.onHire.overdue}</p>
-                <p className="text-xs text-muted-foreground">Overdue</p>
-              </div>
-            </div>
-
-            {/* Cost Overview */}
-            <div className="space-y-2 pt-4 border-t">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Weekly Spend:</span>
-                <span className="text-lg font-bold text-primary">£{mockData.onHire.weeklySpend}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">YTD Total:</span>
-                <span className="text-sm font-medium">£{mockData.onHire.ytdSpend.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Top Supplier:</span>
-                <span className="text-sm font-medium">{mockData.onHire.topSupplier}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" variant="outline">Off-Hire Request</Button>
-              <Button size="sm" variant="secondary">View Register</Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Broadcast & Communications */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-blue-500" />
-              Communications
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            
-            {/* Pending Communications */}
-            <div className="space-y-3">
-              <div className="p-3 bg-blue-50 rounded-lg border-l-4 border-l-blue-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-blue-800">New RAMS Version</p>
-                    <p className="text-sm text-blue-600">Riser Pipework - Rev 2.1</p>
-                  </div>
-                  <Badge variant="secondary">12 signatures needed</Badge>
-                </div>
-              </div>
-              
-              <div className="p-3 bg-green-50 rounded-lg border-l-4 border-l-green-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-green-800">Site Notice</p>
-                    <p className="text-sm text-green-600">New H&S Protocol</p>
-                  </div>
-                  <Badge variant="outline">Ready to broadcast</Badge>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="space-y-2 pt-4 border-t">
-              <h4 className="text-sm font-medium">Quick Actions</h4>
-              <div className="grid grid-cols-1 gap-2">
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowAIAssistant(true)}
-                  className="justify-start btn-accent"
-                >
-                  <Bot className="w-4 h-4 mr-2" />
-                  AI DABS Assistant
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="justify-start"
-                  onClick={() => setShowDABSForm(true)}
-                >
-                  <Megaphone className="w-4 h-4 mr-2" />
-                  Quick DABS Notice
-                </Button>
-                <Button size="sm" variant="outline" className="justify-start">
-                  <Send className="w-4 h-4 mr-2" />
-                  Broadcast Site Notice
-                </Button>
-                <Button size="sm" variant="outline" className="justify-start">
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Send Compliance Reminders
-                </Button>
-                <Button size="sm" variant="outline" className="justify-start">
-                  <FileText className="w-4 h-4 mr-2" />
-                  RAMS Re-signature Alert
-                </Button>
-              </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="space-y-2 pt-4 border-t">
-              <h4 className="text-sm font-medium">Recent Broadcasts</h4>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>• Safety briefing sent to 15 operatives (2 hours ago)</p>
-                <p>• Toolbox talk reminder sent (Yesterday)</p>
-                <p>• Plot 1.02 update broadcast (2 days ago)</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* AI DABS Assistant Dialog */}
-      <AIDABSAssistant
-        open={showAIAssistant}
-        onClose={() => setShowAIAssistant(false)}
-        onUseContent={(title, content) => {
-          setAIGeneratedContent({ title, content });
-          setShowDABSForm(true);
-        }}
-        projectName={projectName}
-      />
-
-      {/* DABS Creation Form */}
-      <DABSCreationForm
-        open={showDABSForm}
-        onClose={() => {
-          setShowDABSForm(false);
-          setAIGeneratedContent(null);
-        }}
-        onSuccess={() => {
-          setShowDABSForm(false);
-          setAIGeneratedContent(null);
-        }}
-        initialContent={aiGeneratedContent}
-      />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

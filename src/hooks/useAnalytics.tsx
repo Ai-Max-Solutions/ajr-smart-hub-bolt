@@ -12,21 +12,50 @@ interface AnalyticsData {
 
 interface ProjectAnalytics {
   projectId: string;
-  completionRate: number;
-  averageHours: number;
-  activeUsers: number;
+  completion: {
+    total_plots: number;
+    completed_plots: number;
+    completion_rate: number;
+    avg_completion: number;
+  };
+  workforce: {
+    active_workers: number;
+    total_hours: number;
+    avg_hours_per_day: number;
+    productivity_score: number;
+  };
+  costs: {
+    budget_status: string;
+    variance_percentage: number;
+  };
 }
 
 interface PredictiveAnalytics {
-  riskFactors: any[];
-  predictions: any[];
-  recommendations: string[];
+  current_completion: number;
+  predicted_completion_date: string;
+  confidence_level: string;
+  daily_progress_rate: number;
+  risk_factors: string[];
 }
 
 interface ResourceEfficiency {
-  utilizationRate: number;
-  efficiency: number;
-  recommendations: string[];
+  period_days: number;
+  summary: {
+    total_workers: number;
+    avg_efficiency: number;
+    efficiency_range: {
+      min: number;
+      max: number;
+    };
+  };
+  top_performers: Array<{
+    user_id: string;
+    name: string;
+    role: string;
+    efficiency: number;
+    plots_completed: number;
+    total_hours: number;
+  }>;
 }
 
 export const useAnalytics = (timeframe: string = '30') => {
@@ -87,28 +116,74 @@ export const useAnalytics = (timeframe: string = '30') => {
     }
   };
 
-  const getProjectAnalytics = async (projectId: string): Promise<ProjectAnalytics> => {
+  const getProjectAnalytics = async (
+    projectId: string, 
+    startDate?: string, 
+    endDate?: string
+  ): Promise<ProjectAnalytics> => {
     return {
       projectId,
-      completionRate: 75,
-      averageHours: 8.5,
-      activeUsers: 12
+      completion: {
+        total_plots: 100,
+        completed_plots: 75,
+        completion_rate: 75,
+        avg_completion: 85
+      },
+      workforce: {
+        active_workers: 12,
+        total_hours: 320,
+        avg_hours_per_day: 8.5,
+        productivity_score: 92
+      },
+      costs: {
+        budget_status: 'on_track',
+        variance_percentage: 5
+      }
     };
   };
 
-  const getPredictiveAnalytics = async (): Promise<PredictiveAnalytics> => {
+  const getPredictiveAnalytics = async (projectId: string): Promise<PredictiveAnalytics> => {
     return {
-      riskFactors: [],
-      predictions: [],
-      recommendations: ['Increase resource allocation', 'Review timelines']
+      current_completion: 75,
+      predicted_completion_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      confidence_level: 'high',
+      daily_progress_rate: 2.5,
+      risk_factors: ['weather_delay', 'resource_shortage']
     };
   };
 
-  const getResourceEfficiency = async (): Promise<ResourceEfficiency> => {
+  const getResourceEfficiency = async (
+    projectId: string, 
+    periodDays: number
+  ): Promise<ResourceEfficiency> => {
     return {
-      utilizationRate: 85,
-      efficiency: 92,
-      recommendations: ['Optimize scheduling', 'Reduce downtime']
+      period_days: periodDays,
+      summary: {
+        total_workers: 15,
+        avg_efficiency: 85,
+        efficiency_range: {
+          min: 60,
+          max: 95
+        }
+      },
+      top_performers: [
+        {
+          user_id: '1',
+          name: 'John Doe',
+          role: 'Operative',
+          efficiency: 95,
+          plots_completed: 8,
+          total_hours: 40
+        },
+        {
+          user_id: '2',
+          name: 'Jane Smith',
+          role: 'Supervisor',
+          efficiency: 88,
+          plots_completed: 6,
+          total_hours: 35
+        }
+      ]
     };
   };
 
@@ -149,8 +224,18 @@ export const useAnalytics = (timeframe: string = '30') => {
     URL.revokeObjectURL(url);
   };
 
-  const exportReport = (format: 'csv' | 'pdf' = 'csv') => {
-    exportData('userPerformance');
+  const exportReport = async (
+    reportType: string,
+    format: 'pdf' | 'excel' | 'csv',
+    data: any
+  ): Promise<Blob | null> => {
+    try {
+      const content = JSON.stringify(data, null, 2);
+      return new Blob([content], { type: 'application/json' });
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      return null;
+    }
   };
 
   return {
