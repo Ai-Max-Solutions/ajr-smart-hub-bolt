@@ -1,420 +1,227 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Megaphone, Mic, MicOff, Calendar, Clock, Building } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface DABSCreationFormProps {
-  open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
-  initialContent?: {title: string; content: string} | null;
+  onCreated: () => void;
 }
 
-interface Project {
-  id: string;
-  name: string;
-}
+export const DABSCreationForm: React.FC<DABSCreationFormProps> = ({ onClose, onCreated }) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    priority: 'Medium',
+    projectId: '',
+    expiresAt: null as Date | null,
+    autoArchive: true,
+    signatureRequired: false,
+  });
 
-const DABSCreationForm = ({ open, onClose, onSuccess, initialContent }: DABSCreationFormProps) => {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [priority, setPriority] = useState<'Low' | 'Medium' | 'High' | 'Critical'>('Medium');
-  const [requiresSignature, setRequiresSignature] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<string>('');
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const fetchUserProjects = async () => {
-      if (!user?.user_id) return;
-      
-      try {
-        const userProjects: Project[] = [];
-        
-        // Get user's current project
-        if (user.current_project) {
-          const { data: currentProjectData, error: currentError } = await supabase
-            .from('Projects')
-            .select('whalesync_postgres_id, projectname')
-            .eq('whalesync_postgres_id', user.current_project)
-            .single();
-            
-          if (!currentError && currentProjectData) {
-            userProjects.push({
-              id: currentProjectData.whalesync_postgres_id,
-              name: currentProjectData.projectname
-            });
-          }
-        }
-        
-        // Get projects from project_teams table
-        const { data: teamData, error: teamError } = await supabase
-          .from('project_teams')
-          .select(`
-            project_id,
-            Projects!inner(whalesync_postgres_id, projectname)
-          `)
-          .eq('user_id', user.user_id);
-          
-        if (!teamError && teamData) {
-          teamData.forEach((team: any) => {
-            if (team.Projects && !userProjects.find(p => p.id === team.project_id)) {
-              userProjects.push({
-                id: team.project_id,
-                name: team.Projects.projectname
-              });
-            }
-          });
-        }
-        
-        setProjects(userProjects);
-        
-        // Auto-select current project if available
-        if (user.current_project && userProjects.find(p => p.id === user.current_project)) {
-          setSelectedProject(user.current_project);
-        }
-      } catch (error) {
-        console.error('Error fetching user projects:', error);
-      }
-    };
-    
-    if (open) {
-      fetchUserProjects();
-    }
-  }, [open, user]);
-
-  // Set initial content from AI if provided
-  useEffect(() => {
-    if (initialContent) {
-      setTitle(initialContent.title);
-      setContent(initialContent.content);
-    }
-  }, [initialContent]);
-
-  const handleVoiceInput = async () => {
-    if (!isRecording) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        const chunks: BlobPart[] = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-          chunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-          const reader = new FileReader();
-          
-          reader.onloadend = async () => {
-            const base64Audio = (reader.result as string).split(',')[1];
-            
-            try {
-              const { data, error } = await supabase.functions.invoke('voice-to-text', {
-                body: { audio: base64Audio }
-              });
-
-              if (error) throw error;
-              
-              if (data?.text) {
-                setContent(prev => prev + ' ' + data.text);
-                toast({
-                  title: "Voice input added",
-                  description: "Speech has been converted to text",
-                });
-              }
-            } catch (error) {
-              console.error('Voice to text error:', error);
-              toast({
-                title: "Error",
-                description: "Failed to convert speech to text",
-                variant: "destructive",
-              });
-            }
-          };
-          
-          reader.readAsDataURL(audioBlob);
-          stream.getTracks().forEach(track => track.stop());
-        };
-
-        setIsRecording(true);
-        mediaRecorder.start();
-
-        // Stop recording after 30 seconds
-        setTimeout(() => {
-          if (mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-            setIsRecording(false);
-          }
-        }, 30000);
-
-      } catch (error) {
-        console.error('Error accessing microphone:', error);
-        toast({
-          title: "Error",
-          description: "Could not access microphone",
-          variant: "destructive",
-        });
-      }
-    } else {
-      // Stop recording manually
-      setIsRecording(false);
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }));
   };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id]: checked
+    }));
+  };
+
+  // Fetch projects for dropdown
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('Projects')
+        .select('id, projectname')
+        .eq('status', 'Active');
+      
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
+    
     try {
-      // Calculate expiry date (7 days from now)
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+      const { data: userData } = await supabase
+        .from('Users')
+        .select('id')
+        .eq('supabase_auth_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
 
       const { error } = await supabase
         .from('site_notices')
-        .insert([{
-          title,
-          content,
+        .insert({
+          title: formData.title,
+          content: formData.content,
           notice_type: 'DABS Weekly Update',
           notice_category: 'dabs',
-          priority,
-          project_id: selectedProject || null,
-          expires_at: expiresAt.toISOString(),
-          auto_archive: true,
-          requires_signature: requiresSignature,
-          status: 'active'
-        }]);
+          priority: formData.priority,
+          project_id: formData.projectId,
+          expires_at: formData.expiresAt?.toISOString(),
+          auto_archive: formData.autoArchive,
+          signature_required: formData.signatureRequired,
+          created_by: userData?.id,
+        });
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "DABS briefing created successfully",
-      });
-
-      // Reset form
-      setTitle('');
-      setContent('');
-      setPriority('Medium');
-      setSelectedProject('');
-      setRequiresSignature(false);
-      
-      onSuccess();
+      toast.success('DABS notice created successfully');
+      onCreated();
+      onClose();
     } catch (error) {
-      console.error('Error creating DABS:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create DABS briefing",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'Critical':
-        return 'destructive';
-      case 'High':
-        return 'destructive';
-      case 'Medium':
-        return 'accent';
-      case 'Low':
-        return 'secondary';
-      default:
-        return 'secondary';
+      console.error('Error creating DABS notice:', error);
+      toast.error('Failed to create DABS notice');
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Megaphone className="w-5 h-5 text-accent" />
-            Create DABS Briefing
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Auto-expiry info */}
-          <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-sm text-accent mb-1">
-              <Calendar className="w-4 h-4" />
-              <strong>Auto-expiry enabled</strong>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              This DABS briefing will automatically expire and be archived in 7 days (next week's meeting).
-            </p>
+    <Card className="w-full max-w-2xl">
+      <CardHeader>
+        <CardTitle>Create DABS Notice</CardTitle>
+        <CardDescription>
+          Create a new Daily Activities Briefing Sheet (DABS) notice for the site
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Enter DABS notice title"
+              required
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Briefing Title *</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Weekly DABS - Access Restrictions"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="content">Briefing Content *</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleVoiceInput}
-                  className={isRecording ? 'bg-destructive/10 border-destructive text-destructive' : ''}
-                >
-                  {isRecording ? (
-                    <>
-                      <MicOff className="w-4 h-4 mr-2" />
-                      Recording... (tap to stop)
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="w-4 h-4 mr-2" />
-                      Voice Input
-                    </>
-                  )}
-                </Button>
-              </div>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Describe access restrictions, safety updates, or other important site information..."
-                className="min-h-[120px]"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Use the voice input button to speak your briefing content
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Project Assignment</Label>
-              <Select value={selectedProject} onValueChange={setSelectedProject}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select project (leave blank for all projects)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">
-                    <div className="flex items-center gap-2">
-                      <Building className="w-4 h-4" />
-                      <span>All Projects (Global Notice)</span>
-                    </div>
+          <div className="space-y-2">
+            <Label htmlFor="project">Project</Label>
+            <Select
+              value={formData.projectId}
+              onValueChange={(value) => setFormData({ ...formData, projectId: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.projectname}
                   </SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      <div className="flex items-center gap-2">
-                        <Building className="w-4 h-4" />
-                        <span>{project.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Only operatives assigned to the selected project will see this DABS briefing
-              </p>
-            </div>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Priority Level</Label>
-                <Select value={priority} onValueChange={(value: any) => setPriority(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Low">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">Low</Badge>
-                        <span>General information</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Medium">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs bg-accent text-accent-foreground">Medium</Badge>
-                        <span>Standard update</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="High">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="destructive" className="text-xs">High</Badge>
-                        <span>Important changes</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Critical">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="destructive" className="text-xs">Critical</Badge>
-                        <span>Safety critical</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="content">Content</Label>
+            <Textarea
+              id="content"
+              value={formData.content}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              placeholder="Enter DABS notice content"
+              rows={6}
+              required
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label>Requires Signature</Label>
-                <div className="flex items-center gap-2 pt-2">
-                  <Switch
-                    checked={requiresSignature}
-                    onCheckedChange={setRequiresSignature}
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    {requiresSignature ? 'Workers must sign' : 'Information only'}
-                  </span>
-                </div>
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="priority">Priority</Label>
+            <Select
+              value={formData.priority}
+              onValueChange={(value) => setFormData({ ...formData, priority: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Low">Low</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="High">High</SelectItem>
+                <SelectItem value="Critical">Critical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
-              <Clock className="w-4 h-4" />
-              <span>This briefing will be visible for 7 days and then automatically archived.</span>
-            </div>
+          <div className="space-y-2">
+            <Label>Expires At</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !formData.expiresAt && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.expiresAt ? format(formData.expiresAt, "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={formData.expiresAt}
+                  onSelect={(date) => setFormData({ ...formData, expiresAt: date })}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="btn-accent">
-                {isSubmitting ? 'Creating...' : 'Create DABS Briefing'}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </DialogContent>
-    </Dialog>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="autoArchive"
+              checked={formData.autoArchive}
+              onChange={(e) => setFormData({ ...formData, autoArchive: e.target.checked })}
+            />
+            <Label htmlFor="autoArchive">Auto-archive when expired</Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="signatureRequired"
+              checked={formData.signatureRequired}
+              onChange={(e) => setFormData({ ...formData, signatureRequired: e.target.checked })}
+            />
+            <Label htmlFor="signatureRequired">Signature required</Label>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              Create DABS Notice
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
-
-export default DABSCreationForm;

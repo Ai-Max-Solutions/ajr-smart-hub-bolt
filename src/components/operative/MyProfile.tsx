@@ -1,454 +1,299 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/components/auth/AuthContext';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { CSCSCardUploader } from '@/components/ui/cscs-card-uploader';
-import { ProfilePictureUploader } from '@/components/ui/profile-picture-uploader';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  CreditCard, 
-  Shield,
-  Edit,
-  Save,
-  X
-} from 'lucide-react';
+import { User, Edit, Save, X, Mail, Phone, MapPin, Calendar, Award } from 'lucide-react';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
 
-const MyProfile = () => {
-  const { user: authUser } = useAuth();
-  const [userProfile, setUserProfile] = useState<any>(null);
+interface UserProfile {
+  id: string;
+  firstname: string;
+  lastname: string;
+  fullname: string;
+  email: string;
+  phone: string;
+  role: string;
+  skills: string[];
+  address: string;
+  employmentstatus: string;
+  performance_rating: number;
+  avatar_url: string;
+  airtable_created_time: string;
+}
+
+export const MyProfile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    emergencyContact: '',
-    emergencyPhone: '',
-    cscsNumber: '',
-    cscsExpiry: '',
-    cscsType: '',
-    avatarUrl: ''
+  const [editData, setEditData] = useState<Partial<UserProfile>>({});
+  const queryClient = useQueryClient();
+
+  // Get current user profile
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+
+      const { data, error } = await supabase
+        .from('Users')
+        .select('*')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data as UserProfile;
+    },
   });
 
-  // Fetch user profile data
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!authUser?.id) {
-        setLoading(false);
-        return;
-      }
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updates: Partial<UserProfile>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
 
-      try {
-        const { data, error } = await supabase
-          .from('Users')
-          .select('*')
-          .eq('supabase_auth_id', authUser.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching user profile:', error);
-          toast({
-            title: "Error",
-            description: "Failed to load profile data.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        if (data) {
-          setUserProfile(data);
-          setFormData({
-            firstName: data.firstname || '',
-            lastName: data.lastname || '',
-            email: data.email || authUser.email || '',
-            phone: data.phone || '',
-            address: data.address || '',
-            emergencyContact: data.emergencycontact || '',
-            emergencyPhone: data.emergencyphone || '',
-            cscsNumber: data.cscscardnumber || '',
-            cscsExpiry: data.cscsexpirydate || '',
-            cscsType: '',
-            avatarUrl: data.avatar_url || ''
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserProfile();
-  }, [authUser]);
-
-  const handleSave = async () => {
-    try {
-      if (!authUser?.id || !userProfile?.whalesync_postgres_id) {
-        toast({
-          title: "Error",
-          description: "User not found. Please try logging in again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Update user profile in the database
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('Users')
-        .update({
-          firstname: formData.firstName,
-          lastname: formData.lastName,
-          fullname: `${formData.firstName} ${formData.lastName}`.trim(),
-          phone: formData.phone,
-          address: formData.address,
-          emergencycontact: formData.emergencyContact,
-          emergencyphone: formData.emergencyPhone,
-          cscscardnumber: formData.cscsNumber,
-          cscsexpirydate: formData.cscsExpiry || null,
-        })
-        .eq('whalesync_postgres_id', userProfile.whalesync_postgres_id);
+        .update(updates)
+        .eq('supabase_auth_id', user.id)
+        .select()
+        .single();
 
-      if (error) {
-        console.error('Error updating profile:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update profile. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been successfully updated.",
-      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
       setIsEditing(false);
-    } catch (error) {
+      setEditData({});
+      toast.success('Profile updated successfully');
+    },
+    onError: (error) => {
       console.error('Error updating profile:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
+      toast.error('Failed to update profile');
+    },
+  });
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditData({
+      firstname: profile?.firstname || '',
+      lastname: profile?.lastname || '',
+      phone: profile?.phone || '',
+      address: profile?.address || '',
+    });
+  };
+
+  const handleSave = () => {
+    if (editData.firstname && editData.lastname) {
+      updateProfileMutation.mutate({
+        ...editData,
+        fullname: `${editData.firstname} ${editData.lastname}`,
       });
     }
   };
 
   const handleCancel = () => {
-    // Reset form data
-    if (userProfile) {
-      setFormData({
-        firstName: userProfile.firstname || '',
-        lastName: userProfile.lastname || '',
-        email: userProfile.email || authUser?.email || '',
-        phone: userProfile.phone || '',
-        address: userProfile.address || '',
-        emergencyContact: userProfile.emergencycontact || '',
-        emergencyPhone: userProfile.emergencyphone || '',
-        cscsNumber: userProfile.cscscardnumber || '',
-        cscsExpiry: userProfile.cscsexpirydate || '',
-        cscsType: '',
-        avatarUrl: userProfile.avatar_url || ''
-      });
-    }
     setIsEditing(false);
+    setEditData({});
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading profile...</p>
-        </div>
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ajryan-yellow"></div>
       </div>
     );
   }
 
-  if (!authUser) {
+  if (!profile) {
     return (
-      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Not Authenticated</h1>
-          <p className="text-muted-foreground">Please log in to view your profile.</p>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center">
+          <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">Profile not found</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">My Profile</h1>
-            <p className="text-muted-foreground">
-              Manage your personal information and CSCS details
-            </p>
-          </div>
-          {!isEditing ? (
-            <Button onClick={() => setIsEditing(true)} className="bg-accent text-accent-foreground">
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Profile
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-ajryan-dark">My Profile</h2>
+        {!isEditing ? (
+          <Button onClick={handleEdit} variant="outline">
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Profile
+          </Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button onClick={handleSave} disabled={updateProfileMutation.isPending}>
+              <Save className="h-4 w-4 mr-2" />
+              Save
             </Button>
-          ) : (
-            <div className="flex space-x-2">
-              <Button onClick={handleSave} className="bg-accent text-accent-foreground">
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
-              </Button>
-              <Button onClick={handleCancel} variant="outline">
-                <X className="w-4 h-4 mr-2" />
-                Cancel
-              </Button>
-            </div>
-          )}
-        </div>
+            <Button onClick={handleCancel} variant="outline">
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
 
-        {/* Profile Picture Section */}
-        <Card className="mb-6">
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Basic Information */}
+        <Card>
           <CardHeader>
-            <CardTitle className="text-xl flex items-center space-x-2">
-              <User className="w-5 h-5" />
-              <span>Profile Picture</span>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Basic Information
             </CardTitle>
-            <CardDescription>
-              Upload a selfie or let our AI create something amazing for you!
-            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <ProfilePictureUploader
-              currentAvatarUrl={formData.avatarUrl}
-              userName={`${formData.firstName} ${formData.lastName}`.trim()}
-              userRole={userProfile?.role || 'Site Operative'}
-              userSkills={userProfile?.skills || []}
-              cscsLevel={userProfile?.cscs_validation_status || 'Pending'}
-              onAvatarUpdate={(url) => setFormData({ ...formData, avatarUrl: url })}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Profile Overview */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center overflow-hidden">
-                {formData.avatarUrl ? (
-                  <img 
-                    src={formData.avatarUrl} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="w-8 h-8 text-accent" />
-                )}
-              </div>
-              <div>
-                <CardTitle className="text-2xl">
-                  {formData.firstName} {formData.lastName}
-                </CardTitle>
-                <CardDescription className="text-lg">
-                  {userProfile?.role || 'Site Operative'}
-                </CardDescription>
-              </div>
-              <Badge className="bg-green-100 text-green-800 ml-auto">
-                Active
-              </Badge>
-            </div>
-          </CardHeader>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Personal Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="w-5 h-5" />
-                <span>Personal Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+          <CardContent className="space-y-4">
+            {isEditing ? (
+              <>
+                <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>
                   <Input
                     id="firstName"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    disabled={!isEditing}
+                    value={editData.firstname || ''}
+                    onChange={(e) => setEditData({ ...editData, firstname: e.target.value })}
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="lastName">Last Name</Label>
                   <Input
                     id="lastName"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    disabled={!isEditing}
+                    value={editData.lastname || ''}
+                    onChange={(e) => setEditData({ ...editData, lastname: e.target.value })}
                   />
                 </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm text-muted-foreground">Full Name</Label>
+                  <p className="font-medium">{profile.fullname || 'Not provided'}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span>{profile.email}</span>
+                </div>
               </div>
-              
-              <div>
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={!isEditing}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="Enter your phone number"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="Enter your address"
-                />
-              </div>
-            </CardContent>
-          </Card>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Emergency Contact */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Phone className="w-5 h-5" />
-                <span>Emergency Contact</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="emergencyContact">Emergency Contact Name</Label>
-                <Input
-                  id="emergencyContact"
-                  value={formData.emergencyContact}
-                  onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="Enter emergency contact name"
-                />
+        {/* Contact Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Phone className="h-5 w-5" />
+              Contact Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isEditing ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={editData.phone || ''}
+                    onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Textarea
+                    id="address"
+                    value={editData.address || ''}
+                    onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+                    placeholder="Enter address"
+                    rows={3}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span>{profile.phone || 'Not provided'}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
+                  <span>{profile.address || 'Not provided'}</span>
+                </div>
               </div>
-              
-              <div>
-                <Label htmlFor="emergencyPhone">Emergency Contact Phone</Label>
-                <Input
-                  id="emergencyPhone"
-                  value={formData.emergencyPhone}
-                  onChange={(e) => setFormData({ ...formData, emergencyPhone: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="Enter emergency contact phone"
-                />
-              </div>
-            </CardContent>
-          </Card>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* CSCS Information */}
-          <Card className="lg:col-span-2">
-            <CardContent className="p-0">
-              {isEditing ? (
-                <CSCSCardUploader
-                  data={{
-                    number: formData.cscsNumber,
-                    expiryDate: formData.cscsExpiry,
-                    cardType: formData.cscsType || '',
-                  }}
-                  updateData={(cscsData) => setFormData({
-                    ...formData,
-                    cscsNumber: cscsData.number || formData.cscsNumber,
-                    cscsExpiry: cscsData.expiryDate || formData.cscsExpiry,
-                    cscsType: cscsData.cardType || formData.cscsType,
-                  })}
-                  onAnalysisComplete={(analysis) => {
-                    toast({
-                      title: "CSCS Card Analyzed",
-                      description: `Successfully detected ${analysis.card_color} ${analysis.card_type} card`,
-                    });
-                  }}
-                  required={false}
-                />
-              ) : (
-                <div className="p-6">
-                  <CardHeader className="px-0 pt-0">
-                    <CardTitle className="flex items-center space-x-2">
-                      <CreditCard className="w-5 h-5" />
-                      <span>CSCS Card Information</span>
-                    </CardTitle>
-                  </CardHeader>
-                  
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>CSCS Card Number</Label>
-                        <div className="p-2 bg-muted rounded text-sm">
-                          {formData.cscsNumber || 'Not provided'}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label>CSCS Expiry Date</Label>
-                        <div className="p-2 bg-muted rounded text-sm">
-                          {formData.cscsExpiry || 'Not provided'}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                      <div className="flex items-center space-x-2 text-blue-700 dark:text-blue-300">
-                        <CreditCard className="w-5 h-5" />
-                        <span className="font-medium">CSCS Status</span>
-                      </div>
-                      <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
-                        Keep your CSCS card information up to date. This is required for site access.
-                      </p>
-                    </div>
-                  </div>
+        {/* Employment Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Employment Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm text-muted-foreground">Role</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="secondary">{profile.role}</Badge>
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Employment Status</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant={profile.employmentstatus === 'Active' ? 'default' : 'secondary'}>
+                    {profile.employmentstatus}
+                  </Badge>
+                </div>
+              </div>
+              {profile.performance_rating && (
+                <div>
+                  <Label className="text-sm text-muted-foreground">Performance Rating</Label>
+                  <p className="font-medium">{profile.performance_rating}/5</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">
+                  Joined {format(new Date(profile.airtable_created_time), 'MMMM d, yyyy')}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Help Card */}
-        <Card className="mt-6">
+        {/* Skills */}
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Need Help?</CardTitle>
+            <CardTitle>Skills</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
-              If you need to update information that you cannot change here, or if you're having 
-              trouble with your CSCS verification, please contact your supervisor or HR.
-            </p>
+            {profile.skills && profile.skills.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {profile.skills.map((skill, index) => (
+                  <Badge key={index} variant="outline">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">No skills recorded</p>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
   );
 };
-
-export default MyProfile;
