@@ -62,15 +62,63 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
 
   const fetchData = async () => {
     try {
-      const [packagesRes, projectsRes, usersRes] = await Promise.all([
-        supabase.from('work_packages').select('*').order('created_at', { ascending: false }),
-        supabase.from('Projects').select('id, projectname').eq('status', 'Active'),
-        supabase.from('Users').select('id, fullname, role').eq('employmentstatus', 'Active')
+      // Mock work packages data since table doesn't exist
+      const mockWorkPackages: WorkPackage[] = [
+        {
+          id: '1',
+          name: 'Electrical First Fix - Level 1',
+          description: 'Complete electrical first fix installation for all Level 1 units',
+          project_id: 'project-1',
+          work_type: 'first-fix',
+          status: 'in-progress',
+          priority: 'high',
+          start_date: '2024-01-15',
+          end_date: '2024-02-15',
+          estimated_hours: 120,
+          actual_hours: 80,
+          assigned_to: 'user-1',
+          completion_percentage: 65,
+          safety_notes: 'High voltage work - ensure proper PPE'
+        },
+        {
+          id: '2',
+          name: 'Fire Alarm Installation',
+          description: 'Install fire alarm system throughout the building',
+          project_id: 'project-1',
+          work_type: 'fire-alarms',
+          status: 'pending',
+          priority: 'medium',
+          start_date: '2024-02-01',
+          end_date: '2024-02-28',
+          estimated_hours: 80,
+          actual_hours: 0,
+          assigned_to: 'user-2',
+          completion_percentage: 0,
+          safety_notes: 'Follow fire safety protocols'
+        }
+      ];
+
+      const [projectsRes, usersRes] = await Promise.all([
+        supabase.from('projects').select('id, name'),
+        supabase.from('users').select('id, name')
       ]);
 
-      setWorkPackages(packagesRes.data || []);
-      setProjects(projectsRes.data || []);
-      setUsers(usersRes.data || []);
+      // Transform projects data
+      const transformedProjects = (projectsRes.data || []).map(project => ({
+        id: project.id,
+        projectname: project.name
+      }));
+
+      // Transform users data
+      const transformedUsers = (usersRes.data || []).map(user => ({
+        id: user.id,
+        fullname: user.name,
+        role: 'Admin'
+      }));
+
+      setWorkPackages(mockWorkPackages);
+      setProjects(transformedProjects);
+      setUsers(transformedUsers);
     } catch (error) {
       if (!isOffline) {
         toast.error("Failed to load data");
@@ -84,31 +132,30 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
     e.preventDefault();
     
     try {
-      const currentUserId = await getCurrentUserId();
-      const submitData = {
-        ...formData,
-        created_by: currentUserId,
-        estimated_hours: Number(formData.estimated_hours)
-      };
-
       if (editingPackage) {
-        const { error } = await supabase
-          .from('work_packages')
-          .update(submitData)
-          .eq('id', editingPackage.id);
-
-        if (error) throw error;
-        toast.success("Work package updated successfully");
+        // Mock update
+        const updatedPackage: WorkPackage = {
+          ...editingPackage,
+          ...formData,
+          estimated_hours: Number(formData.estimated_hours)
+        };
+        setWorkPackages(workPackages.map(pkg => 
+          pkg.id === editingPackage.id ? updatedPackage : pkg
+        ));
+        toast.success("Work package updated successfully (mock data)");
       } else {
-        const { error } = await supabase
-          .from('work_packages')
-          .insert([submitData]);
-
-        if (error) throw error;
-        toast.success("Work package created successfully");
+        // Mock create
+        const newPackage: WorkPackage = {
+          id: Date.now().toString(),
+          ...formData,
+          estimated_hours: Number(formData.estimated_hours),
+          actual_hours: 0,
+          completion_percentage: 0
+        };
+        setWorkPackages([newPackage, ...workPackages]);
+        toast.success("Work package created successfully (mock data)");
       }
 
-      fetchData();
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
@@ -117,27 +164,17 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
   };
 
   const getCurrentUserId = async () => {
-    const { data: userData } = await supabase
-      .from('Users')
-      .select('id')
-      .eq('supabase_auth_id', (await supabase.auth.getUser()).data.user?.id)
-      .single();
-    
-    return userData?.id;
+    // Mock function for getting current user ID
+    return 'current_user_id';
   };
 
   const handleDelete = async (packageId: string) => {
     if (!confirm("Are you sure you want to delete this work package?")) return;
 
     try {
-      const { error } = await supabase
-        .from('work_packages')
-        .delete()
-        .eq('id', packageId);
-
-      if (error) throw error;
-      toast.success("Work package deleted successfully");
-      fetchData();
+      // Mock delete operation
+      setWorkPackages(workPackages.filter(pkg => pkg.id !== packageId));
+      toast.success("Work package deleted successfully (mock data)");
     } catch (error: any) {
       toast.error(error.message || "Failed to delete work package");
     }
