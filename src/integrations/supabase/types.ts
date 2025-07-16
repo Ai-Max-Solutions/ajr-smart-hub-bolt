@@ -1077,6 +1077,39 @@ export type Database = {
         }
         Relationships: []
       }
+      block_levels: {
+        Row: {
+          block_id: string
+          created_at: string | null
+          level_id: string
+        }
+        Insert: {
+          block_id: string
+          created_at?: string | null
+          level_id: string
+        }
+        Update: {
+          block_id?: string
+          created_at?: string | null
+          level_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "block_levels_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "Blocks"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "block_levels_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "Levels"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       blocks: {
         Row: {
           id: number
@@ -1204,7 +1237,22 @@ export type Database = {
           waterconnectionstatus?: string | null
           whalesync_postgres_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "blocks_project_fkey"
+            columns: ["project"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "blocks_project_fkey"
+            columns: ["project"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
       }
       chat_messages: {
         Row: {
@@ -4658,6 +4706,39 @@ export type Database = {
           },
         ]
       }
+      level_plots: {
+        Row: {
+          created_at: string | null
+          level_id: string
+          plot_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          level_id: string
+          plot_id: string
+        }
+        Update: {
+          created_at?: string | null
+          level_id?: string
+          plot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "level_plots_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "Levels"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "level_plots_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "Plots"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       levels: {
         Row: {
           block_id: number | null
@@ -4833,7 +4914,15 @@ export type Database = {
           wastestackinstallation?: string | null
           whalesync_postgres_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "levels_block_fkey"
+            columns: ["block"]
+            isOneToOne: false
+            referencedRelation: "Blocks"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
       }
       live_activity_feed: {
         Row: {
@@ -6211,7 +6300,15 @@ export type Database = {
           warrantystartdate?: string | null
           whalesync_postgres_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "plots_level_fkey"
+            columns: ["level"]
+            isOneToOne: false
+            referencedRelation: "Levels"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
       }
       pod_approvals: {
         Row: {
@@ -6995,6 +7092,46 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      project_blocks: {
+        Row: {
+          block_id: string
+          created_at: string | null
+          project_id: string
+        }
+        Insert: {
+          block_id: string
+          created_at?: string | null
+          project_id: string
+        }
+        Update: {
+          block_id?: string
+          created_at?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_blocks_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "Blocks"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "project_blocks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_blocks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
