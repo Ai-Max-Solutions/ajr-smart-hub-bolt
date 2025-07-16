@@ -61,8 +61,8 @@ export const RAMSDocumentsCRUD = ({ searchQuery, isOffline }: RAMSDocumentsCRUDP
     try {
       const [docsRes, projectsRes, usersRes] = await Promise.all([
         supabase.from('rams_documents').select('*').order('created_at', { ascending: false }),
-        supabase.from('Projects').select('whalesync_postgres_id, projectname').eq('status', 'Active'),
-        supabase.from('Users').select('whalesync_postgres_id, fullname, role').eq('employmentstatus', 'Active')
+        supabase.from('Projects').select('id, projectname').eq('status', 'Active'),
+        supabase.from('Users').select('id, fullname, role').eq('employmentstatus', 'Active')
       ]);
 
       setDocuments(docsRes.data || []);
@@ -152,11 +152,11 @@ export const RAMSDocumentsCRUD = ({ searchQuery, isOffline }: RAMSDocumentsCRUDP
   const getCurrentUserId = async () => {
     const { data: userData } = await supabase
       .from('Users')
-      .select('whalesync_postgres_id')
+      .select('id')
       .eq('supabase_auth_id', (await supabase.auth.getUser()).data.user?.id)
       .single();
     
-    return userData?.whalesync_postgres_id;
+    return userData?.id;
   };
 
   const handleSupersede = async (documentId: string) => {
@@ -333,7 +333,7 @@ export const RAMSDocumentsCRUD = ({ searchQuery, isOffline }: RAMSDocumentsCRUDP
                         </SelectTrigger>
                         <SelectContent>
                           {projects.map((project) => (
-                            <SelectItem key={project.whalesync_postgres_id} value={project.whalesync_postgres_id}>
+                            <SelectItem key={project.id} value={project.id}>
                               {project.projectname}
                             </SelectItem>
                           ))}

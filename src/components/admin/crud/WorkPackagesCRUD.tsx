@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,8 +64,8 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
     try {
       const [packagesRes, projectsRes, usersRes] = await Promise.all([
         supabase.from('work_packages').select('*').order('created_at', { ascending: false }),
-        supabase.from('Projects').select('whalesync_postgres_id, projectname').eq('status', 'Active'),
-        supabase.from('Users').select('whalesync_postgres_id, fullname, role').eq('employmentstatus', 'Active')
+        supabase.from('Projects').select('id, projectname').eq('status', 'Active'),
+        supabase.from('Users').select('id, fullname, role').eq('employmentstatus', 'Active')
       ]);
 
       setWorkPackages(packagesRes.data || []);
@@ -118,11 +119,11 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
   const getCurrentUserId = async () => {
     const { data: userData } = await supabase
       .from('Users')
-      .select('whalesync_postgres_id')
+      .select('id')
       .eq('supabase_auth_id', (await supabase.auth.getUser()).data.user?.id)
       .single();
     
-    return userData?.whalesync_postgres_id;
+    return userData?.id;
   };
 
   const handleDelete = async (packageId: string) => {
@@ -296,7 +297,7 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
                       </SelectTrigger>
                       <SelectContent>
                         {projects.map((project) => (
-                          <SelectItem key={project.whalesync_postgres_id} value={project.whalesync_postgres_id}>
+                          <SelectItem key={project.id} value={project.id}>
                             {project.projectname}
                           </SelectItem>
                         ))}
@@ -344,12 +345,12 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="estimated_hours">Est. Hours</Label>
+                      <Label htmlFor="estimated_hours">Estimated Hours</Label>
                       <Input
                         id="estimated_hours"
                         type="number"
                         value={formData.estimated_hours}
-                        onChange={(e) => setFormData({ ...formData, estimated_hours: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => setFormData({ ...formData, estimated_hours: Number(e.target.value) })}
                         className="h-12"
                       />
                     </div>
@@ -382,11 +383,11 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
                     <Label htmlFor="assigned_to">Assigned To</Label>
                     <Select value={formData.assigned_to} onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}>
                       <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Select operative" />
+                        <SelectValue placeholder="Select user" />
                       </SelectTrigger>
                       <SelectContent>
                         {users.map((user) => (
-                          <SelectItem key={user.whalesync_postgres_id} value={user.whalesync_postgres_id}>
+                          <SelectItem key={user.id} value={user.id}>
                             {user.fullname} ({user.role})
                           </SelectItem>
                         ))}
@@ -401,7 +402,7 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
                       value={formData.safety_notes}
                       onChange={(e) => setFormData({ ...formData, safety_notes: e.target.value })}
                       placeholder="Important safety considerations for this work package"
-                      rows={2}
+                      rows={3}
                     />
                   </div>
 
@@ -427,9 +428,8 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
-                  <TableHead>Assigned</TableHead>
-                  <TableHead>Schedule</TableHead>
-                  <TableHead>Hours</TableHead>
+                  <TableHead>Progress</TableHead>
+                  <TableHead>Timeline</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -444,39 +444,35 @@ export const WorkPackagesCRUD = ({ searchQuery, isOffline }: WorkPackagesCRUDPro
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{pkg.work_type}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{pkg.work_type}</Badge>
+                    </TableCell>
                     <TableCell>{getStatusBadge(pkg.status)}</TableCell>
                     <TableCell>{getPriorityBadge(pkg.priority)}</TableCell>
                     <TableCell>
-                      {pkg.assigned_to && (
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          <span className="text-sm">
-                            {users.find(u => u.whalesync_postgres_id === pkg.assigned_to)?.fullname || 'Unknown'}
-                          </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-primary h-2 rounded-full" 
+                            style={{ width: `${pkg.completion_percentage || 0}%` }}
+                          ></div>
                         </div>
-                      )}
+                        <span className="text-xs">{pkg.completion_percentage || 0}%</span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
                         {pkg.start_date && (
                           <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(pkg.start_date).toLocaleDateString()}
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <span>{pkg.start_date}</span>
                           </div>
                         )}
                         {pkg.end_date && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(pkg.end_date).toLocaleDateString()}
+                          <div className="text-muted-foreground">
+                            to {pkg.end_date}
                           </div>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div>Est: {pkg.estimated_hours}h</div>
-                        {pkg.actual_hours && <div className="text-muted-foreground">Act: {pkg.actual_hours}h</div>}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">

@@ -1,108 +1,202 @@
-import { useCallback } from 'react';
+
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuditLog } from './useAuditLog';
 import { toast } from 'sonner';
 
+interface SoftDeleteOptions {
+  table: string;
+  recordId: string;
+  reason?: string;
+}
+
 export const useSoftDelete = () => {
-  const { logCRUDOperation } = useAuditLog();
+  const [loading, setLoading] = useState(false);
 
-  const softDelete = useCallback(async (
-    table: string,
-    recordId: string,
-    reason?: string
-  ) => {
+  const softDelete = async ({ table, recordId, reason }: SoftDeleteOptions): Promise<boolean> => {
+    setLoading(true);
     try {
-      // Get current user
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No active session');
-
-      const { data: userData } = await supabase
-        .from('Users')
-        .select('whalesync_postgres_id')
-        .eq('supabase_auth_id', session.user.id)
-        .single();
-
-      if (!userData) throw new Error('User not found');
-
-      // Get the record data before archiving
-      const { data: recordData, error: fetchError } = await supabase
-        .from(table as any)
-        .select('*')
-        .eq('whalesync_postgres_id', recordId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Assume soft delete is supported and update the record
-      const { error: updateError } = await supabase
-        .from(table as any)
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('whalesync_postgres_id', recordId);
-
-      if (updateError) {
-        console.warn('Soft delete update failed, using registry only:', updateError);
+      // Get current user for audit trail
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('User not authenticated');
+        return false;
       }
 
-      // Log in soft delete registry
-      const { error: registryError } = await supabase
-        .from('soft_delete_registry')
+      // Get user profile
+      const { data: userProfile } = await supabase
+        .from('Users')
+        .select('id, fullname')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (!userProfile) {
+        toast.error('User profile not found');
+        return false;
+      }
+
+      // Perform soft delete by setting deleted_at timestamp
+      const { error } = await supabase
+        .from(table)
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: userProfile.id,
+          deletion_reason: reason || null
+        })
+        .eq('id', recordId);
+
+      if (error) throw error;
+
+      // Log the deletion action
+      await supabase
+        .from('audit_logs')
         .insert({
+          action: 'SOFT_DELETE',
           table_name: table,
           record_id: recordId,
-          deleted_by: userData.whalesync_postgres_id,
-          deletion_reason: reason,
-          archived_data: recordData
+          user_id: userProfile.id,
+          timestamp: new Date().toISOString(),
+          old_values: null,
+          new_values: { 
+            deleted_at: new Date().toISOString(),
+            deleted_by: userProfile.id,
+            deletion_reason: reason 
+          }
         });
 
-      if (registryError) throw registryError;
-
-      // Log the operation
-      await logCRUDOperation('DELETE', table, recordId, recordData);
-
-      toast.success(`${table} record archived successfully`);
+      toast.success('Record deleted successfully');
       return true;
-    } catch (error) {
-      console.error('Soft delete failed:', error);
-      toast.error('Failed to archive record');
+    } catch (error: any) {
+      console.error('Error performing soft delete:', error);
+      toast.error('Failed to delete record: ' + error.message);
       return false;
+    } finally {
+      setLoading(false);
     }
-  }, [logCRUDOperation]);
+  };
 
-  const restoreRecord = useCallback(async (
-    table: string,
-    recordId: string
-  ) => {
+  const restore = async ({ table, recordId }: Omit<SoftDeleteOptions, 'reason'>): Promise<boolean> => {
+    setLoading(true);
     try {
-      // Remove from soft delete registry
-      const { error: registryError } = await supabase
-        .from('soft_delete_registry')
-        .delete()
-        .eq('table_name', table)
-        .eq('record_id', recordId);
+      // Get current user for audit trail
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('User not authenticated');
+        return false;
+      }
 
-      if (registryError) throw registryError;
+      // Get user profile
+      const { data: userProfile } = await supabase
+        .from('Users')
+        .select('id, fullname')
+        .eq('supabase_auth_id', user.id)
+        .single();
 
-      // Update the record to remove deleted_at
-      const { error: updateError } = await supabase
-        .from(table as any)
-        .update({ deleted_at: null })
-        .eq('whalesync_postgres_id', recordId);
+      if (!userProfile) {
+        toast.error('User profile not found');
+        return false;
+      }
 
-      if (updateError) throw updateError;
+      // Restore by clearing deletion fields
+      const { error } = await supabase
+        .from(table)
+        .update({
+          deleted_at: null,
+          deleted_by: null,
+          deletion_reason: null
+        })
+        .eq('id', recordId);
 
-      await logCRUDOperation('UPDATE', table, recordId, {}, { restored: true });
+      if (error) throw error;
+
+      // Log the restoration action
+      await supabase
+        .from('audit_logs')
+        .insert({
+          action: 'RESTORE',
+          table_name: table,
+          record_id: recordId,
+          user_id: userProfile.id,
+          timestamp: new Date().toISOString(),
+          old_values: null,
+          new_values: { restored: true }
+        });
 
       toast.success('Record restored successfully');
       return true;
-    } catch (error) {
-      console.error('Restore failed:', error);
-      toast.error('Failed to restore record');
+    } catch (error: any) {
+      console.error('Error restoring record:', error);
+      toast.error('Failed to restore record: ' + error.message);
       return false;
+    } finally {
+      setLoading(false);
     }
-  }, [logCRUDOperation]);
+  };
+
+  const permanentDelete = async ({ table, recordId }: Omit<SoftDeleteOptions, 'reason'>): Promise<boolean> => {
+    setLoading(true);
+    try {
+      // Get current user for audit trail
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('User not authenticated');
+        return false;
+      }
+
+      // Get user profile
+      const { data: userProfile } = await supabase
+        .from('Users')
+        .select('id, fullname')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (!userProfile) {
+        toast.error('User profile not found');
+        return false;
+      }
+
+      // Get record data before deletion for audit
+      const { data: recordData } = await supabase
+        .from(table)
+        .select('*')
+        .eq('id', recordId)
+        .single();
+
+      // Perform permanent deletion
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', recordId);
+
+      if (error) throw error;
+
+      // Log the permanent deletion
+      await supabase
+        .from('audit_logs')
+        .insert({
+          action: 'PERMANENT_DELETE',
+          table_name: table,
+          record_id: recordId,
+          user_id: userProfile.id,
+          timestamp: new Date().toISOString(),
+          old_values: recordData,
+          new_values: null
+        });
+
+      toast.success('Record permanently deleted');
+      return true;
+    } catch (error: any) {
+      console.error('Error permanently deleting record:', error);
+      toast.error('Failed to permanently delete record: ' + error.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return {
     softDelete,
-    restoreRecord
+    restore,
+    permanentDelete,
+    loading
   };
 };

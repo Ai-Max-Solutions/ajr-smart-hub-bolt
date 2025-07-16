@@ -1,569 +1,428 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  Settings, Save, Play, Calendar, Filter, Download,
-  BarChart3, PieChart, LineChart, TrendingUp
-} from 'lucide-react';
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, Download, FileText, BarChart3 } from "lucide-react";
+import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ReportConfig {
   name: string;
-  description: string;
-  type: 'performance' | 'compliance' | 'cost' | 'resource' | 'custom';
-  schedule: {
-    enabled: boolean;
-    frequency: 'daily' | 'weekly' | 'monthly';
-    time: string;
-    recipients: string[];
+  dataSource: string;
+  dateRange: {
+    start: Date | null;
+    end: Date | null;
   };
-  filters: {
-    projectIds: string[];
-    userRoles: string[];
-    dateRange: {
-      start: string;
-      end: string;
-    };
-  };
-  metrics: string[];
-  visualizations: string[];
-  exportFormats: string[];
+  filters: Record<string, any>;
+  columns: string[];
+  groupBy: string[];
+  aggregations: Record<string, string>;
 }
 
-interface ReportBuilderProps {
-  onSave?: (config: ReportConfig) => void;
-  existingConfig?: ReportConfig;
-}
-
-export function ReportBuilder({ onSave, existingConfig }: ReportBuilderProps) {
-  const { toast } = useToast();
-  const [config, setConfig] = useState<ReportConfig>(existingConfig || {
-    name: '',
-    description: '',
-    type: 'performance',
-    schedule: {
-      enabled: false,
-      frequency: 'weekly',
-      time: '09:00',
-      recipients: []
-    },
-    filters: {
-      projectIds: [],
-      userRoles: [],
-      dateRange: {
-        start: '',
-        end: ''
-      }
-    },
-    metrics: [],
-    visualizations: [],
-    exportFormats: ['pdf']
+export const ReportBuilder = () => {
+  const [reportConfig, setReportConfig] = useState<ReportConfig>({
+    name: "",
+    dataSource: "",
+    dateRange: { start: null, end: null },
+    filters: {},
+    columns: [],
+    groupBy: [],
+    aggregations: {}
   });
 
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
-  const [loading, setLoading] = useState(false);
+  const [dataSources] = useState([
+    { value: "timesheets", label: "Timesheets", description: "Employee time tracking data" },
+    { value: "projects", label: "Projects", description: "Project management data" },
+    { value: "users", label: "Users", description: "Employee information" },
+    { value: "work_tracking", label: "Work Tracking", description: "Daily work progress" },
+    { value: "plots", label: "Plots", description: "Property development units" },
+    { value: "deliveries", label: "Deliveries", description: "Material deliveries" }
+  ]);
 
-  React.useEffect(() => {
-    loadProjects();
+  const [availableColumns, setAvailableColumns] = useState<string[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [reportData, setReportData] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchProjects();
   }, []);
 
-  const loadProjects = async () => {
+  useEffect(() => {
+    if (reportConfig.dataSource) {
+      updateAvailableColumns();
+    }
+  }, [reportConfig.dataSource]);
+
+  const fetchProjects = async () => {
     try {
       const { data, error } = await supabase
         .from('Projects')
-        .select('whalesync_postgres_id, projectname')
-        .limit(50);
+        .select('id, projectname');
 
       if (error) throw error;
-
-      setProjects(data?.map(p => ({
-        id: p.whalesync_postgres_id,
-        name: p.projectname || 'Unnamed Project'
-      })) || []);
+      setProjects(data || []);
     } catch (error) {
-      console.error('Error loading projects:', error);
+      console.error('Error fetching projects:', error);
     }
   };
 
-  const handleSave = async () => {
+  const updateAvailableColumns = () => {
+    const columnMaps = {
+      timesheets: ['user_id', 'project_id', 'week_start_date', 'week_end_date', 'total_hours', 'status'],
+      projects: ['projectname', 'clientname', 'status', 'startdate', 'plannedenddate', 'projectmanager'],
+      users: ['fullname', 'role', 'employmentstatus', 'skills', 'currentproject'],
+      work_tracking: ['user_id', 'plot_id', 'work_date', 'hours_worked', 'work_type', 'work_description'],
+      plots: ['plotnumber', 'plotstatus', 'customername', 'level', 'completion_percentage'],
+      deliveries: ['delivery_date', 'supplier', 'items_delivered', 'delivery_status', 'project_id']
+    };
+
+    setAvailableColumns(columnMaps[reportConfig.dataSource as keyof typeof columnMaps] || []);
+    setReportConfig(prev => ({ ...prev, columns: [], groupBy: [], aggregations: {} }));
+  };
+
+  const generateReport = async () => {
+    if (!reportConfig.dataSource || reportConfig.columns.length === 0) {
+      toast.error("Please select a data source and at least one column");
+      return;
+    }
+
     setLoading(true);
-    
     try {
-      if (!config.name.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Report name is required",
-          variant: "destructive"
-        });
-        return;
+      let query = supabase.from(reportConfig.dataSource).select(reportConfig.columns.join(','));
+
+      // Apply date filters
+      if (reportConfig.dateRange.start && reportConfig.dateRange.end) {
+        const dateColumn = getDateColumnForSource(reportConfig.dataSource);
+        if (dateColumn) {
+          query = query
+            .gte(dateColumn, format(reportConfig.dateRange.start, 'yyyy-MM-dd'))
+            .lte(dateColumn, format(reportConfig.dateRange.end, 'yyyy-MM-dd'));
+        }
       }
 
-      // For now, we'll simulate saving the report
-      // Once the analytics_reports table is available in types, we can enable this
-      console.log('Report configuration:', config);
+      // Apply project filter
+      if (reportConfig.filters.project_id) {
+        query = query.eq('project_id', reportConfig.filters.project_id);
+      }
+
+      // Apply status filter
+      if (reportConfig.filters.status) {
+        query = query.eq('status', reportConfig.filters.status);
+      }
+
+      const { data, error } = await query.limit(1000);
       
-      // Simulate database save
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      toast({
-        title: "Report Saved",
-        description: "Report configuration has been saved successfully"
-      });
-
-      onSave?.(config);
-    } catch (error) {
-      toast({
-        title: "Save Failed",
-        description: error instanceof Error ? error.message : "Failed to save report",
-        variant: "destructive"
-      });
+      if (error) throw error;
+      
+      setReportData(data || []);
+      toast.success("Report generated successfully");
+      
+    } catch (error: any) {
+      toast.error("Failed to generate report: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGeneratePreview = async () => {
-    toast({
-      title: "Generating Preview",
-      description: "Report preview will be ready shortly"
-    });
+  const getDateColumnForSource = (source: string) => {
+    const dateColumns = {
+      timesheets: 'week_start_date',
+      projects: 'startdate',
+      work_tracking: 'work_date',
+      deliveries: 'delivery_date'
+    };
+    return dateColumns[source as keyof typeof dateColumns];
   };
 
-  const availableMetrics = {
-    performance: [
-      'active_workers',
-      'total_hours',
-      'productivity_score',
-      'completion_rate',
-      'avg_completion'
-    ],
-    compliance: [
-      'compliance_percentage',
-      'expired_qualifications',
-      'pending_renewals',
-      'training_completion'
-    ],
-    cost: [
-      'actual_vs_planned',
-      'budget_variance',
-      'cost_per_plot',
-      'resource_costs'
-    ],
-    resource: [
-      'utilization_rate',
-      'efficiency_scores',
-      'capacity_analysis',
-      'allocation_optimization'
-    ]
+  const exportReport = () => {
+    if (reportData.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const csvContent = [
+      reportConfig.columns.join(','),
+      ...reportData.map(row => reportConfig.columns.map(col => row[col] || '').join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportConfig.name || 'report'}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const visualizationTypes = [
-    { id: 'bar_chart', name: 'Bar Chart', icon: BarChart3 },
-    { id: 'pie_chart', name: 'Pie Chart', icon: PieChart },
-    { id: 'line_chart', name: 'Line Chart', icon: LineChart },
-    { id: 'trend_analysis', name: 'Trend Analysis', icon: TrendingUp }
-  ];
-
-  const userRoles = ['Admin', 'Project Manager', 'Supervisor', 'Operative', 'Staff'];
+  const toggleColumn = (column: string) => {
+    setReportConfig(prev => ({
+      ...prev,
+      columns: prev.columns.includes(column)
+        ? prev.columns.filter(c => c !== column)
+        : [...prev.columns, column]
+    }));
+  };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          Report Builder
-        </CardTitle>
-        <CardDescription>
-          Create custom analytics reports with automated scheduling
-        </CardDescription>
-      </CardHeader>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-primary">Report Builder</h1>
+          <p className="text-muted-foreground">Create custom reports from your data</p>
+        </div>
+      </div>
 
-      <CardContent>
-        <Tabs defaultValue="basic" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="metrics">Metrics</TabsTrigger>
-            <TabsTrigger value="filters">Filters</TabsTrigger>
-            <TabsTrigger value="schedule">Schedule</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="basic" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Configuration Panel */}
+        <div className="lg:col-span-1 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Report Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Report Name</Label>
+                <Label htmlFor="reportName">Report Name</Label>
                 <Input
-                  id="name"
-                  value={config.name}
-                  onChange={(e) => setConfig({ ...config, name: e.target.value })}
-                  placeholder="Weekly Performance Report"
+                  id="reportName"
+                  value={reportConfig.name}
+                  onChange={(e) => setReportConfig(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Monthly Timesheet Summary"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type">Report Type</Label>
-                <Select value={config.type} onValueChange={(value: any) => setConfig({ ...config, type: value })}>
+                <Label htmlFor="dataSource">Data Source</Label>
+                <Select 
+                  value={reportConfig.dataSource} 
+                  onValueChange={(value) => setReportConfig(prev => ({ ...prev, dataSource: value }))}
+                >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select data source" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="performance">Performance</SelectItem>
-                    <SelectItem value="compliance">Compliance</SelectItem>
-                    <SelectItem value="cost">Cost Analysis</SelectItem>
-                    <SelectItem value="resource">Resource Utilization</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
+                    {dataSources.map((source) => (
+                      <SelectItem key={source.value} value={source.value}>
+                        <div>
+                          <div className="font-medium">{source.label}</div>
+                          <div className="text-sm text-muted-foreground">{source.description}</div>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={config.description}
-                onChange={(e) => setConfig({ ...config, description: e.target.value })}
-                placeholder="Describe what this report will analyze..."
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Export Formats</Label>
-              <div className="flex gap-4">
-                {['pdf', 'excel', 'csv'].map((format) => (
-                  <div key={format} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={format}
-                      checked={config.exportFormats.includes(format)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setConfig({
-                            ...config,
-                            exportFormats: [...config.exportFormats, format]
-                          });
-                        } else {
-                          setConfig({
-                            ...config,
-                            exportFormats: config.exportFormats.filter(f => f !== format)
-                          });
-                        }
-                      }}
-                    />
-                    <Label htmlFor={format} className="capitalize">{format}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="metrics" className="space-y-4">
-            <div className="space-y-4">
-              <div>
-                <Label className="text-base font-medium">Available Metrics</Label>
-                <p className="text-sm text-muted-foreground">
-                  Select the metrics to include in your report
-                </p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                {availableMetrics[config.type]?.map((metric) => (
-                  <div key={metric} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={metric}
-                      checked={config.metrics.includes(metric)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setConfig({
-                            ...config,
-                            metrics: [...config.metrics, metric]
-                          });
-                        } else {
-                          setConfig({
-                            ...config,
-                            metrics: config.metrics.filter(m => m !== metric)
-                          });
-                        }
-                      }}
-                    />
-                    <Label htmlFor={metric} className="capitalize">
-                      {metric.replace(/_/g, ' ')}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-
-              <Separator />
-
-              <div>
-                <Label className="text-base font-medium">Visualizations</Label>
-                <p className="text-sm text-muted-foreground">
-                  Choose how to display your data
-                </p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                {visualizationTypes.map((viz) => (
-                  <div key={viz.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={viz.id}
-                      checked={config.visualizations.includes(viz.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setConfig({
-                            ...config,
-                            visualizations: [...config.visualizations, viz.id]
-                          });
-                        } else {
-                          setConfig({
-                            ...config,
-                            visualizations: config.visualizations.filter(v => v !== viz.id)
-                          });
-                        }
-                      }}
-                    />
-                    <viz.icon className="h-4 w-4" />
-                    <Label htmlFor={viz.id}>{viz.name}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="filters" className="space-y-4">
-            <div className="space-y-4">
-              <div>
-                <Label className="text-base font-medium">Filters</Label>
-                <p className="text-sm text-muted-foreground">
-                  Refine your report scope
-                </p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <Input
-                    type="date"
-                    value={config.filters.dateRange.start}
-                    onChange={(e) => setConfig({
-                      ...config,
-                      filters: {
-                        ...config.filters,
-                        dateRange: {
-                          ...config.filters.dateRange,
-                          start: e.target.value
-                        }
-                      }
-                    })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <Input
-                    type="date"
-                    value={config.filters.dateRange.end}
-                    onChange={(e) => setConfig({
-                      ...config,
-                      filters: {
-                        ...config.filters,
-                        dateRange: {
-                          ...config.filters.dateRange,
-                          end: e.target.value
-                        }
-                      }
-                    })}
-                  />
-                </div>
-              </div>
-
+              {/* Date Range */}
               <div className="space-y-2">
-                <Label>User Roles</Label>
-                <div className="grid gap-2 md:grid-cols-3">
-                  {userRoles.map((role) => (
-                    <div key={role} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`role-${role}`}
-                        checked={config.filters.userRoles.includes(role)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setConfig({
-                              ...config,
-                              filters: {
-                                ...config.filters,
-                                userRoles: [...config.filters.userRoles, role]
-                              }
-                            });
-                          } else {
-                            setConfig({
-                              ...config,
-                              filters: {
-                                ...config.filters,
-                                userRoles: config.filters.userRoles.filter(r => r !== role)
-                              }
-                            });
-                          }
-                        }}
+                <Label>Date Range</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="justify-start text-left">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {reportConfig.dateRange.start ? format(reportConfig.dateRange.start, 'PPP') : 'Start date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={reportConfig.dateRange.start || undefined}
+                        onSelect={(date) => setReportConfig(prev => ({
+                          ...prev,
+                          dateRange: { ...prev.dateRange, start: date || null }
+                        }))}
+                        initialFocus
                       />
-                      <Label htmlFor={`role-${role}`}>{role}</Label>
-                    </div>
-                  ))}
+                    </PopoverContent>
+                  </Popover>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="justify-start text-left">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {reportConfig.dateRange.end ? format(reportConfig.dateRange.end, 'PPP') : 'End date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={reportConfig.dateRange.end || undefined}
+                        onSelect={(date) => setReportConfig(prev => ({
+                          ...prev,
+                          dateRange: { ...prev.dateRange, end: date || null }
+                        }))}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 
+              {/* Filters */}
               <div className="space-y-2">
-                <Label>Projects</Label>
-                <div className="max-h-40 overflow-y-auto space-y-2">
-                  {projects.map((project) => (
-                    <div key={project.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`project-${project.id}`}
-                        checked={config.filters.projectIds.includes(project.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setConfig({
-                              ...config,
-                              filters: {
-                                ...config.filters,
-                                projectIds: [...config.filters.projectIds, project.id]
-                              }
-                            });
-                          } else {
-                            setConfig({
-                              ...config,
-                              filters: {
-                                ...config.filters,
-                                projectIds: config.filters.projectIds.filter(p => p !== project.id)
-                              }
-                            });
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`project-${project.id}`}>{project.name}</Label>
-                    </div>
-                  ))}
+                <Label>Filters</Label>
+                
+                {/* Project Filter */}
+                <div className="space-y-1">
+                  <Label className="text-sm">Project</Label>
+                  <Select 
+                    value={reportConfig.filters.project_id || ""} 
+                    onValueChange={(value) => setReportConfig(prev => ({
+                      ...prev,
+                      filters: { ...prev.filters, project_id: value }
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All projects" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All projects</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.projectname}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Status Filter */}
+                <div className="space-y-1">
+                  <Label className="text-sm">Status</Label>
+                  <Select 
+                    value={reportConfig.filters.status || ""} 
+                    onValueChange={(value) => setReportConfig(prev => ({
+                      ...prev,
+                      filters: { ...prev.filters, status: value }
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All statuses</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Completed">Completed</SelectItem>
+                      <SelectItem value="In Progress">In Progress</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            </div>
-          </TabsContent>
 
-          <TabsContent value="schedule" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="schedule-enabled"
-                  checked={config.schedule.enabled}
-                  onCheckedChange={(checked) => setConfig({
-                    ...config,
-                    schedule: { ...config.schedule, enabled: !!checked }
-                  })}
-                />
-                <Label htmlFor="schedule-enabled" className="text-base font-medium">
-                  Enable Automated Scheduling
-                </Label>
-              </div>
-
-              {config.schedule.enabled && (
-                <div className="grid gap-4 md:grid-cols-2 pl-6">
-                  <div className="space-y-2">
-                    <Label>Frequency</Label>
-                    <Select 
-                      value={config.schedule.frequency} 
-                      onValueChange={(value: any) => setConfig({
-                        ...config,
-                        schedule: { ...config.schedule, frequency: value }
-                      })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Time</Label>
-                    <Input
-                      type="time"
-                      value={config.schedule.time}
-                      onChange={(e) => setConfig({
-                        ...config,
-                        schedule: { ...config.schedule, time: e.target.value }
-                      })}
-                    />
-                  </div>
-
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Recipients (comma-separated emails)</Label>
-                    <Textarea
-                      value={config.schedule.recipients.join(', ')}
-                      onChange={(e) => setConfig({
-                        ...config,
-                        schedule: {
-                          ...config.schedule,
-                          recipients: e.target.value.split(',').map(email => email.trim()).filter(Boolean)
-                        }
-                      })}
-                      placeholder="user1@example.com, user2@example.com"
-                      rows={2}
-                    />
+              {/* Columns Selection */}
+              {availableColumns.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Columns to Include</Label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {availableColumns.map((column) => (
+                      <div key={column} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={column}
+                          checked={reportConfig.columns.includes(column)}
+                          onCheckedChange={() => toggleColumn(column)}
+                        />
+                        <Label 
+                          htmlFor={column} 
+                          className="text-sm font-normal cursor-pointer capitalize"
+                        >
+                          {column.replace(/_/g, ' ')}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
-            </div>
-          </TabsContent>
-        </Tabs>
 
-        <div className="flex justify-between pt-6 border-t">
-          <Button
-            variant="outline"
-            onClick={handleGeneratePreview}
-            className="gap-2"
-          >
-            <Play className="h-4 w-4" />
-            Generate Preview
-          </Button>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setConfig(existingConfig || {
-                name: '',
-                description: '',
-                type: 'performance',
-                schedule: { enabled: false, frequency: 'weekly', time: '09:00', recipients: [] },
-                filters: { projectIds: [], userRoles: [], dateRange: { start: '', end: '' } },
-                metrics: [],
-                visualizations: [],
-                exportFormats: ['pdf']
-              })}
-            >
-              Reset
-            </Button>
-            
-            <Button
-              onClick={handleSave}
-              disabled={loading}
-              className="gap-2"
-            >
-              <Save className="h-4 w-4" />
-              {loading ? 'Saving...' : 'Save Report'}
-            </Button>
-          </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={generateReport} 
+                  disabled={loading || !reportConfig.dataSource || reportConfig.columns.length === 0}
+                  className="flex-1"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  {loading ? "Generating..." : "Generate Report"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Results Panel */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Report Results</span>
+                {reportData.length > 0 && (
+                  <Button onClick={exportReport} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV
+                  </Button>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {reportData.length === 0 ? (
+                <div className="text-center py-12">
+                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Report Generated</h3>
+                  <p className="text-muted-foreground">
+                    Configure your report settings and click "Generate Report" to see results.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {reportData.length} records
+                    </p>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse border border-gray-200">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          {reportConfig.columns.map((column) => (
+                            <th key={column} className="border border-gray-200 p-2 text-left font-medium">
+                              {column.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reportData.map((row, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            {reportConfig.columns.map((column) => (
+                              <td key={column} className="border border-gray-200 p-2">
+                                {Array.isArray(row[column]) 
+                                  ? row[column].join(', ')
+                                  : row[column]?.toString() || '-'
+                                }
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
-}
+};

@@ -1,376 +1,176 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface ProjectAnalytics {
-  project_id: string;
-  period: {
-    start_date: string;
-    end_date: string;
-  };
-  workforce: {
-    active_workers: number;
-    total_hours: number;
-    avg_hours_per_day: number;
-    productivity_score: number;
-  };
-  completion: {
-    total_plots: number;
-    completed_plots: number;
-    completion_rate: number;
-    avg_completion: number;
-  };
-  costs: {
-    actual_cost: number;
-    planned_cost: number;
-    variance_percentage: number;
-    budget_status: 'on_track' | 'warning' | 'over_budget';
-  };
+interface AnalyticsData {
+  userPerformance: any[];
+  projectProgress: any[];
+  workingHours: any[];
+  completionRates: any[];
+  topPerformers: any[];
 }
 
-export interface PredictiveAnalytics {
-  project_id: string;
-  current_completion: number;
-  predicted_completion_date: string | null;
-  confidence_level: 'high' | 'medium' | 'low';
-  daily_progress_rate: number;
-  risk_factors: string[];
-}
-
-export interface ResourceEfficiency {
-  period_days: number;
-  project_id: string | null;
-  summary: {
-    total_workers: number;
-    avg_efficiency: number;
-    efficiency_range: {
-      min: number;
-      max: number;
-      stddev: number;
-    };
-  };
-  top_performers: Array<{
-    user_id: string;
-    name: string;
-    role: string;
-    efficiency: number;
-    plots_completed: number;
-    total_hours: number;
-  }>;
-}
-
-export function useAnalytics() {
-  const [loading, setLoading] = useState(false);
+export const useAnalytics = (timeframe: string = '30') => {
+  const [data, setData] = useState<AnalyticsData>({
+    userPerformance: [],
+    projectProgress: [],
+    workingHours: [],
+    completionRates: [],
+    topPerformers: []
+  });
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getProjectAnalytics = async (
-    projectId: string,
-    startDate?: string,
-    endDate?: string
-  ): Promise<ProjectAnalytics | null> => {
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [timeframe]);
+
+  const fetchAnalyticsData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      // Since the stored procedure doesn't exist yet, we'll create a basic version
-      // using direct queries to existing tables
-      
-      // Get work tracking data
-      const { data: workData, error: workError } = await supabase
-        .from('Work_Tracking_History')
+      const days = parseInt(timeframe);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      // Fetch user performance data
+      const { data: userPerformanceData, error: userPerfError } = await supabase
+        .from('timesheets')
         .select(`
           user_id,
-          hours_worked,
-          work_date,
-          plot_id,
-          Plots!inner(
-            completion_percentage,
-            Levels!inner(
-              Blocks!inner(
-                project
-              )
-            )
+          total_hours,
+          Users (
+            id,
+            fullname,
+            role
           )
         `)
-        .eq('Plots.Levels.Blocks.project', projectId);
+        .gte('week_start_date', startDate.toISOString().split('T')[0])
+        .eq('status', 'approved');
 
-      if (workError) throw workError;
+      if (userPerfError) throw userPerfError;
 
-      // Calculate basic analytics
-      const activeWorkers = new Set(workData?.map(w => w.user_id) || []).size;
-      const totalHours = workData?.reduce((sum, w) => sum + (w.hours_worked || 0), 0) || 0;
-      const avgHoursPerDay = totalHours > 0 ? totalHours / (workData?.length || 1) : 0;
-      
-      // Get plots data
-      const { data: plotsData, error: plotsError } = await supabase
-        .from('Plots')
-        .select(`
-          completion_percentage,
-          Levels!inner(
-            Blocks!inner(
-              project
-            )
-          )
-        `)
-        .eq('Levels.Blocks.project', projectId);
-
-      if (plotsError) throw plotsError;
-
-      const totalPlots = plotsData?.length || 0;
-      const completedPlots = plotsData?.filter(p => (p.completion_percentage || 0) >= 100).length || 0;
-      const avgCompletion = plotsData?.reduce((sum, p) => sum + (p.completion_percentage || 0), 0) / totalPlots || 0;
-
-      const analytics: ProjectAnalytics = {
-        project_id: projectId,
-        period: {
-          start_date: startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          end_date: endDate || new Date().toISOString().split('T')[0]
-        },
-        workforce: {
-          active_workers: activeWorkers,
-          total_hours: totalHours,
-          avg_hours_per_day: avgHoursPerDay,
-          productivity_score: totalHours > 0 ? Math.round((workData?.length || 0) / totalHours * 100) : 0
-        },
-        completion: {
-          total_plots: totalPlots,
-          completed_plots: completedPlots,
-          completion_rate: totalPlots > 0 ? Math.round((completedPlots / totalPlots) * 100) : 0,
-          avg_completion: Math.round(avgCompletion)
-        },
-        costs: {
-          actual_cost: 0,
-          planned_cost: 0,
-          variance_percentage: 0,
-          budget_status: 'on_track'
+      // Process user performance data
+      const userStats = new Map();
+      userPerformanceData?.forEach(timesheet => {
+        const userId = timesheet.user_id;
+        const user = timesheet.Users;
+        
+        if (!userStats.has(userId)) {
+          userStats.set(userId, {
+            id: user?.id,
+            name: user?.fullname,
+            role: user?.role,
+            totalHours: 0,
+            weekCount: 0
+          });
         }
-      };
-
-      return analytics;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getPredictiveAnalytics = async (projectId: string): Promise<PredictiveAnalytics | null> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Get recent work progress
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      
-      const { data: workData, error: workError } = await supabase
-        .from('Work_Tracking_History')
-        .select(`
-          work_date,
-          plot_id,
-          Plots!inner(
-            completion_percentage,
-            Levels!inner(
-              Blocks!inner(
-                project
-              )
-            )
-          )
-        `)
-        .eq('Plots.Levels.Blocks.project', projectId)
-        .gte('work_date', thirtyDaysAgo.toISOString().split('T')[0]);
-
-      if (workError) throw workError;
-
-      // Calculate daily progress
-      const dailyProgress = new Map<string, Set<string>>();
-      workData?.forEach(work => {
-        const date = work.work_date;
-        if (!dailyProgress.has(date)) {
-          dailyProgress.set(date, new Set());
-        }
-        dailyProgress.get(date)?.add(work.plot_id);
+        
+        const stats = userStats.get(userId);
+        stats.totalHours += timesheet.total_hours || 0;
+        stats.weekCount += 1;
       });
 
-      const avgPlotsPerDay = Array.from(dailyProgress.values())
-        .reduce((sum, plots) => sum + plots.size, 0) / dailyProgress.size || 0;
+      const processedUserPerformance = Array.from(userStats.values()).map(stats => ({
+        ...stats,
+        averageHours: stats.totalHours / Math.max(stats.weekCount, 1)
+      }));
 
-      // Get current completion
-      const { data: plotsData } = await supabase
-        .from('Plots')
-        .select(`
-          completion_percentage,
-          Levels!inner(
-            Blocks!inner(
-              project
-            )
-          )
-        `)
-        .eq('Levels.Blocks.project', projectId);
+      // Fetch project progress data
+      const { data: projectData, error: projectError } = await supabase
+        .from('Projects')
+        .select('id, projectname, status, startdate, plannedenddate')
+        .in('status', ['Active', 'In Progress', 'Completed']);
 
-      const currentCompletion = plotsData?.reduce((sum, p) => sum + (p.completion_percentage || 0), 0) / (plotsData?.length || 1) || 0;
-      
-      const predictive: PredictiveAnalytics = {
-        project_id: projectId,
-        current_completion: Math.round(currentCompletion),
-        predicted_completion_date: avgPlotsPerDay > 0 && currentCompletion < 100 
-          ? new Date(Date.now() + ((100 - currentCompletion) / avgPlotsPerDay) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-          : null,
-        confidence_level: dailyProgress.size >= 14 && avgPlotsPerDay > 0 ? 'high' : 
-                         dailyProgress.size >= 7 ? 'medium' : 'low',
-        daily_progress_rate: Math.round(avgPlotsPerDay * 100) / 100,
-        risk_factors: [
-          ...(avgPlotsPerDay < 1 ? ['low_productivity'] : []),
-          ...(currentCompletion < 50 && dailyProgress.size > 30 ? ['behind_schedule'] : [])
-        ]
-      };
+      if (projectError) throw projectError;
 
-      return predictive;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
+      // Fetch work tracking history for completion rates
+      const { data: workTrackingData, error: workError } = await supabase
+        .from('Work_Tracking_History')
+        .select('plot_id, work_date, hours_worked, user_id')
+        .gte('work_date', startDate.toISOString().split('T')[0]);
+
+      if (workError) throw workError;
+
+      // Process working hours data by day
+      const dailyHours = new Map();
+      workTrackingData?.forEach(entry => {
+        const date = entry.work_date;
+        if (!dailyHours.has(date)) {
+          dailyHours.set(date, 0);
+        }
+        dailyHours.set(date, dailyHours.get(date) + (entry.hours_worked || 0));
+      });
+
+      const workingHours = Array.from(dailyHours.entries()).map(([date, hours]) => ({
+        date,
+        hours
+      })).sort((a, b) => a.date.localeCompare(b.date));
+
+      // Calculate top performers based on total hours
+      const topPerformers = processedUserPerformance
+        .sort((a, b) => b.totalHours - a.totalHours)
+        .slice(0, 5);
+
+      setData({
+        userPerformance: processedUserPerformance,
+        projectProgress: projectData || [],
+        workingHours,
+        completionRates: [], // Will be calculated based on plot completion
+        topPerformers
+      });
+
+    } catch (err: any) {
+      console.error('Error fetching analytics data:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const getResourceEfficiency = async (
-    projectId?: string,
-    periodDays: number = 30
-  ): Promise<ResourceEfficiency | null> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
-      
-      // Get user efficiency data
-      let query = supabase
-        .from('Users')
-        .select(`
-          whalesync_postgres_id,
-          fullname,
-          role,
-          Work_Tracking_History!inner(
-            hours_worked,
-            plot_id,
-            work_date
-          )
-        `)
-        .eq('employmentstatus', 'Active')
-        .gte('Work_Tracking_History.work_date', startDate.toISOString().split('T')[0]);
+  const exportData = (type: string) => {
+    let exportData: any[] = [];
+    let filename = '';
 
-      if (projectId) {
-        query = query.eq('currentproject', projectId);
-      }
-
-      const { data: userData, error: userError } = await query;
-      
-      if (userError) throw userError;
-
-      // Calculate efficiency metrics
-      const userEfficiency = userData?.map(user => {
-        const workHistory = user.Work_Tracking_History || [];
-        const uniquePlots = new Set(workHistory.map(w => w.plot_id)).size;
-        const totalHours = workHistory.reduce((sum, w) => sum + (w.hours_worked || 0), 0);
-        const efficiency = totalHours > 0 ? uniquePlots / totalHours : 0;
-
-        return {
-          user_id: user.whalesync_postgres_id,
-          name: user.fullname || 'Unknown',
-          role: user.role || 'Unknown',
-          efficiency: Math.round(efficiency * 1000) / 1000,
-          plots_completed: uniquePlots,
-          total_hours: totalHours
-        };
-      }).filter(user => user.total_hours > 0) || [];
-
-      const efficiencies = userEfficiency.map(u => u.efficiency);
-      const avgEfficiency = efficiencies.reduce((sum, e) => sum + e, 0) / efficiencies.length || 0;
-      const minEfficiency = Math.min(...efficiencies) || 0;
-      const maxEfficiency = Math.max(...efficiencies) || 0;
-      
-      // Calculate standard deviation
-      const variance = efficiencies.reduce((sum, e) => sum + Math.pow(e - avgEfficiency, 2), 0) / efficiencies.length;
-      const stddev = Math.sqrt(variance);
-
-      const efficiency: ResourceEfficiency = {
-        period_days: periodDays,
-        project_id: projectId || null,
-        summary: {
-          total_workers: userEfficiency.length,
-          avg_efficiency: Math.round(avgEfficiency * 1000) / 1000,
-          efficiency_range: {
-            min: Math.round(minEfficiency * 1000) / 1000,
-            max: Math.round(maxEfficiency * 1000) / 1000,
-            stddev: Math.round(stddev * 1000) / 1000
-          }
-        },
-        top_performers: userEfficiency
-          .sort((a, b) => b.efficiency - a.efficiency)
-          .slice(0, 5)
-      };
-
-      return efficiency;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setLoading(false);
+    switch (type) {
+      case 'userPerformance':
+        exportData = data.userPerformance;
+        filename = 'user-performance';
+        break;
+      case 'projectProgress':
+        exportData = data.projectProgress;
+        filename = 'project-progress';
+        break;
+      case 'workingHours':
+        exportData = data.workingHours;
+        filename = 'working-hours';
+        break;
+      default:
+        return;
     }
-  };
 
-  const exportReport = async (
-    reportType: 'performance' | 'compliance' | 'cost' | 'resource',
-    format: 'pdf' | 'excel' | 'csv',
-    data: any
-  ): Promise<Blob | null> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      if (format === 'csv') {
-        // Simple CSV export
-        const csv = convertToCSV(data, reportType);
-        return new Blob([csv], { type: 'text/csv' });
-      }
-      
-      // For PDF and Excel, we'd typically use a library or service
-      // For now, return JSON as fallback
-      const json = JSON.stringify(data, null, 2);
-      return new Blob([json], { type: 'application/json' });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Export failed');
-      return null;
-    } finally {
-      setLoading(false);
-    }
+    if (exportData.length === 0) return;
+
+    const csvContent = [
+      Object.keys(exportData[0]).join(','),
+      ...exportData.map(row => Object.values(row).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return {
+    data,
     loading,
     error,
-    getProjectAnalytics,
-    getPredictiveAnalytics,
-    getResourceEfficiency,
-    exportReport
+    refresh: fetchAnalyticsData,
+    exportData
   };
-}
-
-function convertToCSV(data: any, reportType: string): string {
-  if (reportType === 'performance' && data.workforce) {
-    const headers = ['Metric', 'Value'];
-    const rows = [
-      ['Active Workers', data.workforce.active_workers],
-      ['Total Hours', data.workforce.total_hours],
-      ['Avg Hours Per Day', data.workforce.avg_hours_per_day],
-      ['Productivity Score', data.workforce.productivity_score],
-      ['Total Plots', data.completion.total_plots],
-      ['Completed Plots', data.completion.completed_plots],
-      ['Completion Rate %', data.completion.completion_rate]
-    ];
-    
-    return [headers, ...rows].map(row => row.join(',')).join('\n');
-  }
-  
-  return 'Data,Value\nNo data available,0';
-}
+};

@@ -1,192 +1,248 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
-interface AssignmentSuggestion {
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface Assignment {
+  id: string;
+  user_id: string;
+  plot_id: string;
+  work_type: string;
+  assigned_date: string;
+  expected_completion: string;
+  status: string;
+  notes: string;
+}
+
+interface SkillMatch {
   user_id: string;
   user_name: string;
   user_role: string;
-  confidence_score: number;
-  reasoning: string[];
+  skills: string[];
+  match_score: number;
+  availability: boolean;
   current_workload: number;
-  skills_match: string[];
-  availability_score: number;
 }
 
-interface UseSmartAssignmentProps {
-  projectId?: string;
-  workType?: string;
-  requiredSkills?: string[];
-  priority?: 'low' | 'medium' | 'high';
-}
-
-export const useSmartAssignment = ({
-  projectId,
-  workType,
-  requiredSkills = [],
-  priority = 'medium'
-}: UseSmartAssignmentProps) => {
-  const [suggestions, setSuggestions] = useState<AssignmentSuggestion[]>([]);
+export const useSmartAssignment = () => {
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const generateAssignmentSuggestions = async () => {
-    if (!projectId || !workType) return;
-    
+  useEffect(() => {
+    fetchAssignments();
+  }, []);
+
+  const fetchAssignments = async () => {
     setLoading(true);
-    setError(null);
-
     try {
-      // Get all eligible users (Supervisors, Foremen, Operatives)
-      const { data: users, error: usersError } = await supabase
-        .from('Users')
-        .select('whalesync_postgres_id, fullname, role, skills, currentproject')
-        .in('role', ['Supervisor', 'Foreman', 'Operative', 'Specialist'])
-        .eq('employmentstatus', 'Active');
+      const { data, error } = await supabase
+        .from('Plot_Assignments')
+        .select('*')
+        .order('assigned_date', { ascending: false });
 
-      if (usersError) throw usersError;
-
-      // Get current workload data
-      const { data: workloadData, error: workloadError } = await supabase
-        .from('Work_Tracking_History')
-        .select('user_id, work_date, hours_worked')
-        .gte('work_date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-
-      if (workloadError) throw workloadError;
-
-      // Calculate workload scores
-      const workloadMap = new Map();
-      workloadData?.forEach(record => {
-        const userId = record.user_id;
-        const current = workloadMap.get(userId) || 0;
-        workloadMap.set(userId, current + (record.hours_worked || 0));
-      });
-
-      // Generate smart suggestions
-      const assignmentSuggestions: AssignmentSuggestion[] = users?.map(user => {
-        const userSkills = user.skills || [];
-        const currentWorkload = workloadMap.get(user.whalesync_postgres_id) || 0;
-        
-        // Skills matching algorithm
-        const skillsMatch = requiredSkills.filter(skill => 
-          userSkills.some((userSkill: string) => 
-            userSkill.toLowerCase().includes(skill.toLowerCase()) ||
-            skill.toLowerCase().includes(userSkill.toLowerCase())
-          )
-        );
-        
-        const skillsMatchScore = requiredSkills.length > 0 
-          ? (skillsMatch.length / requiredSkills.length) * 100 
-          : 50;
-
-        // Workload scoring (inverse - lower workload = higher score)
-        const maxWorkload = 40; // hours per week
-        const workloadScore = Math.max(0, (maxWorkload - currentWorkload) / maxWorkload * 100);
-
-        // Project proximity (same project = bonus)
-        const projectProximityScore = user.currentproject === projectId ? 20 : 0;
-
-        // Role suitability
-        const roleSuitabilityScore = (() => {
-          switch (workType.toLowerCase()) {
-            case 'electrical':
-              return user.role === 'Specialist' ? 30 : user.role === 'Supervisor' ? 20 : 10;
-            case 'plumbing':
-              return user.role === 'Specialist' ? 30 : user.role === 'Supervisor' ? 20 : 10;
-            case 'general':
-              return user.role === 'Operative' ? 25 : user.role === 'Foreman' ? 20 : 15;
-            default:
-              return user.role === 'Supervisor' ? 25 : 15;
-          }
-        })();
-
-        // Priority adjustment
-        const priorityMultiplier = priority === 'high' ? 1.2 : priority === 'low' ? 0.8 : 1.0;
-
-        // Calculate overall confidence score
-        const baseScore = (skillsMatchScore * 0.4) + (workloadScore * 0.3) + (roleSuitabilityScore * 0.3);
-        const confidence_score = Math.min(100, baseScore * priorityMultiplier + projectProximityScore);
-
-        // Generate reasoning
-        const reasoning: string[] = [];
-        if (skillsMatch.length > 0) {
-          reasoning.push(`Skills match: ${skillsMatch.join(', ')}`);
-        }
-        if (currentWorkload < 30) {
-          reasoning.push(`Low current workload (${currentWorkload}h/week)`);
-        }
-        if (user.currentproject === projectId) {
-          reasoning.push('Already assigned to this project');
-        }
-        if (user.role === 'Specialist') {
-          reasoning.push('Specialist-level expertise');
-        }
-
-        return {
-          user_id: user.whalesync_postgres_id,
-          user_name: user.fullname || 'Unknown',
-          user_role: user.role || 'Unknown',
-          confidence_score: Math.round(confidence_score),
-          reasoning,
-          current_workload: currentWorkload,
-          skills_match: skillsMatch,
-          availability_score: Math.round(workloadScore)
-        };
-      }).sort((a, b) => b.confidence_score - a.confidence_score) || [];
-
-      setSuggestions(assignmentSuggestions);
+      if (error) throw error;
+      setAssignments(data || []);
     } catch (err: any) {
-      setError(err.message || 'Failed to generate assignment suggestions');
+      console.error('Error fetching assignments:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const assignUser = async (userId: string, workPackageId: string, notes?: string) => {
+  const findBestMatches = async (
+    workType: string,
+    requiredSkills: string[] = [],
+    projectId?: string
+  ): Promise<SkillMatch[]> => {
     try {
-      const { error } = await supabase
-        .from('work_packages')
-        .update({
-          assigned_to: userId,
-          status: 'assigned',
-          assigned_at: new Date().toISOString(),
-          assignment_notes: notes
-        })
-        .eq('id', workPackageId);
+      // Get users with relevant skills
+      const { data: users, error } = await supabase
+        .from('Users')
+        .select('id, fullname, role, skills, currentproject, employmentstatus')
+        .eq('employmentstatus', 'Active');
 
       if (error) throw error;
 
-      // Log the assignment for learning
-      await supabase
-        .from('activity_metrics')
+      const skillMatches: SkillMatch[] = [];
+
+      for (const user of users || []) {
+        // Calculate skill match score
+        let matchScore = 0;
+        const userSkills = user.skills || [];
+        
+        // Base score for work type match
+        if (userSkills.some((skill: string) => 
+          skill.toLowerCase().includes(workType.toLowerCase())
+        )) {
+          matchScore += 40;
+        }
+
+        // Score for required skills
+        const matchingSkills = requiredSkills.filter(skill =>
+          userSkills.some((userSkill: string) => 
+            userSkill.toLowerCase().includes(skill.toLowerCase())
+          )
+        );
+        
+        matchScore += (matchingSkills.length / Math.max(requiredSkills.length, 1)) * 40;
+
+        // Role-based scoring
+        if (user.role === 'Specialist' || user.role === 'Senior Operative') {
+          matchScore += 15;
+        } else if (user.role === 'Operative') {
+          matchScore += 10;
+        } else if (user.role === 'Supervisor') {
+          matchScore += 5;
+        }
+
+        // Project alignment bonus
+        if (projectId && user.currentproject === projectId) {
+          matchScore += 10;
+        }
+
+        // Get current workload
+        const { data: currentAssignments } = await supabase
+          .from('Plot_Assignments')
+          .select('id')
+          .eq('user_id', user.id)
+          .in('status', ['assigned', 'in_progress']);
+
+        const currentWorkload = currentAssignments?.length || 0;
+
+        // Availability penalty for overloaded users
+        if (currentWorkload > 3) {
+          matchScore -= 20;
+        } else if (currentWorkload > 5) {
+          matchScore -= 40;
+        }
+
+        skillMatches.push({
+          user_id: user.id,
+          user_name: user.fullname || 'Unknown',
+          user_role: user.role || 'Unknown',
+          skills: userSkills,
+          match_score: Math.max(0, Math.min(100, matchScore)),
+          availability: currentWorkload <= 3,
+          current_workload: currentWorkload
+        });
+      }
+
+      // Sort by match score and return top matches
+      return skillMatches
+        .sort((a, b) => b.match_score - a.match_score)
+        .slice(0, 10);
+
+    } catch (error: any) {
+      console.error('Error finding best matches:', error);
+      toast.error('Failed to find skill matches');
+      return [];
+    }
+  };
+
+  const createAssignment = async (
+    userId: string,
+    plotId: string,
+    workType: string,
+    expectedCompletion: string,
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('Plot_Assignments')
         .insert({
           user_id: userId,
-          action_type: 'smart_assignment',
-          table_name: 'work_packages',
-          record_id: workPackageId,
-          metadata: {
-            assignment_method: 'ai_suggested',
-            confidence_score: suggestions.find(s => s.user_id === userId)?.confidence_score,
-            work_type: workType,
-            required_skills: requiredSkills
-          }
+          plot_id: plotId,
+          work_type: workType,
+          assigned_date: new Date().toISOString().split('T')[0],
+          expected_completion: expectedCompletion,
+          status: 'assigned',
+          notes: notes || ''
         });
 
+      if (error) throw error;
+
+      toast.success('Assignment created successfully');
+      await fetchAssignments();
       return true;
-    } catch (err: any) {
-      setError(err.message || 'Failed to assign user');
+    } catch (error: any) {
+      console.error('Error creating assignment:', error);
+      toast.error('Failed to create assignment');
       return false;
     }
   };
 
-  useEffect(() => {
-    generateAssignmentSuggestions();
-  }, [projectId, workType, requiredSkills, priority]);
+  const updateAssignmentStatus = async (
+    assignmentId: string,
+    status: string,
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      const updateData: any = { status };
+      if (notes) updateData.notes = notes;
+      if (status === 'completed') {
+        updateData.actual_completion = new Date().toISOString().split('T')[0];
+      }
+
+      const { error } = await supabase
+        .from('Plot_Assignments')
+        .update(updateData)
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+
+      toast.success('Assignment updated successfully');
+      await fetchAssignments();
+      return true;
+    } catch (error: any) {
+      console.error('Error updating assignment:', error);
+      toast.error('Failed to update assignment');
+      return false;
+    }
+  };
+
+  const getWorkloadAnalysis = async (userId: string) => {
+    try {
+      const { data: assignments, error } = await supabase
+        .from('Plot_Assignments')
+        .select('*')
+        .eq('user_id', userId)
+        .in('status', ['assigned', 'in_progress']);
+
+      if (error) throw error;
+
+      const currentWeekStart = new Date();
+      currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
+      
+      const upcomingDeadlines = assignments?.filter(assignment => {
+        const deadline = new Date(assignment.expected_completion);
+        const weekFromNow = new Date();
+        weekFromNow.setDate(weekFromNow.getDate() + 7);
+        return deadline <= weekFromNow;
+      }) || [];
+
+      return {
+        totalAssignments: assignments?.length || 0,
+        upcomingDeadlines: upcomingDeadlines.length,
+        overdue: assignments?.filter(a => 
+          new Date(a.expected_completion) < new Date()
+        ).length || 0
+      };
+    } catch (error: any) {
+      console.error('Error getting workload analysis:', error);
+      return { totalAssignments: 0, upcomingDeadlines: 0, overdue: 0 };
+    }
+  };
 
   return {
-    suggestions,
+    assignments,
     loading,
     error,
-    generateAssignmentSuggestions,
-    assignUser
+    findBestMatches,
+    createAssignment,
+    updateAssignmentStatus,
+    getWorkloadAnalysis,
+    refresh: fetchAssignments
   };
 };

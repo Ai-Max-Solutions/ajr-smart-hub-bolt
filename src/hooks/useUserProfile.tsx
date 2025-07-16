@@ -1,21 +1,21 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthContext';
+import { useAuth } from './useAuth';
 
-export interface UserProfile {
+interface UserProfile {
   id: string;
-  email: string;
+  auth_email: string;
   firstname: string;
   lastname: string;
   fullname: string;
   role: string;
   system_role: string;
   employmentstatus: string;
-  currentproject?: string;
-  skills?: string[];
-  department?: string;
-  phone?: string;
-  primaryskill?: string;
+  currentproject: string;
+  skills: string[];
+  phone: string;
+  primaryskill: string;
 }
 
 export const useUserProfile = () => {
@@ -25,80 +25,111 @@ export const useUserProfile = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) {
-        setProfile(null);
-        setLoading(false);
+    if (user) {
+      fetchProfile();
+    } else {
+      setProfile(null);
+      setLoading(false);
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Try to fetch from user_view first
+      const { data: viewData, error: viewError } = await supabase
+        .from('user_view')
+        .select('*')
+        .eq('auth_id', user.id)
+        .single();
+
+      if (!viewError && viewData) {
+        setProfile({
+          id: viewData.auth_id,
+          auth_email: viewData.auth_email,
+          firstname: viewData.firstname,
+          lastname: viewData.lastname,
+          fullname: viewData.fullname,
+          role: viewData.role,
+          system_role: viewData.system_role,
+          employmentstatus: viewData.employmentstatus,
+          currentproject: viewData.currentproject,
+          skills: viewData.skills,
+          phone: viewData.phone,
+          primaryskill: viewData.primaryskill
+        });
         return;
       }
 
-      try {
-        // Use the unified user_view for consistent data access
-        const { data, error } = await supabase
-          .from('user_view')
-          .select(`
-            auth_id,
-            auth_email,
-            whalesync_postgres_id,
-            firstname,
-            lastname,
-            fullname,
-            role,
-            system_role,
-            employmentstatus,
-            currentproject,
-            skills,
-            phone,
-            primaryskill
-          `)
-          .eq('auth_id', user.id)
-          .maybeSingle();
+      // Fallback to Users table
+      const { data: userData, error: userError } = await supabase
+        .from('Users')
+        .select('*')
+        .eq('supabase_auth_id', user.id)
+        .single();
 
-        if (error) {
-          console.error('Error fetching user profile:', error);
-          setError(error.message);
-        } else if (data) {
-          setProfile({
-            id: data.auth_id, // Use auth.users.id as primary identifier
-            email: data.auth_email || '',
-            firstname: data.firstname || '',
-            lastname: data.lastname || '',
-            fullname: data.fullname || '',
-            role: data.role || 'Operative',
-            system_role: data.system_role || 'Worker',
-            employmentstatus: data.employmentstatus || 'Active',
-            currentproject: data.currentproject,
-            skills: data.skills,
-            phone: data.phone,
-            primaryskill: data.primaryskill
-          });
-        } else {
-          // If no profile found, the user needs to complete their profile
-          setProfile({
-            id: user.id,
-            email: user.email || '',
-            firstname: '',
-            lastname: '',
-            fullname: '',
-            role: 'Operative',
-            system_role: 'Worker',
-            employmentstatus: 'Active',
-            currentproject: undefined,
-            skills: undefined,
-            phone: '',
-            primaryskill: ''
-          });
-        }
-      } catch (err) {
-        console.error('Error:', err);
-        setError('Failed to fetch profile');
-      } finally {
-        setLoading(false);
+      if (userError) {
+        throw userError;
       }
-    };
 
-    fetchProfile();
-  }, [user]);
+      if (userData) {
+        setProfile({
+          id: userData.id,
+          auth_email: user.email || '',
+          firstname: userData.firstname,
+          lastname: userData.lastname,
+          fullname: userData.fullname,
+          role: userData.role,
+          system_role: userData.system_role,
+          employmentstatus: userData.employmentstatus,
+          currentproject: userData.currentproject,
+          skills: userData.skills,
+          phone: userData.phone,
+          primaryskill: userData.primaryskill
+        });
+      }
+    } catch (err: any) {
+      console.error('Error fetching user profile:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  return { profile, loading, error };
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!user || !profile) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { error } = await supabase
+        .from('Users')
+        .update(updates)
+        .eq('supabase_auth_id', user.id);
+
+      if (error) throw error;
+
+      // Refresh profile data
+      await fetchProfile();
+    } catch (err: any) {
+      console.error('Error updating profile:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    profile,
+    loading,
+    error,
+    updateProfile,
+    refetch: fetchProfile
+  };
 };
