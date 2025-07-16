@@ -61,11 +61,18 @@ export const ReportBuilder = () => {
   const fetchProjects = async () => {
     try {
       const { data, error } = await supabase
-        .from('Projects')
-        .select('id, projectname');
+        .from('projects')
+        .select('id, name');
 
       if (error) throw error;
-      setProjects(data || []);
+      
+      // Transform data to match expected format
+      const transformedProjects = (data || []).map(project => ({
+        id: project.id,
+        projectname: project.name
+      }));
+      
+      setProjects(transformedProjects);
     } catch (error) {
       console.error('Error fetching projects:', error);
     }

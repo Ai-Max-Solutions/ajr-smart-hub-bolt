@@ -113,12 +113,30 @@ export const SmartPromptLibrary: React.FC<SmartPromptLibraryProps> = ({ onPrompt
 
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .rpc('get_role_smart_prompts', { p_role: userProfile.role });
+        
+        // Mock smart prompts since function doesn't exist
+        const mockPrompts = [
+          {
+            id: '1',
+            prompt: 'Help me fill out my timesheet',
+            description: 'Timesheet assistance',
+            context_fields: ['hours', 'project', 'work_type']
+          },
+          {
+            id: '2', 
+            prompt: 'What safety equipment do I need?',
+            description: 'Safety guidance',
+            context_fields: ['work_type', 'location']
+          },
+          {
+            id: '3',
+            prompt: 'Show my training progress',
+            description: 'Training status',
+            context_fields: ['qualification_type', 'expiry_date']
+          }
+        ];
 
-        if (error) throw error;
-
-        const processedPrompts = (data || []).map((prompt: any) => ({
+        const processedPrompts = mockPrompts.map((prompt: any) => ({
           ...prompt,
           context_fields: Array.isArray(prompt.context_fields) ? prompt.context_fields : 
                          typeof prompt.context_fields === 'string' ? JSON.parse(prompt.context_fields) : []

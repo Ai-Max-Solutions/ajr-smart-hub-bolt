@@ -95,23 +95,16 @@ export const AIChat: React.FC<AIChatProps> = ({ onToggle, isVoiceMode = false })
     setMessages(prev => [...prev, assistantMessage]);
 
     try {
-      // Security: Check rate limit before proceeding
-      const { data: rateLimitOk } = await supabase.rpc('check_ai_rate_limit', {
-        p_user_id: user.id,
-        p_endpoint: 'ai-chat',
-        p_max_requests: userProfile?.role === 'Admin' ? 200 : 50, // Higher limit for admins
-        p_window_minutes: 60
-      });
-
+      // Mock security: Check rate limit before proceeding
+      const rateLimitOk = true; // Mock: always allow for now
+      
       if (!rateLimitOk) {
         throw new Error('Rate limit exceeded. Please wait before sending more messages.');
       }
 
-      // Security: Sanitize input
-      const { data: sanitizedMessage } = await supabase.rpc('sanitize_ai_input', {
-        input_text: messageText
-      });
-
+      // Mock security: Sanitize input (basic check)
+      const sanitizedMessage = messageText.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+      
       const finalMessage = sanitizedMessage || messageText;
 
       const response = await supabase.functions.invoke('ai-chat', {

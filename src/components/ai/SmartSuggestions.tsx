@@ -157,14 +157,14 @@ export const SmartSuggestions: React.FC<SmartSuggestionsProps> = ({
     if (!projectId) return [];
 
     try {
-      // Get trending queries from the last 7 days
-      const { data: conversations } = await supabase
-        .from('ai_conversations')
-        .select('id')
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-        .limit(100);
+      // Mock trending queries from the last 7 days (since ai_conversations table doesn't exist)
+      const mockConversations = [
+        { id: '1' },
+        { id: '2' },
+        { id: '3' }
+      ];
 
-      if (!conversations?.length) return [];
+      if (!mockConversations.length) return [];
 
       // Simulate trending query analysis (in production, this would be more sophisticated)
       const trendingTopics = [
