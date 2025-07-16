@@ -29,6 +29,8 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
   const [cscsStatus, setCSCSStatus] = useState<CSCSStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
+  console.info('[CSCS] gate mounted', location.pathname);
+
   useEffect(() => {
     const checkCSCSStatus = async () => {
       // EARLY EXIT: Skip CSCS validation for onboarding routes
