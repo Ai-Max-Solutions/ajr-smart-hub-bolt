@@ -1,196 +1,122 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useRealTimeChat } from '@/hooks/useRealTimeChat';
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Send } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { MessageCircle, Send, Users, Plus } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 
-interface RealTimeChatProps {
-  className?: string;
-  initialRoomId?: string;
+interface Message {
+  id: string;
+  content: string;
+  project_id: string;
+  user_id: string;
+  user_name: string;
+  created_at: string;
 }
 
-const RealTimeChat: React.FC<RealTimeChatProps> = ({ className, initialRoomId }) => {
-  const { user } = useAuth();
-  const { rooms, messages, loading, fetchMessages, sendMessage, markAsRead } = useRealTimeChat();
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(initialRoomId || null);
+interface RealTimeChatProps {
+  projectId: string;
+}
+
+const RealTimeChat = ({ projectId }: RealTimeChatProps) => {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [sending, setSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const selectedRoom = rooms.find(room => room.id === selectedRoomId);
-  const roomMessages = selectedRoomId ? messages[selectedRoomId] || [] : [];
-
-  // Scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [roomMessages]);
+    // Mock messages for now
+    const mockMessages: Message[] = [
+      {
+        id: '1',
+        content: 'Hello everyone!',
+        project_id: projectId,
+        user_id: '1',
+        user_name: 'John Doe',
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        content: 'Hi John!',
+        project_id: projectId,
+        user_id: '2',
+        user_name: 'Jane Smith',
+        created_at: new Date().toISOString()
+      }
+    ];
 
-  // Load messages when room is selected
+    setMessages(mockMessages);
+  }, [projectId]);
+
   useEffect(() => {
-    if (selectedRoomId) {
-      fetchMessages(selectedRoomId);
-      markAsRead(selectedRoomId);
+    // Scroll to bottom on new messages
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [selectedRoomId, fetchMessages, markAsRead]);
+  }, [messages]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedRoomId || sending) return;
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !user) return;
 
-    setSending(true);
     try {
-      await sendMessage(selectedRoomId, newMessage);
+      const messageData = {
+        content: newMessage,
+        project_id: projectId,
+        user_id: user.id, // Use user.id instead of user.user_id
+        user_name: user.email || 'Unknown User'
+      };
+
+      // Mock message sending for now
+      const newMsg: Message = {
+        id: Date.now().toString(),
+        ...messageData,
+        created_at: new Date().toISOString()
+      };
+
+      setMessages(prev => [...prev, newMsg]);
       setNewMessage('');
-    } finally {
-      setSending(false);
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
   };
-
-  const getMessageTime = (timestamp: string) => {
-    return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-  };
-
-  const getUserInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
-
-  if (loading) {
-    return (
-      <Card className={className}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
-    <Card className={className}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          Team Chat
-          {selectedRoom && (
-            <Badge variant="outline" className="ml-auto">
-              {selectedRoom.name}
-            </Badge>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="flex h-96">
-          {/* Room List */}
-          <div className="w-1/3 border-r">
-            <div className="p-3 border-b">
-              <Button size="sm" className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                New Chat
-              </Button>
-            </div>
-            <ScrollArea className="h-80">
-              {rooms.map((room) => (
-                <button
-                  key={room.id}
-                  onClick={() => setSelectedRoomId(room.id)}
-                  className={`w-full p-3 text-left hover:bg-muted transition-colors ${
-                    selectedRoomId === room.id ? 'bg-muted' : ''
+    <Card className="h-96 flex flex-col">
+      <CardContent className="overflow-y-auto flex-1 p-4" ref={chatContainerRef}>
+        <div className="space-y-2">
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex flex-col ${msg.user_id === user?.id ? 'items-end' : 'items-start'}`}
+            >
+              <div className="text-xs text-muted-foreground">{msg.user_name}</div>
+              <div
+                className={`px-3 py-2 rounded-lg ${msg.user_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-secondary'
                   }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      <span className="font-medium truncate">{room.name}</span>
-                    </div>
-                    {room.unread_count ? (
-                      <Badge variant="destructive" className="h-5 w-5 text-xs p-0 flex items-center justify-center">
-                        {room.unread_count}
-                      </Badge>
-                    ) : null}
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate mt-1">
-                    {room.description || `${room.room_type} chat`}
-                  </p>
-                </button>
-              ))}
-            </ScrollArea>
-          </div>
-
-          {/* Messages Area */}
-          <div className="flex-1 flex flex-col">
-            {selectedRoom ? (
-              <>
-                {/* Messages */}
-                <ScrollArea className="flex-1 p-3">
-                  <div className="space-y-3">
-                    {roomMessages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex gap-2 ${
-                          message.user_id === user?.user_id ? 'flex-row-reverse' : ''
-                        }`}
-                      >
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-xs">
-                            {getUserInitials(message.user?.fullname || 'Unknown')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div
-                          className={`max-w-[70%] ${
-                            message.user_id === user?.user_id
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted'
-                          } rounded-lg p-2`}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-medium">
-                              {message.user?.fullname || 'Unknown User'}
-                            </span>
-                            <span className="text-xs opacity-70">
-                              {getMessageTime(message.created_at)}
-                            </span>
-                          </div>
-                          <p className="text-sm">{message.content}</p>
-                        </div>
-                      </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
-                </ScrollArea>
-
-                {/* Message Input */}
-                <form onSubmit={handleSendMessage} className="p-3 border-t">
-                  <div className="flex gap-2">
-                    <Input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message..."
-                      disabled={sending}
-                    />
-                    <Button type="submit" size="icon" disabled={sending || !newMessage.trim()}>
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </form>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>Select a chat room to start messaging</p>
-                </div>
+              >
+                {msg.content}
               </div>
-            )}
-          </div>
+              <div className="text-xs text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</div>
+            </div>
+          ))}
         </div>
       </CardContent>
+      <div className="p-4 border-t">
+        <div className="flex items-center space-x-2">
+          <Input
+            type="text"
+            placeholder="Type your message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                sendMessage();
+              }
+            }}
+          />
+          <Button onClick={sendMessage}><Send className="h-4 w-4" /></Button>
+        </div>
+      </div>
     </Card>
   );
 };

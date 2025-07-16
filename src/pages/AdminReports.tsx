@@ -1,296 +1,300 @@
-
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
-import { Badge } from '@/components/ui/badge';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Download, Users, Building2, FileText, TrendingUp } from 'lucide-react';
-import { DateRange } from 'react-day-picker';
-import { addDays, format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Download, FileText, BarChart3, Users, Clock, TrendingUp } from 'lucide-react';
+import { format } from 'date-fns';
+import { useAnalytics } from '@/hooks/useAnalytics';
+import { ReportBuilder } from '@/components/analytics/ReportBuilder';
+import { cn } from '@/lib/utils';
 
-interface ReportData {
-  totalUsers: number;
-  activeUsers: number;
-  totalProjects: number;
-  activeProjects: number;
-  totalDrawings: number;
-  recentActivity: any[];
-  usersByRole: Array<{ role: string; count: number }>;
-  projectsByStatus: Array<{ status: string; count: number }>;
+interface ReportFilter {
+  dateRange: {
+    start: Date | null;
+    end: Date | null;
+  };
+  reportType: string;
+  department: string;
+  project: string;
 }
 
-export const AdminReports: React.FC = () => {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: addDays(new Date(), -30),
-    to: new Date(),
-  });
-  const [reportType, setReportType] = useState('overview');
-
-  // Fetch report data
-  const { data: reportData, isLoading } = useQuery({
-    queryKey: ['admin-reports', reportType, dateRange],
-    queryFn: async () => {
-      const startDate = dateRange?.from?.toISOString();
-      const endDate = dateRange?.to?.toISOString();
-
-      // Fetch user statistics
-      const { data: users, error: usersError } = await supabase
-        .from('Users')
-        .select('id, role, employmentstatus, airtable_created_time');
-
-      if (usersError) throw usersError;
-
-      // Fetch project statistics
-      const { data: projects, error: projectsError } = await supabase
-        .from('Projects')
-        .select('id, status, airtable_created_time');
-
-      if (projectsError) throw projectsError;
-
-      // Fetch drawing statistics
-      const { data: drawings, error: drawingsError } = await supabase
-        .from('Drawings')
-        .select('id, drawingstatus, airtable_created_time');
-
-      if (drawingsError) throw drawingsError;
-
-      // Calculate statistics
-      const totalUsers = users?.length || 0;
-      const activeUsers = users?.filter(u => u.employmentstatus === 'Active').length || 0;
-      const totalProjects = projects?.length || 0;
-      const activeProjects = projects?.filter(p => p.status === 'Active').length || 0;
-      const totalDrawings = drawings?.length || 0;
-
-      // Group users by role
-      const usersByRole = users?.reduce((acc: any[], user) => {
-        const existingRole = acc.find(r => r.role === user.role);
-        if (existingRole) {
-          existingRole.count += 1;
-        } else {
-          acc.push({ role: user.role || 'Unknown', count: 1 });
-        }
-        return acc;
-      }, []) || [];
-
-      // Group projects by status
-      const projectsByStatus = projects?.reduce((acc: any[], project) => {
-        const existingStatus = acc.find(s => s.status === project.status);
-        if (existingStatus) {
-          existingStatus.count += 1;
-        } else {
-          acc.push({ status: project.status || 'Unknown', count: 1 });
-        }
-        return acc;
-      }, []) || [];
-
-      return {
-        totalUsers,
-        activeUsers,
-        totalProjects,
-        activeProjects,
-        totalDrawings,
-        recentActivity: [],
-        usersByRole,
-        projectsByStatus,
-      } as ReportData;
-    },
+const AdminReports = () => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [filters, setFilters] = useState<ReportFilter>({
+    dateRange: { start: null, end: null },
+    reportType: 'all',
+    department: 'all',
+    project: 'all'
   });
 
-  const exportReport = () => {
-    // Implementation for exporting reports
-    console.log('Exporting report...', { reportType, dateRange, reportData });
+  const { data, loading, exportData } = useAnalytics('30');
+
+  const reportTypes = [
+    { value: 'all', label: 'All Reports' },
+    { value: 'timesheet', label: 'Timesheet Reports' },
+    { value: 'project', label: 'Project Reports' },
+    { value: 'user', label: 'User Reports' },
+    { value: 'performance', label: 'Performance Reports' }
+  ];
+
+  const departments = [
+    { value: 'all', label: 'All Departments' },
+    { value: 'construction', label: 'Construction' },
+    { value: 'management', label: 'Management' },
+    { value: 'admin', label: 'Administration' }
+  ];
+
+  const handleExport = (type: string) => {
+    exportData(type);
   };
 
-  const COLORS = ['#ffcf21', '#1d1e3d', '#acb7d1', '#006198', '#f59e0b', '#ef4444'];
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ajryan-yellow"></div>
-      </div>
-    );
-  }
+  const generateReport = () => {
+    console.log('Generating report with filters:', filters);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-ajryan-dark">Admin Reports</h1>
-          <p className="text-muted-foreground">
-            Comprehensive analytics and reporting dashboard
-          </p>
+          <h1 className="text-2xl font-bold text-primary">Admin Reports</h1>
+          <p className="text-muted-foreground">Generate and manage system reports</p>
         </div>
-        <Button onClick={exportReport} className="bg-ajryan-yellow hover:bg-ajryan-yellow/90 text-ajryan-dark">
-          <Download className="h-4 w-4 mr-2" />
-          Export Report
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-muted p-1 rounded-lg">
+        <Button
+          variant={activeTab === 'overview' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('overview')}
+          className="flex-1"
+        >
+          <BarChart3 className="h-4 w-4 mr-2" />
+          Overview
+        </Button>
+        <Button
+          variant={activeTab === 'builder' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('builder')}
+          className="flex-1"
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Report Builder
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Select value={reportType} onValueChange={setReportType}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="overview">Overview</SelectItem>
-            <SelectItem value="users">User Analytics</SelectItem>
-            <SelectItem value="projects">Project Analytics</SelectItem>
-            <SelectItem value="performance">Performance</SelectItem>
-          </SelectContent>
-        </Select>
-        <DatePickerWithRange
-          date={dateRange}
-          onDateChange={setDateRange}
-        />
-      </div>
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Report Filters</CardTitle>
+              <CardDescription>Configure filters for your reports</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Date Range */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Date Range</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "justify-start text-left font-normal",
+                            !filters.dateRange.start && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {filters.dateRange.start ? format(filters.dateRange.start, "PPP") : "Start date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={filters.dateRange.start}
+                          onSelect={(date) => setFilters(prev => ({
+                            ...prev,
+                            dateRange: { ...prev.dateRange, start: date }
+                          }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
 
-      {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reportData?.totalUsers || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {reportData?.activeUsers || 0} active
-            </p>
-          </CardContent>
-        </Card>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "justify-start text-left font-normal",
+                            !filters.dateRange.end && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {filters.dateRange.end ? format(filters.dateRange.end, "PPP") : "End date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={filters.dateRange.end}
+                          onSelect={(date) => setFilters(prev => ({
+                            ...prev,
+                            dateRange: { ...prev.dateRange, end: date }
+                          }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reportData?.totalProjects || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {reportData?.activeProjects || 0} active
-            </p>
-          </CardContent>
-        </Card>
+                {/* Report Type */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Report Type</label>
+                  <Select
+                    value={filters.reportType}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, reportType: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {reportTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Drawings</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reportData?.totalDrawings || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Technical documents
-            </p>
-          </CardContent>
-        </Card>
+                {/* Department */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Department</label>
+                  <Select
+                    value={filters.department}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, department: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.value} value={dept.value}>
+                          {dept.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {reportData?.totalUsers ? Math.round((reportData.activeUsers / reportData.totalUsers) * 100) : 0}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              User activity rate
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+                {/* Generate Button */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">&nbsp;</label>
+                  <Button onClick={generateReport} className="w-full">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Generate Report
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Charts */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Users by Role */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Users by Role</CardTitle>
-            <CardDescription>Distribution of users across different roles</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={reportData?.usersByRole || []}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{data.userPerformance.length}</div>
+                <p className="text-xs text-muted-foreground">Active employees</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{data.projectProgress.length}</div>
+                <p className="text-xs text-muted-foreground">In progress</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {data.workingHours.reduce((sum, day) => sum + day.hours, 0)}
+                </div>
+                <p className="text-xs text-muted-foreground">This period</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Efficiency</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">92%</div>
+                <p className="text-xs text-muted-foreground">+2% from last month</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Export Options */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Export Reports</CardTitle>
+              <CardDescription>Download reports in various formats</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('userPerformance')}
+                  className="flex items-center justify-center"
                 >
-                  {(reportData?.usersByRole || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+                  <Download className="h-4 w-4 mr-2" />
+                  User Performance
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('projectProgress')}
+                  className="flex items-center justify-center"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Project Progress
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('workingHours')}
+                  className="flex items-center justify-center"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Working Hours
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-        {/* Projects by Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Projects by Status</CardTitle>
-            <CardDescription>Current status distribution of all projects</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={reportData?.projectsByStatus || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="status" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#ffcf21" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Detailed Tables */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Role Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {reportData?.usersByRole?.map((role, index) => (
-                <div key={role.role} className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{role.role}</span>
-                  <Badge variant="secondary">{role.count}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {reportData?.projectsByStatus?.map((status, index) => (
-                <div key={status.status} className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{status.status}</span>
-                  <Badge variant="secondary">{status.count}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {activeTab === 'builder' && (
+        <ReportBuilder />
+      )}
     </div>
   );
 };
+
+export default AdminReports;

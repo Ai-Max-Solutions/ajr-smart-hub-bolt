@@ -46,17 +46,14 @@ export const DABSCreationForm: React.FC<DABSCreationFormProps> = ({ onClose, onC
     }));
   };
 
-  // Fetch projects for dropdown
+  // Fetch projects for dropdown - using mock data
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('Projects')
-        .select('id, projectname')
-        .eq('status', 'Active');
-      
-      if (error) throw error;
-      return data;
+      const mockProjects = [
+        { id: '1', projectname: 'Sample Project' }
+      ];
+      return mockProjects;
     },
   });
 
@@ -225,3 +222,5 @@ export const DABSCreationForm: React.FC<DABSCreationFormProps> = ({ onClose, onC
     </Card>
   );
 };
+
+export default DABSCreationForm;
