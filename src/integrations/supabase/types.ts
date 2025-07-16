@@ -4024,10 +4024,38 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "hire_block_fkey"
+            columns: ["block"]
+            isOneToOne: false
+            referencedRelation: "Blocks"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "hire_jobs_fkey"
+            columns: ["jobs"]
+            isOneToOne: false
+            referencedRelation: "Jobs"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
             foreignKeyName: "hire_jobs_foreign"
             columns: ["jobs"]
             isOneToOne: false
             referencedRelation: "Jobs"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "hire_project_fkey"
+            columns: ["project"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "hire_project_fkey"
+            columns: ["project"]
+            isOneToOne: false
+            referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
@@ -4287,10 +4315,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "job_templates_category_fkey"
+            columns: ["category"]
+            isOneToOne: false
+            referencedRelation: "WorkCategories"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
             foreignKeyName: "job_templates_category_foreign"
             columns: ["category"]
             isOneToOne: false
             referencedRelation: "WorkCategories"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "job_templates_jobs_fkey"
+            columns: ["jobs"]
+            isOneToOne: false
+            referencedRelation: "Jobs"
             referencedColumns: ["whalesync_postgres_id"]
           },
           {
@@ -6043,6 +6085,45 @@ export type Database = {
           },
         ]
       }
+      plot_jobs: {
+        Row: {
+          assignment_date: string | null
+          created_at: string | null
+          job_id: string
+          plot_id: string
+          status: string | null
+        }
+        Insert: {
+          assignment_date?: string | null
+          created_at?: string | null
+          job_id: string
+          plot_id: string
+          status?: string | null
+        }
+        Update: {
+          assignment_date?: string | null
+          created_at?: string | null
+          job_id?: string
+          plot_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plot_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "Jobs"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "plot_jobs_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "Plots"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       Plot_Status_History: {
         Row: {
           change_reason: string | null
@@ -6372,10 +6453,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "plots_jobs_fkey"
+            columns: ["jobs"]
+            isOneToOne: false
+            referencedRelation: "Jobs"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
             foreignKeyName: "plots_level_fkey"
             columns: ["level"]
             isOneToOne: false
             referencedRelation: "Levels"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "plots_plottype_fkey"
+            columns: ["plottype"]
+            isOneToOne: false
+            referencedRelation: "Plot_Types"
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
@@ -7206,6 +7301,46 @@ export type Database = {
           },
         ]
       }
+      project_jobs: {
+        Row: {
+          created_at: string | null
+          job_id: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          job_id: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string | null
+          job_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "Jobs"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "project_jobs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_jobs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
       project_team: {
         Row: {
           active: boolean | null
@@ -7427,6 +7562,87 @@ export type Database = {
           },
           {
             foreignKeyName: "project_teams_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      project_users: {
+        Row: {
+          assigned_date: string | null
+          created_at: string | null
+          project_id: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_date?: string | null
+          created_at?: string | null
+          project_id: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_date?: string | null
+          created_at?: string | null
+          project_id?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_users_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_users_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "Projects"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "project_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "project_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "project_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "project_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "project_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_view"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "project_users_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "Users"
@@ -11479,6 +11695,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "user_job_rates_jobs_fkey"
+            columns: ["jobs"]
+            isOneToOne: false
+            referencedRelation: "Jobs"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_job_rates_jobtemplate_fkey"
+            columns: ["jobtemplate"]
+            isOneToOne: false
+            referencedRelation: "Job_Templates"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
             foreignKeyName: "user_job_rates_jobtemplate_foreign"
             columns: ["jobtemplate"]
             isOneToOne: false
@@ -11486,10 +11716,59 @@ export type Database = {
             referencedColumns: ["whalesync_postgres_id"]
           },
           {
+            foreignKeyName: "user_job_rates_plottype_fkey"
+            columns: ["plottype"]
+            isOneToOne: false
+            referencedRelation: "Plot_Types"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
             foreignKeyName: "user_job_rates_plottype_foreign"
             columns: ["plottype"]
             isOneToOne: false
             referencedRelation: "Plot_Types"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_job_rates_user_fkey"
+            columns: ["user"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_job_rates_user_fkey"
+            columns: ["user"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_job_rates_user_fkey"
+            columns: ["user"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_job_rates_user_fkey"
+            columns: ["user"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_job_rates_user_fkey"
+            columns: ["user"]
+            isOneToOne: false
+            referencedRelation: "user_view"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_job_rates_user_fkey"
+            columns: ["user"]
+            isOneToOne: false
+            referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
           },
           {
@@ -11530,6 +11809,83 @@ export type Database = {
           {
             foreignKeyName: "user_job_rates_user_foreign"
             columns: ["user"]
+            isOneToOne: false
+            referencedRelation: "Users"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+        ]
+      }
+      user_jobs: {
+        Row: {
+          assigned_date: string | null
+          created_at: string | null
+          job_id: string
+          skill_level: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_date?: string | null
+          created_at?: string | null
+          job_id: string
+          skill_level?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_date?: string | null
+          created_at?: string | null
+          job_id?: string
+          skill_level?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "Jobs"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_qualification_compliance"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "task_plan_compliance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_extended"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_qualification_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_view"
+            referencedColumns: ["whalesync_postgres_id"]
+          },
+          {
+            foreignKeyName: "user_jobs_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "Users"
             referencedColumns: ["whalesync_postgres_id"]
