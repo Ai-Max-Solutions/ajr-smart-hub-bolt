@@ -71,18 +71,38 @@ export const ContractorProfile = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
-        .from('contractor_profiles')
-        .select(`
-          *,
-          company:contractor_companies(*)
-        `)
-        .eq('auth_user_id', user?.id)
-        .single();
+      // Mock contractor profile data
+      const mockProfile: ContractorProfileData = {
+        id: '1',
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'john.doe@example.com',
+        job_role: 'Site Manager',
+        phone: '+44 7700 900000',
+        emergency_contact_name: 'Jane Doe',
+        emergency_contact_phone: '+44 7700 900001',
+        vehicle_registration: 'AB12 CDE',
+        vehicle_type: 'Van',
+        vehicle_weight_category: '3.5t',
+        fors_level: 'Bronze',
+        assigned_work_activities: ['Construction', 'Safety Inspection'],
+        created_at: new Date().toISOString(),
+        company: {
+          company_name: 'Example Construction Ltd',
+          primary_contact_email: 'contact@example.com',
+          primary_contact_phone: '+44 20 7946 0958',
+          address_line_1: '123 Construction Road',
+          address_line_2: 'Business Park',
+          city: 'London',
+          postal_code: 'SW1A 1AA',
+          country: 'United Kingdom',
+          accreditations: ['CHAS', 'SafeContractor', 'SSIP'],
+          status: 'active'
+        }
+      };
 
-      if (error) throw error;
-      setProfile(data);
-      setEditData(data);
+      setProfile(mockProfile);
+      setEditData(mockProfile);
       
     } catch (error: any) {
       console.error('Error loading profile:', error);
@@ -100,23 +120,8 @@ export const ContractorProfile = () => {
     try {
       setSaving(true);
       
-      const { error } = await supabase
-        .from('contractor_profiles')
-        .update({
-          first_name: editData.first_name,
-          last_name: editData.last_name,
-          phone: editData.phone,
-          job_role: editData.job_role,
-          emergency_contact_name: editData.emergency_contact_name,
-          emergency_contact_phone: editData.emergency_contact_phone,
-          vehicle_registration: editData.vehicle_registration,
-          vehicle_type: editData.vehicle_type,
-          vehicle_weight_category: editData.vehicle_weight_category,
-          fors_level: editData.fors_level
-        })
-        .eq('id', profile?.id);
-
-      if (error) throw error;
+      // Mock update - in a real app this would update the database
+      console.log('Would update profile with:', editData);
       
       await loadProfile();
       setEditing(false);
