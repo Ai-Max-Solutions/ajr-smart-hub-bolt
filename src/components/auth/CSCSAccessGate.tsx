@@ -72,8 +72,12 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
         }
 
         // Skip CSCS checks if user hasn't completed onboarding yet
-        if (!userData.onboarding_completed || !userData.firstname || !userData.lastname) {
-          console.log('[CSCSAccessGate] User onboarding not completed, bypassing CSCS check');
+        if (!userData.onboarding_completed) {
+          console.log('[CSCSAccessGate] User onboarding not completed, bypassing CSCS check', {
+            onboarding_completed: userData.onboarding_completed,
+            firstname: userData.firstname,
+            lastname: userData.lastname
+          });
           setCSCSStatus({
             is_valid: true,
             status: 'onboarding_incomplete',
