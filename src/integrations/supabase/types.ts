@@ -79,7 +79,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "activity_metrics_user_id_fkey"
@@ -200,13 +200,6 @@ export type Database = {
             referencedRelation: "Projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "ai_compliance_predictions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
-          },
         ]
       }
       ai_conversation_context: {
@@ -325,7 +318,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ai_conversation_memory_user_id_fkey"
@@ -371,13 +364,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ai_agents"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_conversations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
           },
         ]
       }
@@ -475,7 +461,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ai_feedback_user_id_fkey"
@@ -655,7 +641,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "api_rate_limits_user_id_fkey"
@@ -740,7 +726,7 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "approval_queue_assigned_to_fkey"
@@ -813,7 +799,7 @@ export type Database = {
             columns: ["archived_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "archived_data_archived_by_fkey"
@@ -997,7 +983,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "audit_log_user_id_fkey"
@@ -1716,13 +1702,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "contractor_profiles_auth_user_id_fkey"
-            columns: ["auth_user_id"]
-            isOneToOne: false
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
-          },
-          {
             foreignKeyName: "contractor_profiles_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -1802,7 +1781,7 @@ export type Database = {
             columns: ["assigned_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contractor_project_assignments_assigned_by_fkey"
@@ -1931,7 +1910,7 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contractor_training_documents_verified_by_fkey"
@@ -2004,7 +1983,7 @@ export type Database = {
             columns: ["assigned_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contractor_work_assignments_assigned_by_fkey"
@@ -2111,7 +2090,7 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "cost_tracking_approved_by_fkey"
@@ -2182,15 +2161,7 @@ export type Database = {
           user_id?: string | null
           verified?: boolean | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "cscs_card_analysis_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
-          },
-        ]
+        Relationships: []
       }
       cscs_cards: {
         Row: {
@@ -2235,15 +2206,7 @@ export type Database = {
           raw_ai_response?: Json | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "cscs_cards_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
-          },
-        ]
+        Relationships: []
       }
       delivery_bookings: {
         Row: {
@@ -2340,7 +2303,7 @@ export type Database = {
             columns: ["requested_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "delivery_bookings_requested_by_fkey"
@@ -2429,7 +2392,7 @@ export type Database = {
             columns: ["received_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "delivery_records_received_by_fkey"
@@ -2597,7 +2560,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "document_controllers_user_id_fkey"
@@ -2771,7 +2734,7 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "document_versions_approved_by_fkey"
@@ -2834,7 +2797,7 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "document_versions_uploaded_by_fkey"
@@ -2916,7 +2879,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "documents_created_by_fkey"
@@ -3459,7 +3422,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "enhanced_audit_log_user_id_fkey"
@@ -3541,7 +3504,7 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "equipment_tracking_assigned_to_fkey"
@@ -3661,7 +3624,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "evidence_chain_records_created_by_fkey"
@@ -3703,7 +3666,7 @@ export type Database = {
             columns: ["operative_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "evidence_chain_records_operative_id_fkey"
@@ -3812,7 +3775,7 @@ export type Database = {
             columns: ["exported_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "evidence_exports_exported_by_fkey"
@@ -4145,7 +4108,7 @@ export type Database = {
             columns: ["reported_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "incident_reports_reported_by_fkey"
@@ -4475,7 +4438,7 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "job_tracker_approved_by_fkey"
@@ -4517,7 +4480,7 @@ export type Database = {
             columns: ["assigned_user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "job_tracker_assigned_user_id_fkey"
@@ -4566,7 +4529,7 @@ export type Database = {
             columns: ["override_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "job_tracker_override_by_fkey"
@@ -4677,7 +4640,7 @@ export type Database = {
             columns: ["resolved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "job_tracker_duplicates_resolved_by_fkey"
@@ -5167,7 +5130,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "location_tracking_user_id_fkey"
@@ -5267,7 +5230,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "migration_incentives_user_id_fkey"
@@ -5343,13 +5306,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "smart_notifications"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notification_analytics_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
           },
         ]
       }
@@ -5462,15 +5418,7 @@ export type Database = {
           voice_enabled?: boolean | null
           weekend_notifications?: boolean | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "notification_preferences_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
-          },
-        ]
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -5552,7 +5500,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "notifications_user_id_fkey"
@@ -5638,7 +5586,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "offline_prompt_cache_user_id_fkey"
@@ -5740,7 +5688,7 @@ export type Database = {
             columns: ["requested_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "on_hire_requested_by_fkey"
@@ -5910,7 +5858,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "Plot_Assignments_user_id_fkey"
@@ -5998,7 +5946,7 @@ export type Database = {
             columns: ["claimed_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "plot_job_status_claimed_by_fkey"
@@ -6047,7 +5995,7 @@ export type Database = {
             columns: ["locked_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "plot_job_status_locked_by_fkey"
@@ -6180,7 +6128,7 @@ export type Database = {
             columns: ["changed_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "Plot_Status_History_changed_by_fkey"
@@ -6528,7 +6476,7 @@ export type Database = {
             columns: ["approver_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pod_approvals_approver_id_fkey"
@@ -6671,7 +6619,7 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pod_register_approved_by_fkey"
@@ -6741,7 +6689,7 @@ export type Database = {
             columns: ["signed_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pod_register_signed_by_fkey"
@@ -6790,7 +6738,7 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pod_register_uploaded_by_fkey"
@@ -6897,7 +6845,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_pod_signatures_user_id"
@@ -7047,7 +6995,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "proactive_suggestions_user_id_fkey"
@@ -7095,15 +7043,7 @@ export type Database = {
           system_role?: string | null
           username?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
-          },
-        ]
+        Relationships: []
       }
       project_assignments: {
         Row: {
@@ -7188,7 +7128,7 @@ export type Database = {
             columns: ["assigned_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "project_assignments_assigned_by_fkey"
@@ -7244,7 +7184,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "project_assignments_user_id_fkey"
@@ -7414,7 +7354,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "project_team_user_id_fkey"
@@ -7496,7 +7436,7 @@ export type Database = {
             columns: ["assigned_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "project_teams_assigned_by_fkey"
@@ -7552,7 +7492,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "project_teams_user_id_fkey"
@@ -7633,7 +7573,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "project_users_user_id_fkey"
@@ -7811,7 +7751,7 @@ export type Database = {
             columns: ["project_manager_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "Projects_project_manager_id_fkey"
@@ -7853,7 +7793,7 @@ export type Database = {
             columns: ["users"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "projects_users_foreign"
@@ -7986,7 +7926,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "qr_posters_created_by_fkey"
@@ -8093,7 +8033,7 @@ export type Database = {
             columns: ["scanned_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "qr_scan_logs_scanned_by_fkey"
@@ -8213,7 +8153,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "qualification_reminders_user_id_fkey"
@@ -8431,7 +8371,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "qualifications_user_id_fkey"
@@ -8473,7 +8413,7 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "qualifications_verified_by_fkey"
@@ -8600,7 +8540,7 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "rams_documents_approved_by_fkey"
@@ -8677,7 +8617,7 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "rams_documents_uploaded_by_fkey"
@@ -8871,7 +8811,7 @@ export type Database = {
             columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "role_invitations_invited_by_fkey"
@@ -8961,7 +8901,7 @@ export type Database = {
             columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "role_requests_reviewed_by_fkey"
@@ -9003,7 +8943,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "role_requests_user_id_fkey"
@@ -9235,7 +9175,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "site_notices_created_by_fkey"
@@ -9381,13 +9321,6 @@ export type Database = {
             referencedRelation: "Projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "smart_notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
-          },
         ]
       }
       smart_predictions: {
@@ -9494,7 +9427,7 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "smart_prompt_refinements_approved_by_fkey"
@@ -9613,7 +9546,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "smart_prompt_templates_created_by_fkey"
@@ -9720,7 +9653,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "smart_prompt_usage_user_id_fkey"
@@ -9812,7 +9745,7 @@ export type Database = {
             columns: ["resolved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "smart_revision_alerts_resolved_by_fkey"
@@ -9921,7 +9854,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "smart_schedules_user_id_fkey"
@@ -10006,7 +9939,7 @@ export type Database = {
             columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "soft_delete_registry_deleted_by_fkey"
@@ -10158,7 +10091,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_plan_rams_register_created_by_fkey"
@@ -10367,7 +10300,7 @@ export type Database = {
             columns: ["briefed_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_plan_signatures_briefed_by_fkey"
@@ -10437,7 +10370,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_plan_signatures_user_id_fkey"
@@ -10531,7 +10464,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_plan_templates_created_by_fkey"
@@ -10676,7 +10609,7 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_plans_approved_by_fkey"
@@ -10718,7 +10651,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_plans_created_by_fkey"
@@ -10904,7 +10837,7 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "timesheets_approved_by_fkey"
@@ -10946,7 +10879,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "timesheets_user_id_fkey"
@@ -11038,7 +10971,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "toolbox_talk_attendance_user_id_fkey"
@@ -11150,7 +11083,7 @@ export type Database = {
             columns: ["conducted_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "toolbox_talks_conducted_by_fkey"
@@ -11351,7 +11284,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_ai_preferences_user_id_fkey"
@@ -11424,7 +11357,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_context_cache_user_id_fkey"
@@ -11506,7 +11439,7 @@ export type Database = {
             columns: ["assigned_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_job_assignments_assigned_by_fkey"
@@ -11576,7 +11509,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_job_assignments_user_id_fkey"
@@ -11753,7 +11686,7 @@ export type Database = {
             columns: ["user"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_job_rates_user_fkey"
@@ -11795,7 +11728,7 @@ export type Database = {
             columns: ["user"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_job_rates_user_foreign"
@@ -11872,7 +11805,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_jobs_user_id_fkey"
@@ -11957,7 +11890,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_patterns_user_id_fkey"
@@ -12087,7 +12020,7 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_rate_cards_approved_by_fkey"
@@ -12150,7 +12083,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_rate_cards_user_id_fkey"
@@ -12467,13 +12400,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "users_supabase_auth_id_fkey"
-            columns: ["supabase_auth_id"]
-            isOneToOne: false
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
-          },
-          {
             foreignKeyName: "users_user_job_rates_foreign"
             columns: ["user_job_rates"]
             isOneToOne: false
@@ -12633,13 +12559,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "smart_notifications"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "voice_interaction_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
           },
         ]
       }
@@ -12843,7 +12762,7 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "work_packages_assigned_to_fkey"
@@ -12885,7 +12804,7 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "work_packages_created_by_fkey"
@@ -13003,7 +12922,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "work_tracking_history_user_id_fkey"
@@ -13095,7 +13014,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "Work_Tracking_History_user_id_fkey"
@@ -13403,7 +13322,7 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "qualifications_user_id_fkey"
@@ -13445,7 +13364,7 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "user_view"
-            referencedColumns: ["whalesync_postgres_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "qualifications_verified_by_fkey"
@@ -13638,13 +13557,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "users_supabase_auth_id_fkey"
-            columns: ["supabase_auth_id"]
-            isOneToOne: false
-            referencedRelation: "user_view"
-            referencedColumns: ["auth_id"]
-          },
-          {
             foreignKeyName: "users_user_job_rates_foreign"
             columns: ["user_job_rates"]
             isOneToOne: false
@@ -13670,24 +13582,70 @@ export type Database = {
       }
       user_view: {
         Row: {
-          auth_created_at: string | null
-          auth_email: string | null
+          address: string | null
           auth_id: string | null
           avatar_url: string | null
-          avg_weekly_hours: number | null
+          created_at: string | null
+          cscs_upload_required: boolean | null
+          cscs_validation_status: string | null
           currentproject: string | null
+          deactivation_date: string | null
+          email: string | null
           employmentstatus: string | null
           firstname: string | null
           fullname: string | null
+          id: string | null
+          last_sign_in: string | null
           lastname: string | null
-          performance_rating: number | null
+          onboarding_completed: boolean | null
           phone: string | null
-          primaryskill: string | null
           role: string | null
           skills: string[] | null
           system_role: string | null
-          total_plots_completed: number | null
-          whalesync_postgres_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          auth_id?: string | null
+          avatar_url?: string | null
+          created_at?: string | null
+          cscs_upload_required?: boolean | null
+          cscs_validation_status?: string | null
+          currentproject?: string | null
+          deactivation_date?: string | null
+          email?: string | null
+          employmentstatus?: string | null
+          firstname?: string | null
+          fullname?: string | null
+          id?: string | null
+          last_sign_in?: string | null
+          lastname?: string | null
+          onboarding_completed?: boolean | null
+          phone?: string | null
+          role?: string | null
+          skills?: string[] | null
+          system_role?: string | null
+        }
+        Update: {
+          address?: string | null
+          auth_id?: string | null
+          avatar_url?: string | null
+          created_at?: string | null
+          cscs_upload_required?: boolean | null
+          cscs_validation_status?: string | null
+          currentproject?: string | null
+          deactivation_date?: string | null
+          email?: string | null
+          employmentstatus?: string | null
+          firstname?: string | null
+          fullname?: string | null
+          id?: string | null
+          last_sign_in?: string | null
+          lastname?: string | null
+          onboarding_completed?: boolean | null
+          phone?: string | null
+          role?: string | null
+          skills?: string[] | null
+          system_role?: string | null
         }
         Relationships: [
           {
