@@ -29,7 +29,7 @@ const Index = () => {
       try {
         const { data: userData, error } = await supabase
           .from('Users')
-          .select('onboarding_completed, firstname, lastname, whalesync_postgres_id, employmentstatus')
+          .select('onboarding_completed, firstname, lastname, id, employmentstatus')
           .eq('supabase_auth_id', user.id)
           .single();
 

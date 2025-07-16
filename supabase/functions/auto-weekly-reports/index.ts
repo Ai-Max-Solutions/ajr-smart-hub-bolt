@@ -22,7 +22,7 @@ serve(async (req) => {
     // Get all active projects
     const { data: projects, error: projectsError } = await supabase
       .from('Projects')
-      .select('whalesync_postgres_id, projectname')
+      .select('id, projectname')
       .eq('status', 'Active')
       .limit(50);
 
@@ -47,14 +47,14 @@ serve(async (req) => {
               const { data: drawings } = await supabase
                 .from('Drawings')
                 .select(`
-                  whalesync_postgres_id,
+                  id,
                   drawingnumber,
                   drawingdescription,
                   currentrevision,
                   lastupdateddate,
                   Projects!inner(projectname)
                 `)
-                .eq('Projects.whalesync_postgres_id', project.whalesync_postgres_id)
+                .eq('Projects.id', project.id)
                 .gte('lastupdateddate', weekAgo.toISOString())
                 .limit(100);
               
