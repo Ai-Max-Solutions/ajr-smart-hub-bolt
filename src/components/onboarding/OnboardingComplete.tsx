@@ -18,7 +18,9 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
   };
 
   const goToDashboard = () => {
-    // In a real app, this would redirect to the main dashboard
+    // Clear onboarding data from localStorage
+    localStorage.removeItem('onboardingData');
+    // Redirect to dashboard
     window.location.href = '/';
   };
 

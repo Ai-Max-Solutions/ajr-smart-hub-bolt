@@ -49,9 +49,11 @@ function App() {
               
               {/* Protected routes with navigation */}
               <Route path="/" element={
-                <AppLayout>
-                  <Index />
-                </AppLayout>
+                <RouteProtection fallbackPath="/auth" requireCSCS={false}>
+                  <AppLayout>
+                    <Index />
+                  </AppLayout>
+                </RouteProtection>
               } />
               
               <Route 

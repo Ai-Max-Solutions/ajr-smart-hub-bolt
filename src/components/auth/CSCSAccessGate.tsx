@@ -39,10 +39,10 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
       console.log('[CSCSAccessGate] Checking CSCS status for user:', user.id);
 
       try {
-        // First get the user's whalesync_postgres_id from the Users table
+        // First get the user's whalesync_postgres_id and onboarding status from the Users table
         const { data: userData, error: userError } = await supabase
           .from('Users')
-          .select('whalesync_postgres_id, email')
+          .select('whalesync_postgres_id, email, onboarding_completed, firstname, lastname')
           .eq('supabase_auth_id', user.id)
           .maybeSingle();
 
@@ -60,13 +60,27 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
         }
 
         if (!userData) {
-          console.log('[CSCSAccessGate] User not found in Users table');
+          console.log('[CSCSAccessGate] User not found in Users table - allowing access for new users');
           setCSCSStatus({
-            is_valid: false,
-            status: 'error',
-            reason: 'User profile not found',
-            requires_upload: true
+            is_valid: true,
+            status: 'new_user',
+            reason: 'New user - onboarding required',
+            requires_upload: false
           });
+          setLoading(false);
+          return;
+        }
+
+        // Skip CSCS checks if user hasn't completed onboarding yet
+        if (!userData.onboarding_completed || !userData.firstname || !userData.lastname) {
+          console.log('[CSCSAccessGate] User onboarding not completed, bypassing CSCS check');
+          setCSCSStatus({
+            is_valid: true,
+            status: 'onboarding_incomplete',
+            reason: 'Onboarding in progress',
+            requires_upload: false
+          });
+          setLoading(false);
           return;
         }
 

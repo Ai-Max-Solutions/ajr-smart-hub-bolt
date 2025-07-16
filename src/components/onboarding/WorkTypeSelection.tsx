@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/components/auth/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -86,6 +88,7 @@ const ramsDocuments = {
 const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [showRAMS, setShowRAMS] = useState(false);
   const [currentRAMS, setCurrentRAMS] = useState<any>(null);
 
@@ -146,7 +149,7 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
     return data.selectedWorkTypes.length > 0 && signedCount === requiredRAMS.length;
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!canProceed()) {
       toast({
         title: "Please complete all requirements",
@@ -156,11 +159,41 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
       return;
     }
 
-    toast({
-      title: "Work Types & RAMS Complete",
-      description: "All safety documents have been signed. Finalizing onboarding...",
-    });
-    navigate('/onboarding/complete');
+    try {
+      // Mark onboarding as completed in the database
+      if (user) {
+        const { error } = await supabase
+          .from('Users')
+          .update({ 
+            onboarding_completed: true,
+            skills: data.selectedWorkTypes 
+          })
+          .eq('supabase_auth_id', user.id);
+
+        if (error) {
+          console.error('Error updating onboarding status:', error);
+          toast({
+            title: "Error",
+            description: "Failed to complete onboarding. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      toast({
+        title: "Work Types & RAMS Complete",
+        description: "All safety documents have been signed. Finalizing onboarding...",
+      });
+      navigate('/onboarding/complete');
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete onboarding. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (showRAMS && currentRAMS) {
