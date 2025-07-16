@@ -35,24 +35,35 @@ const rootLoader = async () => {
   console.info('[Loader] Starting root route checks');
   
   try {
-    // Check authentication status
+    // Check authentication status with explicit error handling
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (authError || !user) {
+    if (authError) {
+      console.info('[Loader] Auth error (403/token issue):', authError.message);
+      return redirect('/auth');
+    }
+    
+    if (!user) {
       console.info('[Loader] No authenticated user, redirecting to auth');
       return redirect('/auth');
     }
 
-    // Query user data with dual ID support (Supabase auth ID and whalesync postgres ID)
+    // Query user data using maybeSingle() to handle missing user records gracefully
     const { data: userData, error: userError } = await supabase
       .from('Users')
       .select('onboarding_completed, firstname, lastname, cscs_required, whalesync_postgres_id')
       .eq('supabase_auth_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (userError) {
-      console.error('[Loader] Error fetching user data:', userError);
-      return redirect('/auth');
+      console.error('[Loader] Database error fetching user data:', userError);
+      return redirect('/onboarding/personal-details');
+    }
+
+    // Handle new users who don't have a Users record yet
+    if (!userData) {
+      console.info('[Loader] No Users row - new user, redirect onboarding');
+      return redirect('/onboarding/personal-details');
     }
 
     console.info('[Loader] User data:', userData);
@@ -67,29 +78,38 @@ const rootLoader = async () => {
     if (userData.cscs_required) {
       console.info('[Loader] Checking CSCS status for onboarded user');
       
-      // Query with both possible user ID references to handle Whalesync/Supabase mapping
-      const idToUse = userData.whalesync_postgres_id || user.id;
-      const { data: cscsCards, error: cscsError } = await supabase
-        .from('cscs_cards')
-        .select('*')
-        .or(`user_id.eq.${user.id},user_id.eq.${idToUse}`)
-        .order('created_at', { ascending: false });
+      try {
+        // Query with both possible user ID references to handle Whalesync/Supabase mapping
+        const idToUse = userData.whalesync_postgres_id || user.id;
+        const { data: cscsCards, error: cscsError } = await supabase
+          .from('cscs_cards')
+          .select('*')
+          .or(`user_id.eq.${user.id},user_id.eq.${idToUse}`)
+          .order('created_at', { ascending: false });
 
-      console.info('[Loader] CSCS cards query result:', { 
-        cscsCards, 
-        cscsError, 
-        userAuthId: user.id, 
-        userWhalesyncId: userData.whalesync_postgres_id 
-      });
+        if (cscsError) {
+          console.warn('[Loader] CSCS query error:', cscsError);
+          // Continue without CSCS check if error
+        } else {
+          console.info('[Loader] CSCS cards query result:', { 
+            cscsCards, 
+            userAuthId: user.id, 
+            userWhalesyncId: userData.whalesync_postgres_id 
+          });
 
-      const validCard = cscsCards?.find(card => {
-        const expiryDate = new Date(card.expiry_date);
-        return expiryDate > new Date();
-      });
+          const validCard = cscsCards?.find(card => {
+            const expiryDate = new Date(card.expiry_date);
+            return expiryDate > new Date();
+          });
 
-      if (!validCard) {
-        console.info('[Loader] Redirect: Invalid CSCS');
-        return redirect('/onboarding/cscs');
+          if (!validCard) {
+            console.info('[Loader] Redirect: Invalid CSCS');
+            return redirect('/onboarding/cscs');
+          }
+        }
+      } catch (cscsErr) {
+        console.warn('[Loader] CSCS check failed, continuing:', cscsErr);
+        // Continue to dashboard if CSCS check fails
       }
     }
 
@@ -98,7 +118,7 @@ const rootLoader = async () => {
     
   } catch (error) {
     console.error('[Loader] Unexpected error:', error);
-    return redirect('/auth');
+    return redirect('/onboarding/personal-details');
   }
 };
 
