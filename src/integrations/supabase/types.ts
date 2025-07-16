@@ -13868,6 +13868,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      cleanup_orphaned_records: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       cleanup_orphaned_references: {
         Args: Record<PropertyKey, never>
         Returns: {
