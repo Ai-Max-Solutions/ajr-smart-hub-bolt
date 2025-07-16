@@ -87,56 +87,114 @@ export const TaskPlanRAMSRegister: React.FC = () => {
     try {
       setLoading(true);
       
-      // Load register entries
-      const { data: registerData, error: registerError } = await supabase
-        .from('task_plan_rams_register')
-        .select('*')
-        .order('date_issued', { ascending: false });
-
-      if (registerError) throw registerError;
-      
-      // Load work activities
-      const { data: activitiesData, error: activitiesError } = await supabase
-        .from('work_activity_categories')
-        .select('*')
-        .order('display_order');
-
-      if (activitiesError) throw activitiesError;
-
-      // Load projects
+      // Load projects from actual database
       const { data: projectsData, error: projectsError } = await supabase
-        .from('Projects')
-        .select('id, projectname')
-        .order('projectname');
+        .from('projects')
+        .select('id, name')
+        .order('name');
 
       if (projectsError) throw projectsError;
 
-      // Load contractors with companies
-      const { data: contractorsData, error: contractorsError } = await supabase
-        .from('contractor_profiles')
-        .select(`
-          *,
-          company:contractor_companies(company_name)
-        `)
-        .order('first_name');
-
-      if (contractorsError) throw contractorsError;
-
-      // Load RAMS documents
-      const { data: ramsData, error: ramsError } = await supabase
-        .from('rams_documents')
+      // Load work categories from actual database
+      const { data: workCategoriesData, error: workCategoriesError } = await supabase
+        .from('work_categories')
         .select('*')
-        .eq('is_current_version', true)
-        .order('title');
+        .order('main_category');
 
-      if (ramsError) throw ramsError;
+      if (workCategoriesError) throw workCategoriesError;
 
-      setEntries(registerData || []);
-      setFilteredEntries(registerData || []);
-      setWorkActivities(activitiesData || []);
-      setProjects(projectsData || []);
-      setContractors(contractorsData || []);
-      setRAMSDocuments(ramsData || []);
+      // Mock data for missing tables
+      const mockRegisterData: RegisterEntry[] = [
+        {
+          id: '1',
+          project_name: 'Residential Development Phase 1',
+          subcontractor_company: 'ABC Construction Ltd',
+          work_activity: 'Excavation',
+          rams_name: 'Excavation Safety Method Statement',
+          version: 'v1.2',
+          date_issued: '2024-01-15',
+          responsible_person: 'John Smith',
+          status: 'Outstanding',
+          contractor_id: '1',
+          rams_document_id: '1',
+          work_activity_id: '1',
+          project_id: projectsData?.[0]?.id || '1',
+          created_at: '2024-01-15T10:00:00Z'
+        },
+        {
+          id: '2',
+          project_name: 'Commercial Building Project',
+          subcontractor_company: 'XYZ Builders',
+          work_activity: 'Concrete Work',
+          rams_name: 'Concrete Pour Safety Plan',
+          version: 'v2.0',
+          date_issued: '2024-01-10',
+          responsible_person: 'Jane Doe',
+          status: 'Signed',
+          signed_by: 'Mike Johnson',
+          date_signed: '2024-01-12T14:30:00Z',
+          contractor_id: '2',
+          rams_document_id: '2',
+          work_activity_id: '2',
+          project_id: projectsData?.[1]?.id || '2',
+          created_at: '2024-01-10T09:00:00Z'
+        }
+      ];
+
+      const mockContractors: ContractorProfile[] = [
+        {
+          id: '1',
+          first_name: 'John',
+          last_name: 'Smith',
+          email: 'john@abcconstruction.com',
+          company_id: '1',
+          company: { company_name: 'ABC Construction Ltd' }
+        },
+        {
+          id: '2',
+          first_name: 'Jane',
+          last_name: 'Doe',
+          email: 'jane@xyzbuilders.com',
+          company_id: '2',
+          company: { company_name: 'XYZ Builders' }
+        }
+      ];
+
+      const mockRAMSDocuments: RAMSDocument[] = [
+        {
+          id: '1',
+          title: 'Excavation Safety Method Statement',
+          document_version: 'v1.2',
+          work_types: ['Excavation', 'Earthworks']
+        },
+        {
+          id: '2',
+          title: 'Concrete Pour Safety Plan',
+          document_version: 'v2.0',
+          work_types: ['Concrete Work', 'Structural Work']
+        }
+      ];
+
+      // Transform work categories to match WorkActivity interface
+      const transformedWorkActivities: WorkActivity[] = (workCategoriesData || []).map(wc => ({
+        id: wc.id,
+        name: `${wc.main_category} - ${wc.sub_task}`,
+        code: wc.main_category.substring(0, 3).toUpperCase(),
+        description: wc.sub_task
+      }));
+
+      // Transform projects to match Project interface
+      const transformedProjects: Project[] = (projectsData || []).map(p => ({
+        id: p.id,
+        projectname: p.name
+      }));
+
+      setEntries(mockRegisterData);
+      setFilteredEntries(mockRegisterData);
+      setWorkActivities(transformedWorkActivities);
+      setProjects(transformedProjects);
+      setContractors(mockContractors);
+      setRAMSDocuments(mockRAMSDocuments);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -231,31 +289,34 @@ export const TaskPlanRAMSRegister: React.FC = () => {
         throw new Error('Missing required data');
       }
 
-      const { error } = await supabase
-        .from('task_plan_rams_register')
-        .insert({
-          project_id: formData.project_id,
-          project_name: project.projectname,
-          subcontractor_company: contractor.company?.company_name || 'Unknown Company',
-          contractor_id: formData.contractor_id,
-          work_activity_id: formData.work_activity_id,
-          work_activity: activity.name,
-          rams_document_id: formData.rams_document_id,
-          rams_name: rams.title,
-          version: rams.document_version,
-          responsible_person: formData.responsible_person,
-          status: 'Outstanding'
-        });
+      // Since we're using mock data, create a new entry locally
+      const newEntry: RegisterEntry = {
+        id: Date.now().toString(),
+        project_id: formData.project_id,
+        project_name: project.projectname,
+        subcontractor_company: contractor.company?.company_name || 'Unknown Company',
+        contractor_id: formData.contractor_id,
+        work_activity_id: formData.work_activity_id,
+        work_activity: activity.name,
+        rams_document_id: formData.rams_document_id,
+        rams_name: rams.title,
+        version: rams.document_version,
+        responsible_person: formData.responsible_person,
+        status: 'Outstanding',
+        date_issued: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      };
 
-      if (error) throw error;
+      // Add to local state
+      setEntries(prev => [newEntry, ...prev]);
+      setFilteredEntries(prev => [newEntry, ...prev]);
 
       toast({
         title: 'Success',
-        description: 'Task Plan / RAMS Register entry added successfully',
+        description: 'Task Plan / RAMS Register entry added successfully (mock data)',
       });
 
       setShowAddDialog(false);
-      loadData();
     } catch (error) {
       console.error('Error adding entry:', error);
       toast({

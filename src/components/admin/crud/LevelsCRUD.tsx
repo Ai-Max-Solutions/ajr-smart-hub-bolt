@@ -49,15 +49,23 @@ export const LevelsCRUD = ({ searchQuery, isOffline }: LevelsCRUDProps) => {
 
   const fetchData = async () => {
     try {
-      const [levelsRes, projectsRes, blocksRes] = await Promise.all([
-        supabase.from('Levels').select('*').order('levelnumber'),
-        supabase.from('Projects').select('id, projectname').eq('status', 'Active'),
-        supabase.from('Blocks').select('id, blockname, project')
-      ]);
+      // Load projects from actual database
+      const projectsRes = await supabase.from('projects').select('id, name').order('name');
+      
+      // Mock data for non-existent tables
+      const mockLevels = [
+        { id: '1', levelname: 'Ground Floor', levelnumber: 1, levelstatus: 'Active', block: 'A', levelnotes: 'Ground floor', plotsonlevel: 10 },
+        { id: '2', levelname: 'First Floor', levelnumber: 2, levelstatus: 'Active', block: 'A', levelnotes: 'First floor', plotsonlevel: 8 }
+      ];
+      
+      const mockBlocks = [
+        { id: '1', blockname: 'Block A', project: 'Project 1' },
+        { id: '2', blockname: 'Block B', project: 'Project 1' }
+      ];
 
-      setLevels(levelsRes.data || []);
-      setProjects(projectsRes.data || []);
-      setBlocks(blocksRes.data || []);
+      setLevels(mockLevels);
+      setProjects(projectsRes.data?.map(p => ({ id: p.id, projectname: p.name })) || []);
+      setBlocks(mockBlocks);
     } catch (error) {
       if (!isOffline) {
         toast.error("Failed to load data");
@@ -72,23 +80,18 @@ export const LevelsCRUD = ({ searchQuery, isOffline }: LevelsCRUDProps) => {
     
     try {
       if (editingLevel) {
-        const { error } = await supabase
-          .from('Levels')
-          .update(formData)
-          .eq('id', editingLevel.id);
-
-        if (error) throw error;
-        toast.success("Level updated successfully");
+        // Mock update
+        setLevels(levels.map(level => 
+          level.id === editingLevel.id ? { ...level, ...formData } : level
+        ));
+        toast.success("Level updated successfully (mock data)");
       } else {
-        const { error } = await supabase
-          .from('Levels')
-          .insert([formData]);
-
-        if (error) throw error;
-        toast.success("Level created successfully");
+        // Mock create
+        const newLevel = { ...formData, id: Date.now().toString() };
+        setLevels([...levels, newLevel]);
+        toast.success("Level created successfully (mock data)");
       }
 
-      fetchData();
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
@@ -100,14 +103,11 @@ export const LevelsCRUD = ({ searchQuery, isOffline }: LevelsCRUDProps) => {
     if (!confirm("Are you sure? This will affect all plots on this level.")) return;
 
     try {
-      const { error } = await supabase
-        .from('Levels')
-        .update({ levelstatus: 'Archived' })
-        .eq('id', levelId);
-
-      if (error) throw error;
-      toast.success("Level archived successfully");
-      fetchData();
+      // Mock archive - update local state
+      setLevels(levels.map(level => 
+        level.id === levelId ? { ...level, levelstatus: 'Archived' } : level
+      ));
+      toast.success("Level archived successfully (mock data)");
     } catch (error: any) {
       toast.error(error.message || "Failed to archive level");
     }

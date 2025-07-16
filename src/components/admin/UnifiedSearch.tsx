@@ -96,25 +96,24 @@ export const UnifiedSearch = ({
       // Search Projects
       if (includeProjects) {
         const { data: projects } = await supabase
-          .from('Projects')
-          .select('id, projectname, clientname, status, siteaddress, projectmanager')
-          .or(`projectname.ilike.%${query}%,clientname.ilike.%${query}%,siteaddress.ilike.%${query}%,projectmanager.ilike.%${query}%`)
+          .from('projects')
+          .select('id, name, client, code')
+          .or(`name.ilike.%${query}%,client.ilike.%${query}%,code.ilike.%${query}%`)
           .limit(5);
 
         projects?.forEach(project => {
           const relevance = calculateRelevance(query, [
-            project.projectname,
-            project.clientname,
-            project.projectmanager,
-            project.siteaddress
+            project.name,
+            project.client,
+            project.code
           ]);
 
           searchResults.push({
             id: project.id,
             type: 'project',
-            title: project.projectname || 'Unnamed Project',
-            subtitle: project.clientname || 'No Client',
-            description: `${project.status} • ${project.siteaddress || 'No Address'}`,
+            title: project.name || 'Unnamed Project',
+            subtitle: project.client || 'No Client',
+            description: `Code: ${project.code}`,
             metadata: project,
             relevance_score: relevance
           });
@@ -124,24 +123,22 @@ export const UnifiedSearch = ({
       // Search Users
       if (includeUsers) {
         const { data: users } = await supabase
-          .from('Users')
-          .select('id, fullname, email, role, skills, currentproject')
-          .or(`fullname.ilike.%${query}%,email.ilike.%${query}%,role.ilike.%${query}%`)
-          .eq('employmentstatus', 'Active')
+          .from('users')
+          .select('id, name, email, role, phone')
+          .or(`name.ilike.%${query}%,email.ilike.%${query}%,role.ilike.%${query}%`)
           .limit(5);
 
         users?.forEach(user => {
           const relevance = calculateRelevance(query, [
-            user.fullname,
+            user.name,
             user.email,
-            user.role,
-            ...(user.skills || [])
+            user.role
           ]);
 
           searchResults.push({
             id: user.id,
             type: 'user',
-            title: user.fullname || 'Unknown User',
+            title: user.name || 'Unknown User',
             subtitle: user.role || 'No Role',
             description: user.email || 'No Email',
             metadata: user,
@@ -150,56 +147,31 @@ export const UnifiedSearch = ({
         });
       }
 
-      // Search Documents
-      if (includeDocuments) {
-        const { data: documents } = await supabase
-          .from('rams_documents')
-          .select('id, title, document_type, document_id, tags, status, created_at')
-          .or(`title.ilike.%${query}%,document_id.ilike.%${query}%,document_type.ilike.%${query}%`)
-          .eq('status', 'active')
-          .limit(5);
-
-        documents?.forEach(doc => {
-          const relevance = calculateRelevance(query, [
-            doc.title,
-            doc.document_id,
-            doc.document_type,
-            ...(doc.tags || [])
-          ]);
-
-          searchResults.push({
-            id: doc.id,
-            type: 'document',
-            title: doc.title || 'Untitled Document',
-            subtitle: doc.document_type || 'Unknown Type',
-            description: `${doc.document_id} • ${new Date(doc.created_at).toLocaleDateString()}`,
-            metadata: doc,
-            relevance_score: relevance
-          });
-        });
-      }
+      // Search Documents - disabled as rams_documents table doesn't exist
+      // if (includeDocuments) {
+      //   Mock search results for documents
+      // }
 
       // Search Plots
       if (includePlots) {
         const { data: plots } = await supabase
-          .from('Plots')
-          .select('id, plotnumber, plotstatus, customername, level')
-          .or(`plotnumber.ilike.%${query}%,customername.ilike.%${query}%,plotstatus.ilike.%${query}%`)
+          .from('plots')
+          .select('id, name, level, project_id')
+          .or(`name.ilike.%${query}%,level.ilike.%${query}%`)
           .limit(5);
 
         plots?.forEach(plot => {
           const relevance = calculateRelevance(query, [
-            plot.plotnumber,
-            plot.customername,
-            plot.plotstatus
+            plot.name,
+            plot.level
           ]);
 
           searchResults.push({
             id: plot.id,
             type: 'plot',
-            title: `Plot ${plot.plotnumber || 'Unknown'}`,
-            subtitle: plot.plotstatus || 'No Status',
-            description: plot.customername || 'No Customer',
+            title: plot.name || 'Unknown Plot',
+            subtitle: plot.level || 'No Level',
+            description: `Project ID: ${plot.project_id}`,
             metadata: plot,
             relevance_score: relevance
           });
