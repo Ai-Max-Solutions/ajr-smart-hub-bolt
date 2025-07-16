@@ -21,7 +21,7 @@ interface Plot {
   id: string;
   plotnumber: string;
   plotstatus: string;
-  level: string;
+  level: number | null;
   numberofbedrooms: number;
   numberofbathrooms: number;
   floorarea: number;
@@ -70,7 +70,7 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
         id: plot.id,
         plotnumber: plot.name,
         plotstatus: 'Available',
-        level: plot.level || 'Ground Floor',
+        level: plot.level || null,
         numberofbedrooms: 3,
         numberofbathrooms: 2,
         floorarea: 100,
@@ -97,17 +97,28 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
     try {
       if (editingPlot) {
         // Mock data update
+        const updatedPlot: Plot = {
+          ...editingPlot,
+          ...formData,
+          level: formData.level ? parseInt(formData.level) : null
+        };
         setPlots(plots.map(plot => 
-          plot.id === editingPlot.id ? { ...plot, ...formData } : plot
+          plot.id === editingPlot.id ? updatedPlot : plot
         ));
         toast.success("Plot updated successfully (mock data)");
       } else {
         // Mock data creation
-        const newPlot = {
+        const newPlot: Plot = {
           id: Date.now().toString(),
-          ...formData,
           plotnumber: formData.plotnumber || 'New Plot',
-          plotstatus: formData.plotstatus || 'Available'
+          plotstatus: formData.plotstatus || 'Available',
+          level: formData.level ? parseInt(formData.level) : null,
+          numberofbedrooms: formData.numberofbedrooms,
+          numberofbathrooms: formData.numberofbathrooms,
+          floorarea: formData.floorarea,
+          plannedhandoverdate: formData.plannedhandoverdate,
+          actualhandoverdate: formData.actualhandoverdate,
+          plotnotes: formData.plotnotes
         };
 
         setPlots([...plots, newPlot]);
@@ -156,7 +167,7 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
     setFormData({
       plotnumber: plot.plotnumber || "",
       plotstatus: plot.plotstatus || "Planning",
-      level: plot.level || "",
+      level: plot.level?.toString() || "",
       numberofbedrooms: plot.numberofbedrooms || 2,
       numberofbathrooms: plot.numberofbathrooms || 1,
       floorarea: plot.floorarea || 0,
@@ -273,18 +284,14 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
 
                   <div className="space-y-2">
                     <Label htmlFor="level">Level</Label>
-                    <Select value={formData.level} onValueChange={(value) => setFormData({ ...formData, level: value })}>
-                      <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {levels.map((level) => (
-                          <SelectItem key={level.id} value={level.id}>
-                            Level {level.levelnumber} - {level.levelname}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      id="level"
+                      type="number"
+                      value={formData.level}
+                      onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                      placeholder="Enter level number"
+                      className="h-12"
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

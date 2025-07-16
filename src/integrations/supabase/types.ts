@@ -75,7 +75,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          level: string | null
+          level: number | null
           name: string
           project_id: string
           updated_at: string
@@ -83,7 +83,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          level?: string | null
+          level?: number | null
           name: string
           project_id: string
           updated_at?: string
@@ -91,7 +91,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          level?: string | null
+          level?: number | null
           name?: string
           project_id?: string
           updated_at?: string
@@ -105,6 +105,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plots_level_backup: {
+        Row: {
+          id: string | null
+          original_level: string | null
+        }
+        Insert: {
+          id?: string | null
+          original_level?: string | null
+        }
+        Update: {
+          id?: string | null
+          original_level?: string | null
+        }
+        Relationships: []
       }
       projects: {
         Row: {

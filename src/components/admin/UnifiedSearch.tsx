@@ -163,14 +163,14 @@ export const UnifiedSearch = ({
         plots?.forEach(plot => {
           const relevance = calculateRelevance(query, [
             plot.name,
-            plot.level
+            plot.level?.toString() || ''
           ]);
 
           searchResults.push({
             id: plot.id,
             type: 'plot',
             title: plot.name || 'Unknown Plot',
-            subtitle: plot.level || 'No Level',
+            subtitle: plot.level ? `Level ${plot.level}` : 'No Level',
             description: `Project ID: ${plot.project_id}`,
             metadata: plot,
             relevance_score: relevance

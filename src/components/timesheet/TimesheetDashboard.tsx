@@ -20,7 +20,7 @@ interface TimesheetData {
     hours: number;
     plot: {
       name: string;
-      level: string;
+      level: number | null;
     };
     work_category: {
       main_category: string;
