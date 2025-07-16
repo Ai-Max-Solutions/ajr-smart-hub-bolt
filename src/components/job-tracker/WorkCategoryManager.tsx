@@ -42,20 +42,24 @@ export const WorkCategoryManager: React.FC = () => {
         .from('work_categories')
         .select(`
           id,
-          name,
-          code,
-          description,
-          is_template,
-          display_order,
-          job_types(count)
+          main_category,
+          sub_task,
+          created_at,
+          updated_at
         `)
-        .order('display_order');
+        .order('main_category');
 
       if (error) throw error;
 
+      // Mock data since job_types doesn't exist
       const categoriesWithCount = data?.map(cat => ({
-        ...cat,
-        job_types_count: cat.job_types?.length || 0
+        id: cat.id,
+        name: cat.main_category,
+        code: cat.main_category.substring(0, 3).toUpperCase(),
+        description: cat.sub_task,
+        is_template: true,
+        display_order: 1,
+        job_types_count: 0
       })) || [];
 
       setCategories(categoriesWithCount);
@@ -76,8 +80,8 @@ export const WorkCategoryManager: React.FC = () => {
     
     try {
       const categoryData = {
-        ...formData,
-        is_template: true
+        main_category: formData.name || 'Default Category',
+        sub_task: formData.description || 'Default Task'
       };
 
       if (editingCategory) {

@@ -48,9 +48,9 @@ export const NotificationAnalytics: React.FC = () => {
   const fetchProjects = async () => {
     try {
       const { data: projectsData, error } = await supabase
-        .from('Projects')
-        .select('id, projectname')
-        .order('projectname');
+        .from('projects')
+        .select('id, name')
+        .order('name');
 
       if (error) throw error;
       setProjects(projectsData || []);

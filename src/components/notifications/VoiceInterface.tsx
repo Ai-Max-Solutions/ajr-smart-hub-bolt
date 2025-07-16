@@ -78,16 +78,14 @@ export const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => 
       const command = parseVoiceCommand(transcript);
       
       if (command) {
-        // Log voice interaction
-        await supabase
-          .from('voice_interaction_logs')
-          .insert({
-            command_text: transcript,
-            intent_detected: command.intent,
-            confidence_score: command.confidence,
-            action_successful: true,
-            background_noise_level: 'low', // This would be detected from audio analysis
-            location_context: 'office', // This could be determined from device context
+        // Mock voice interaction logging
+        console.log('Voice interaction logged:', {
+          command_text: transcript,
+          intent_detected: command.intent,
+          confidence_score: command.confidence,
+          action_successful: true,
+          background_noise_level: 'low',
+          location_context: 'office',
             device_info: {
               userAgent: navigator.userAgent,
               platform: navigator.platform
@@ -113,16 +111,14 @@ export const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => 
     } catch (error: any) {
       console.error('Error processing voice command:', error);
       
-      // Log failed interaction
-      await supabase
-        .from('voice_interaction_logs')
-        .insert({
-          command_text: transcript,
-          intent_detected: 'unknown',
-          confidence_score: 0,
-          action_successful: false,
-          error_message: error.message
-        });
+      // Mock failed interaction logging
+      console.log('Failed voice interaction:', {
+        command_text: transcript,
+        intent_detected: 'unknown',
+        confidence_score: 0,
+        action_successful: false,
+        error_message: error.message
+      });
 
       toast({
         title: 'Voice command failed',
