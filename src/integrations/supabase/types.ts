@@ -12987,6 +12987,14 @@ export type Database = {
         }
         Returns: Json
       }
+      monitor_relationship_health: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          metric_name: string
+          metric_value: number
+          status: string
+        }[]
+      }
       notify_expiring_signatures: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -13203,6 +13211,15 @@ export type Database = {
       user_is_document_controller: {
         Args: { user_uuid: string }
         Returns: boolean
+      }
+      validate_array_relationships: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          issue_type: string
+          table_name: string
+          record_id: string
+          details: string
+        }[]
       }
       validate_cscs_card: {
         Args:
