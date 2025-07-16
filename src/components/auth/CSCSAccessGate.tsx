@@ -26,10 +26,15 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
 }) => {
   const { user, session } = useAuth();
   const location = useLocation();
+  
+  // Determine if we should check CSCS based on route
+  const shouldCheckCSCS = !location.pathname.startsWith('/onboarding') && 
+                          !location.pathname.startsWith('/auth');
+  
   const [cscsStatus, setCSCSStatus] = useState<CSCSStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(shouldCheckCSCS);
 
-  console.info('[CSCS] Gate Attempt:', location.pathname, 'User:', user?.email);
+  console.info('[CSCS] Gate Attempt:', location.pathname, 'User:', user?.email, 'ShouldCheck:', shouldCheckCSCS);
 
   // Early bailout for onboarding routes - return children immediately
   if (location.pathname.startsWith('/onboarding')) {
@@ -45,10 +50,9 @@ export const CSCSAccessGate: React.FC<CSCSAccessGateProps> = ({
 
   useEffect(() => {
     const checkCSCSStatus = async () => {
-      // EARLY EXIT: Skip CSCS validation for onboarding routes
-      if (location.pathname.startsWith('/onboarding')) {
-        console.log('[CSCSAccessGate] On onboarding route, skipping CSCS validation');
-        setLoading(false);
+      // EARLY EXIT: Skip CSCS validation for onboarding/auth routes
+      if (!shouldCheckCSCS) {
+        console.log('[CSCSAccessGate] useEffect skip - route does not require CSCS check');
         return;
       }
 
