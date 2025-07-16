@@ -971,6 +971,24 @@ export type Database = {
         }
         Relationships: []
       }
+      blocks: {
+        Row: {
+          id: number
+          level_id: number | null
+          name: string | null
+        }
+        Insert: {
+          id?: never
+          level_id?: number | null
+          name?: string | null
+        }
+        Update: {
+          id?: never
+          level_id?: number | null
+          name?: string | null
+        }
+        Relationships: []
+      }
       Blocks: {
         Row: {
           airtable_created_time: string | null
@@ -2730,6 +2748,32 @@ export type Database = {
           },
         ]
       }
+      drawing_revisions: {
+        Row: {
+          drawing_id: number
+          id: number
+          revision_number: number
+        }
+        Insert: {
+          drawing_id: number
+          id?: never
+          revision_number: number
+        }
+        Update: {
+          drawing_id?: number
+          id?: never
+          revision_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_drawing"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "drawings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Drawing_Revisions: {
         Row: {
           accesscount: number | null
@@ -2845,6 +2889,24 @@ export type Database = {
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
+      }
+      drawings: {
+        Row: {
+          created_at: string | null
+          id: number
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: never
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: never
+          title?: string
+        }
+        Relationships: []
       }
       Drawings: {
         Row: {
@@ -4336,6 +4398,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      levels: {
+        Row: {
+          block_id: number | null
+          id: number
+          name: string | null
+        }
+        Insert: {
+          block_id?: number | null
+          id?: never
+          name?: string | null
+        }
+        Update: {
+          block_id?: number | null
+          id?: never
+          name?: string | null
+        }
+        Relationships: []
       }
       Levels: {
         Row: {
