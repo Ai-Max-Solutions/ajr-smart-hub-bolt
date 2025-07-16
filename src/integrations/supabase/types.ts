@@ -1098,36 +1098,7 @@ export type Database = {
           waterconnectionstatus?: string | null
           whalesync_postgres_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "blocks_drawings_2_foreign"
-            columns: ["drawings_2"]
-            isOneToOne: false
-            referencedRelation: "Drawings"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "blocks_hire_foreign"
-            columns: ["hire"]
-            isOneToOne: false
-            referencedRelation: "Hire"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "blocks_levels_foreign"
-            columns: ["levels"]
-            isOneToOne: false
-            referencedRelation: "Levels"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "blocks_project_foreign"
-            columns: ["project"]
-            isOneToOne: false
-            referencedRelation: "Projects"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-        ]
+        Relationships: []
       }
       chat_messages: {
         Row: {
@@ -2880,15 +2851,7 @@ export type Database = {
           technicalnotes?: string | null
           whalesync_postgres_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "drawing_revisions_drawing_foreign"
-            columns: ["drawing"]
-            isOneToOne: false
-            referencedRelation: "Drawings"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-        ]
+        Relationships: []
       }
       drawings: {
         Row: {
@@ -3038,43 +3001,7 @@ export type Database = {
           trade?: string | null
           whalesync_postgres_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "drawings_block_foreign"
-            columns: ["block"]
-            isOneToOne: false
-            referencedRelation: "Blocks"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "drawings_drawing_revisions_foreign"
-            columns: ["drawing_revisions"]
-            isOneToOne: false
-            referencedRelation: "Drawing_Revisions"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "drawings_level_foreign"
-            columns: ["level"]
-            isOneToOne: false
-            referencedRelation: "Levels"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "drawings_plotscovered_foreign"
-            columns: ["plotscovered"]
-            isOneToOne: false
-            referencedRelation: "Plots"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "drawings_project_foreign"
-            columns: ["project"]
-            isOneToOne: false
-            referencedRelation: "Projects"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-        ]
+        Relationships: []
       }
       enhanced_audit_log: {
         Row: {
@@ -3675,24 +3602,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "hire_block_foreign"
-            columns: ["block"]
-            isOneToOne: false
-            referencedRelation: "Blocks"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
             foreignKeyName: "hire_jobs_foreign"
             columns: ["jobs"]
             isOneToOne: false
             referencedRelation: "Jobs"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "hire_project_foreign"
-            columns: ["project"]
-            isOneToOne: false
-            referencedRelation: "Projects"
             referencedColumns: ["whalesync_postgres_id"]
           },
         ]
@@ -3942,13 +3855,6 @@ export type Database = {
             columns: ["category"]
             isOneToOne: false
             referencedRelation: "WorkCategories"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "job_templates_jobs_foreign"
-            columns: ["jobs"]
-            isOneToOne: false
-            referencedRelation: "Jobs"
             referencedColumns: ["whalesync_postgres_id"]
           },
           {
@@ -4574,29 +4480,7 @@ export type Database = {
           wastestackinstallation?: string | null
           whalesync_postgres_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "levels_block_foreign"
-            columns: ["block"]
-            isOneToOne: false
-            referencedRelation: "Blocks"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "levels_drawings_2_foreign"
-            columns: ["drawings_2"]
-            isOneToOne: false
-            referencedRelation: "Drawings"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "levels_plots_foreign"
-            columns: ["plots"]
-            isOneToOne: false
-            referencedRelation: "Plots"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-        ]
+        Relationships: []
       }
       live_activity_feed: {
         Row: {
@@ -5875,36 +5759,7 @@ export type Database = {
           warrantystartdate?: string | null
           whalesync_postgres_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "plots_drawings_2_foreign"
-            columns: ["drawings_2"]
-            isOneToOne: false
-            referencedRelation: "Drawings"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "plots_jobs_foreign"
-            columns: ["jobs"]
-            isOneToOne: false
-            referencedRelation: "Jobs"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "plots_level_foreign"
-            columns: ["level"]
-            isOneToOne: false
-            referencedRelation: "Levels"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "plots_plottype_foreign"
-            columns: ["plottype"]
-            isOneToOne: false
-            referencedRelation: "Plot_Types"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-        ]
+        Relationships: []
       }
       pod_approvals: {
         Row: {
@@ -6983,27 +6838,6 @@ export type Database = {
           whalesync_postgres_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "projects_blocks_foreign"
-            columns: ["blocks"]
-            isOneToOne: false
-            referencedRelation: "Blocks"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "projects_drawings_2_foreign"
-            columns: ["drawings_2"]
-            isOneToOne: false
-            referencedRelation: "Drawings"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
-          {
-            foreignKeyName: "projects_hire_foreign"
-            columns: ["hire"]
-            isOneToOne: false
-            referencedRelation: "Hire"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
           {
             foreignKeyName: "Projects_project_manager_id_fkey"
             columns: ["project_manager_id"]
@@ -10589,13 +10423,6 @@ export type Database = {
           whalesync_postgres_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "user_job_rates_jobs_foreign"
-            columns: ["jobs"]
-            isOneToOne: false
-            referencedRelation: "Jobs"
-            referencedColumns: ["whalesync_postgres_id"]
-          },
           {
             foreignKeyName: "user_job_rates_jobtemplate_foreign"
             columns: ["jobtemplate"]
