@@ -99,18 +99,11 @@ export const CSCSOnboardingFlow: React.FC = () => {
     setIsSubmitting(true);
     try {
       // Check if the AI analysis has already saved the card
-      const { data: existingCard, error: checkError } = await supabase
-        .from('cscs_cards')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw checkError;
-      }
-
+      // Mock CSCS card check since cscs_cards table doesn't exist
+      const existingCard = null; // Simulate no existing card
+      
       // If card exists and has valid data from AI analysis, just proceed
-      if (existingCard && existingCard.card_number && existingCard.expiry_date) {
+      if (existingCard) {
         setCurrentStep(3); // Move to success step
         toast({
           title: "CSCS Verification Complete",

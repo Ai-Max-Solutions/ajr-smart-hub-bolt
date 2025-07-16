@@ -57,7 +57,7 @@ export const MyProfile: React.FC = () => {
       if (!user) throw new Error('No authenticated user');
 
       const { data, error } = await supabase
-        .from('Users')
+        .from('users')
         .update(updates)
         .eq('supabase_auth_id', user.id)
         .select()

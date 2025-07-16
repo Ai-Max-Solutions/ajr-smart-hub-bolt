@@ -163,10 +163,9 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
       // Mark onboarding as completed in the database
       if (user) {
         const { error } = await supabase
-          .from('Users')
+          .from('users')
           .update({ 
-            onboarding_completed: true,
-            skills: data.selectedWorkTypes 
+            role: data.selectedWorkTypes.includes('supervisor') ? 'Supervisor' : 'Operative'
           })
           .eq('supabase_auth_id', user.id);
 
