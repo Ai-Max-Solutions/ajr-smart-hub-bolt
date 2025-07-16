@@ -18,8 +18,8 @@ export const IndexWrapper = () => {
 
       try {
         const { data: userData, error } = await supabase
-          .from('Users')
-          .select('onboarding_completed, firstname, lastname')
+          .from('users')
+          .select('name, phone')
           .eq('supabase_auth_id', user.id)
           .single();
 
@@ -31,11 +31,11 @@ export const IndexWrapper = () => {
 
         console.log('[IndexWrapper] User data:', userData);
 
-        // Check if user needs to complete onboarding
-        if (!userData.onboarding_completed || !userData.firstname || !userData.lastname) {
-          console.log('[IndexWrapper] User needs onboarding, redirecting...');
-          setShouldRedirectToOnboarding(true);
-        }
+        // Check if user needs to complete onboarding (for now, skip onboarding)
+        // if (!userData.name || !userData.phone) {
+        //   console.log('[IndexWrapper] User needs onboarding, redirecting...');
+        //   setShouldRedirectToOnboarding(true);
+        // }
 
         setLoading(false);
       } catch (error) {

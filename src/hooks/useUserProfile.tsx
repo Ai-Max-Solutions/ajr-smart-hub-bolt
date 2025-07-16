@@ -40,9 +40,9 @@ export const useUserProfile = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch from Users table
+      // Fetch from users table
       const { data: userData, error: userError } = await supabase
-        .from('Users')
+        .from('users')
         .select('*')
         .eq('supabase_auth_id', user.id)
         .single();
@@ -55,16 +55,16 @@ export const useUserProfile = () => {
         setProfile({
           id: userData.id,
           auth_email: user.email || '',
-          firstname: userData.firstname,
-          lastname: userData.lastname,
-          fullname: userData.fullname,
+          firstname: userData.name?.split(' ')[0] || '',
+          lastname: userData.name?.split(' ').slice(1).join(' ') || '',
+          fullname: userData.name || '',
           role: userData.role,
-          system_role: userData.system_role,
-          employmentstatus: userData.employmentstatus,
-          currentproject: userData.currentproject,
-          skills: userData.skills,
-          phone: userData.phone,
-          primaryskill: userData.primaryskill
+          system_role: userData.role,
+          employmentstatus: 'Active',
+          currentproject: '',
+          skills: [],
+          phone: userData.phone || '',
+          primaryskill: ''
         });
       }
     } catch (err: any) {
@@ -83,7 +83,7 @@ export const useUserProfile = () => {
       setError(null);
 
       const { error } = await supabase
-        .from('Users')
+        .from('users')
         .update(updates)
         .eq('supabase_auth_id', user.id);
 
