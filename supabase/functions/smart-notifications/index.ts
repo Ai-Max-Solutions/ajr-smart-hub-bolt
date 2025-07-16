@@ -24,7 +24,7 @@ serve(async (req) => {
 
     // Get user profile and recent activity
     const [userProfile, recentActivity, complianceData] = await Promise.all([
-      supabase.from('Users').select('*').eq('whalesync_postgres_id', userId).single(),
+      supabase.from('Users').select('*').eq('id', userId).single(),
       supabase.from('activity_metrics').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(10),
       supabase.from('compliance_dashboard_stats').select('*').order('calculated_at', { ascending: false }).limit(5)
     ]);

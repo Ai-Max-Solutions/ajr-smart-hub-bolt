@@ -44,7 +44,7 @@ serve(async (req) => {
     // Get user profile from Users table
     const { data: userProfile, error: profileError } = await supabase
       .from('Users')
-      .select('whalesync_postgres_id, role, employmentstatus, deactivation_date')
+      .select('id, role, employmentstatus, deactivation_date')
       .eq('supabase_auth_id', user.id)
       .single();
 
@@ -82,7 +82,7 @@ serve(async (req) => {
     }
 
     // Check rate limiting
-    const rateLimitOk = await checkRateLimit(supabase, userProfile.whalesync_postgres_id, endpoint);
+    const rateLimitOk = await checkRateLimit(supabase, userProfile.id, endpoint);
     if (!rateLimitOk) {
       return new Response(JSON.stringify({ 
         valid: false, 
@@ -98,7 +98,7 @@ serve(async (req) => {
     if (!hasPermission) {
       // Log unauthorized access attempt
       await supabase.from('audit_log').insert({
-        user_id: userProfile.whalesync_postgres_id,
+        user_id: userProfile.id,
         action: 'UNAUTHORIZED_ACCESS_ATTEMPT',
         table_name: 'auth_validation',
         new_values: { action, endpoint, role: userProfile.role }
@@ -115,7 +115,7 @@ serve(async (req) => {
 
     // Log successful validation
     await supabase.from('audit_log').insert({
-      user_id: userProfile.whalesync_postgres_id,
+      user_id: userProfile.id,
       action: 'AUTH_VALIDATION_SUCCESS',
       table_name: 'auth_validation',
       new_values: { action, endpoint, role: userProfile.role }
@@ -124,7 +124,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       valid: true,
       user: {
-        id: userProfile.whalesync_postgres_id,
+        id: userProfile.id,
         role: userProfile.role,
         permissions: getPermissionsForRole(userProfile.role)
       }

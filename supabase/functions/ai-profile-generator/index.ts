@@ -103,7 +103,7 @@ serve(async (req) => {
     // Get enhanced user data for personalization
     const { data: userData, error: userError } = await supabase
       .from('Users')
-      .select('whalesync_postgres_id, firstname, lastname, role, primaryskill, skills')
+      .select('id, firstname, lastname, role, primaryskill, skills')
       .eq('supabase_auth_id', userId)
       .single();
 
@@ -115,7 +115,7 @@ serve(async (req) => {
     const { data: cscsData, error: cscsError } = await supabase
       .from('cscs_cards')
       .select('cscs_card_type, card_color, qualifications')
-      .eq('user_id', userData?.whalesync_postgres_id)
+      .eq('user_id', userData?.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();

@@ -31,7 +31,7 @@ serve(async (req) => {
 
     const { data: userProfile } = await supabaseClient
       .from('Users')
-      .select('role, whalesync_postgres_id, currentproject, firstname, lastname, fullname, primaryskill')
+      .select('role, id, currentproject, firstname, lastname, fullname, primaryskill')
       .eq('supabase_auth_id', user.id)
       .single();
 
@@ -41,7 +41,7 @@ serve(async (req) => {
 
     const { message, conversation_id, context_data } = await req.json();
     const userRole = userProfile.role;
-    const userId = userProfile.whalesync_postgres_id;
+    const userId = userProfile.id;
 
     // Rate limiting check
     const { data: rateLimitCheck } = await supabaseClient.rpc('check_ai_rate_limit', {

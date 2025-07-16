@@ -49,7 +49,7 @@ serve(async (req) => {
       // Get user profile
       const { data: profile } = await supabaseClient
         .from('Users')
-        .select('role, whalesync_postgres_id, fullname')
+        .select('role, id, fullname')
         .eq('supabase_auth_id', user.id)
         .single();
 

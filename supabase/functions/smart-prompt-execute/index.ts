@@ -195,7 +195,7 @@ async function gatherContextData(supabase: any, promptData: any, userContext: an
       const { data: qualifications } = await supabase
         .from('qualifications')
         .select('*, qualification_types(*)')
-        .eq('user_id', userProfile.whalesync_postgres_id);
+        .eq('user_id', userProfile.id);
       
       contextData.user_qualifications = qualifications || [];
     }
@@ -215,7 +215,7 @@ async function gatherContextData(supabase: any, promptData: any, userContext: an
       const { data: projectData } = await supabase
         .from('Projects')
         .select('*')
-        .eq('whalesync_postgres_id', userProfile.currentproject)
+        .eq('id', userProfile.currentproject)
         .single();
       
       contextData.project_data = projectData;
@@ -226,7 +226,7 @@ async function gatherContextData(supabase: any, promptData: any, userContext: an
       const { data: timesheets } = await supabase
         .from('timesheets')
         .select('*, timesheet_entries(*)')
-        .eq('user_id', userProfile.whalesync_postgres_id)
+        .eq('user_id', userProfile.id)
         .gte('week_start_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
         .order('week_start_date', { ascending: false })
         .limit(4);

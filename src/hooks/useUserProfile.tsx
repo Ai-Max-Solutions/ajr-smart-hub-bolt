@@ -40,32 +40,7 @@ export const useUserProfile = () => {
       setLoading(true);
       setError(null);
 
-      // Try to fetch from user_view first
-      const { data: viewData, error: viewError } = await supabase
-        .from('user_view')
-        .select('*')
-        .eq('auth_id', user.id)
-        .single();
-
-      if (!viewError && viewData) {
-        setProfile({
-          id: viewData.auth_id,
-          auth_email: viewData.auth_email,
-          firstname: viewData.firstname,
-          lastname: viewData.lastname,
-          fullname: viewData.fullname,
-          role: viewData.role,
-          system_role: viewData.system_role,
-          employmentstatus: viewData.employmentstatus,
-          currentproject: viewData.currentproject,
-          skills: viewData.skills,
-          phone: viewData.phone,
-          primaryskill: viewData.primaryskill
-        });
-        return;
-      }
-
-      // Fallback to Users table
+      // Fetch from Users table
       const { data: userData, error: userError } = await supabase
         .from('Users')
         .select('*')

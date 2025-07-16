@@ -304,7 +304,7 @@ async function generatePersonalizedContent(req: Request) {
   const { data: user } = await supabase
     .from('Users')
     .select('fullname, role, skills, experiencelevel')
-    .eq('whalesync_postgres_id', userId)
+    .eq('id', userId)
     .single();
 
   const prompt = `Generate personalized induction content for ${user?.fullname || 'this operative'}, 

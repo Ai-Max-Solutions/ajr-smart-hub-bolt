@@ -113,7 +113,7 @@ serve(async (req) => {
 
     const { data: userProfile } = await supabaseClient
       .from('Users')
-      .select('role, whalesync_postgres_id, currentproject')
+      .select('role, id, currentproject')
       .eq('supabase_auth_id', user.id)
       .single();
 
@@ -123,7 +123,7 @@ serve(async (req) => {
 
     const { message, conversation_id } = await req.json();
     const userRole = userProfile.role;
-    const userId = userProfile.whalesync_postgres_id;
+    const userId = userProfile.id;
     const currentProject = userProfile.currentproject;
 
     // Get or create conversation
