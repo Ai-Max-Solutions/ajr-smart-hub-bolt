@@ -97,7 +97,7 @@ export const UnifiedSearch = ({
       if (includeProjects) {
         const { data: projects } = await supabase
           .from('Projects')
-          .select('whalesync_postgres_id, projectname, clientname, status, siteaddress, projectmanager')
+          .select('id, projectname, clientname, status, siteaddress, projectmanager')
           .or(`projectname.ilike.%${query}%,clientname.ilike.%${query}%,siteaddress.ilike.%${query}%,projectmanager.ilike.%${query}%`)
           .limit(5);
 
@@ -110,7 +110,7 @@ export const UnifiedSearch = ({
           ]);
 
           searchResults.push({
-            id: project.whalesync_postgres_id,
+            id: project.id,
             type: 'project',
             title: project.projectname || 'Unnamed Project',
             subtitle: project.clientname || 'No Client',
@@ -125,7 +125,7 @@ export const UnifiedSearch = ({
       if (includeUsers) {
         const { data: users } = await supabase
           .from('Users')
-          .select('whalesync_postgres_id, fullname, email, role, skills, currentproject')
+          .select('id, fullname, email, role, skills, currentproject')
           .or(`fullname.ilike.%${query}%,email.ilike.%${query}%,role.ilike.%${query}%`)
           .eq('employmentstatus', 'Active')
           .limit(5);
@@ -139,7 +139,7 @@ export const UnifiedSearch = ({
           ]);
 
           searchResults.push({
-            id: user.whalesync_postgres_id,
+            id: user.id,
             type: 'user',
             title: user.fullname || 'Unknown User',
             subtitle: user.role || 'No Role',
@@ -183,7 +183,7 @@ export const UnifiedSearch = ({
       if (includePlots) {
         const { data: plots } = await supabase
           .from('Plots')
-          .select('whalesync_postgres_id, plotnumber, plotstatus, customername, level')
+          .select('id, plotnumber, plotstatus, customername, level')
           .or(`plotnumber.ilike.%${query}%,customername.ilike.%${query}%,plotstatus.ilike.%${query}%`)
           .limit(5);
 
@@ -195,7 +195,7 @@ export const UnifiedSearch = ({
           ]);
 
           searchResults.push({
-            id: plot.whalesync_postgres_id,
+            id: plot.id,
             type: 'plot',
             title: `Plot ${plot.plotnumber || 'Unknown'}`,
             subtitle: plot.plotstatus || 'No Status',

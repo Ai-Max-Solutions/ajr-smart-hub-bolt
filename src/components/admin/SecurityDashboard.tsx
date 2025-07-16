@@ -61,14 +61,14 @@ export const SecurityDashboard = () => {
 
       // Get user names for alerts
       const userIds = [...new Set(alertsData?.map(alert => alert.user_id).filter(Boolean))];
-      const { data: usersData } = await supabase
-        .from('Users')
-        .select('whalesync_postgres_id, fullname')
-        .in('whalesync_postgres_id', userIds);
+        const { data: usersData } = await supabase
+          .from('Users')
+          .select('id, fullname')
+          .in('id', userIds);
 
       const enrichedAlerts = alertsData?.map(alert => ({
         ...alert,
-        user_name: usersData?.find(u => u.whalesync_postgres_id === alert.user_id)?.fullname || 'Unknown User',
+        user_name: usersData?.find(u => u.id === alert.user_id)?.fullname || 'Unknown User',
         risk_level: getRiskLevel(alert.action, alert.new_values)
       })) || [];
 

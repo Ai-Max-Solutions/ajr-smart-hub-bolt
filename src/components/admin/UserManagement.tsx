@@ -39,7 +39,7 @@ import { toast } from "sonner";
 import { useAuditLog } from "@/hooks/useAuditLog";
 
 interface User {
-  whalesync_postgres_id: string;
+  id: string;
   email: string;
   firstname: string;
   lastname: string;
@@ -63,7 +63,7 @@ interface User {
 }
 
 interface Project {
-  whalesync_postgres_id: string;
+  id: string;
   projectname: string;
   status: string;
 }
@@ -134,7 +134,7 @@ export const UserManagement = () => {
     try {
       const { data, error } = await supabase
         .from('Projects')
-        .select('whalesync_postgres_id, projectname, status')
+        .select('id, projectname, status')
         .eq('status', 'Active')
         .order('projectname');
 
@@ -179,7 +179,7 @@ export const UserManagement = () => {
 
       if (error) throw error;
 
-      await logCRUDOperation('CREATE', 'Users', data.whalesync_postgres_id, null, newUser);
+      await logCRUDOperation('CREATE', 'Users', data.id, null, newUser);
       
       setUsers([...users, data]);
       setIsCreateDialogOpen(false);
@@ -204,16 +204,16 @@ export const UserManagement = () => {
       const { data, error } = await supabase
         .from('Users')
         .update(updatedData)
-        .eq('whalesync_postgres_id', selectedUser.whalesync_postgres_id)
+        .eq('id', selectedUser.id)
         .select()
         .single();
 
       if (error) throw error;
 
-      await logCRUDOperation('UPDATE', 'Users', selectedUser.whalesync_postgres_id, selectedUser, updatedData);
+      await logCRUDOperation('UPDATE', 'Users', selectedUser.id, selectedUser, updatedData);
 
       setUsers(users.map(user => 
-        user.whalesync_postgres_id === selectedUser.whalesync_postgres_id ? data : user
+        user.id === selectedUser.id ? data : user
       ));
       setIsEditDialogOpen(false);
       setSelectedUser(null);
@@ -228,7 +228,7 @@ export const UserManagement = () => {
   // Handle user deactivation (soft delete)
   const handleDeactivateUser = async (userId: string) => {
     try {
-      const userToDeactivate = users.find(u => u.whalesync_postgres_id === userId);
+      const userToDeactivate = users.find(u => u.id === userId);
       
       const { error } = await supabase
         .from('Users')
@@ -236,14 +236,14 @@ export const UserManagement = () => {
           employmentstatus: 'Inactive',
           deactivation_date: new Date().toISOString().split('T')[0]
         })
-        .eq('whalesync_postgres_id', userId);
+        .eq('id', userId);
 
       if (error) throw error;
 
       await logCRUDOperation('UPDATE', 'Users', userId, userToDeactivate, { employmentstatus: 'Inactive' });
 
       setUsers(users.map(user => 
-        user.whalesync_postgres_id === userId 
+        user.id === userId 
           ? { ...user, employmentstatus: 'Inactive', deactivation_date: new Date().toISOString().split('T')[0] } 
           : user
       ));
@@ -257,7 +257,7 @@ export const UserManagement = () => {
   // Handle user reactivation
   const handleReactivateUser = async (userId: string) => {
     try {
-      const userToReactivate = users.find(u => u.whalesync_postgres_id === userId);
+      const userToReactivate = users.find(u => u.id === userId);
       
       const { error } = await supabase
         .from('Users')
@@ -265,14 +265,14 @@ export const UserManagement = () => {
           employmentstatus: 'Active',
           deactivation_date: null
         })
-        .eq('whalesync_postgres_id', userId);
+        .eq('id', userId);
 
       if (error) throw error;
 
       await logCRUDOperation('UPDATE', 'Users', userId, userToReactivate, { employmentstatus: 'Active' });
 
       setUsers(users.map(user => 
-        user.whalesync_postgres_id === userId 
+        user.id === userId 
           ? { ...user, employmentstatus: 'Active', deactivation_date: null } 
           : user
       ));
@@ -519,7 +519,7 @@ export const UserManagement = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user) => (
-                    <TableRow key={user.whalesync_postgres_id}>
+                    <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
@@ -563,7 +563,7 @@ export const UserManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          {projects.find(p => p.whalesync_postgres_id === user.currentproject)?.projectname || '-'}
+                          {projects.find(p => p.id === user.currentproject)?.projectname || '-'}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -598,7 +598,7 @@ export const UserManagement = () => {
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction 
-                                    onClick={() => handleDeactivateUser(user.whalesync_postgres_id)}
+                                    onClick={() => handleDeactivateUser(user.id)}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   >
                                     Deactivate
@@ -610,7 +610,7 @@ export const UserManagement = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleReactivateUser(user.whalesync_postgres_id)}
+                              onClick={() => handleReactivateUser(user.id)}
                             >
                               <UserCheck className="w-4 h-4" />
                             </Button>
@@ -736,7 +736,7 @@ export const UserManagement = () => {
                 <SelectContent>
                   <SelectItem value="">No Project</SelectItem>
                   {projects.map(project => (
-                    <SelectItem key={project.whalesync_postgres_id} value={project.whalesync_postgres_id}>
+                    <SelectItem key={project.id} value={project.id}>
                       {project.projectname}
                     </SelectItem>
                   ))}

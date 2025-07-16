@@ -42,7 +42,7 @@ interface WorkActivity {
 }
 
 interface Project {
-  whalesync_postgres_id: string;
+  id: string;
   projectname: string;
 }
 
@@ -106,7 +106,7 @@ export const TaskPlanRAMSRegister: React.FC = () => {
       // Load projects
       const { data: projectsData, error: projectsError } = await supabase
         .from('Projects')
-        .select('whalesync_postgres_id, projectname')
+        .select('id, projectname')
         .order('projectname');
 
       if (projectsError) throw projectsError;
@@ -223,7 +223,7 @@ export const TaskPlanRAMSRegister: React.FC = () => {
   const handleAddEntry = async (formData: any) => {
     try {
       const contractor = contractors.find(c => c.id === formData.contractor_id);
-      const project = projects.find(p => p.whalesync_postgres_id === formData.project_id);
+      const project = projects.find(p => p.id === formData.project_id);
       const activity = workActivities.find(a => a.id === formData.work_activity_id);
       const rams = ramsDocuments.find(r => r.id === formData.rams_document_id);
 
@@ -392,7 +392,7 @@ export const TaskPlanRAMSRegister: React.FC = () => {
               <SelectContent>
                 <SelectItem value="all">All Projects</SelectItem>
                 {projects.map(project => (
-                  <SelectItem key={project.whalesync_postgres_id} value={project.whalesync_postgres_id}>
+                  <SelectItem key={project.id} value={project.id}>
                     {project.projectname}
                   </SelectItem>
                 ))}
@@ -489,7 +489,7 @@ const AddEntryForm: React.FC<AddEntryFormProps> = ({ onSubmit, projects, contrac
             </SelectTrigger>
             <SelectContent>
               {projects.map(project => (
-                <SelectItem key={project.whalesync_postgres_id} value={project.whalesync_postgres_id}>
+                <SelectItem key={project.id} value={project.id}>
                   {project.projectname}
                 </SelectItem>
               ))}
