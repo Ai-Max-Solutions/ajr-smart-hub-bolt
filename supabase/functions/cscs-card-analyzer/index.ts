@@ -23,25 +23,34 @@ serve(async (req) => {
     }
 
     if (!OPENROUTER_API_KEY) {
-      console.error("Missing OPENROUTER_API_KEY");
-      return new Response(JSON.stringify({ error: "API key not set" }), {
+      console.error("❌ OPENROUTER_API_KEY is missing in environment variables.");
+      return new Response(JSON.stringify({ error: "API key not configured" }), {
         status: 500,
         headers: corsHeaders
       });
     }
 
-    const body = await req.json();
-    const base64Image = body.base64Image;
-
-    if (!base64Image) {
-      console.warn("No base64Image in body:", body);
-      return new Response(JSON.stringify({ error: "Missing base64Image" }), {
+    let base64Image: string | null = null;
+    try {
+      const body = await req.json();
+      base64Image = body.base64Image;
+    } catch (parseErr) {
+      console.error("❌ Failed to parse request JSON body", parseErr);
+      return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
         status: 400,
         headers: corsHeaders
       });
     }
 
-    // 🧠 Call OpenRouter API
+    if (!base64Image || typeof base64Image !== "string") {
+      console.warn("⚠️ base64Image missing or invalid:", base64Image);
+      return new Response(JSON.stringify({ error: "Missing or invalid base64Image" }), {
+        status: 400,
+        headers: corsHeaders
+      });
+    }
+
+    // 🧠 GPT-4o OCR prompt
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -53,50 +62,62 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You're a CSCS card OCR assistant. Return JSON like:
+            content: `You're a CSCS card OCR assistant. Return *only* JSON in this format:
 {
   "cardNumber": "string",
   "cardType": "Green | Blue | Gold | Black | Red | White",
   "expiryDate": "YYYY-MM-DD"
-}`
+}
+If unsure, return null values. Do NOT explain anything.`
           },
           {
             role: "user",
             content: [
-              { type: "text", text: "Please extract CSCS card details from this image." },
+              { type: "text", text: "Please extract the CSCS card details from this image." },
               { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
             ]
           }
-        ]
+        ],
+        max_tokens: 300
       })
     });
 
-    const rawText = await response.text();
-    console.log("OpenRouter raw response:", rawText);
+    const raw = await response.text();
+    console.log("🧠 OpenRouter raw response:", raw);
 
     if (!response.ok) {
-      throw new Error("AI error: " + rawText);
+      throw new Error("AI API error: " + raw);
     }
 
-    let result;
+    let parsedJson;
     try {
-      result = JSON.parse(rawText).choices?.[0]?.message?.content;
-      result = JSON.parse(result); // second parse
+      const outer = JSON.parse(raw);
+      const content = outer.choices?.[0]?.message?.content ?? "";
+
+      // Clean up GPT text: find first '{' and trim extras
+      const jsonStart = content.indexOf("{");
+      if (jsonStart === -1) throw new Error("No JSON object found in GPT content");
+
+      const trimmed = content.slice(jsonStart).trim();
+      parsedJson = JSON.parse(trimmed);
     } catch (err) {
-      console.error("Parsing failed:", err);
-      return new Response(JSON.stringify({ error: "Invalid AI response" }), {
+      console.error("❌ Failed to parse JSON from GPT:", err);
+      return new Response(JSON.stringify({ error: "Invalid response from AI OCR" }), {
         status: 422,
         headers: corsHeaders
       });
     }
 
-    return new Response(JSON.stringify(result), {
+    console.log("✅ Parsed CSCS data:", parsedJson);
+
+    return new Response(JSON.stringify(parsedJson), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
+
   } catch (err) {
-    console.error("Edge Function Error:", err);
-    return new Response(JSON.stringify({ error: "Failed to analyze CSCS card" }), {
+    console.error("🔥 Unexpected error in CSCS analyzer:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
