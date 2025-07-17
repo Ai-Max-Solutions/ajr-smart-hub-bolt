@@ -8,6 +8,7 @@ import EmergencyContact from '@/components/onboarding/EmergencyContact';
 import WorkTypeSelection from '@/components/onboarding/WorkTypeSelection';
 import OnboardingComplete from '@/components/onboarding/OnboardingComplete';
 import { OnboardingRouter } from '@/components/onboarding/OnboardingRouter';
+import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
 
 export interface OnboardingData {
   // Sign up data
@@ -93,11 +94,10 @@ const OnboardingFlow = () => {
   return (
     <OnboardingRouter>
       <div className="min-h-screen bg-gradient-subtle">
-        <ProgressHeader />
+        <OnboardingProgress />
         
         <div className="container mx-auto px-4 py-8 max-w-2xl">
           <Routes>
-            <Route path="/" element={<Navigate to="/onboarding/personal-details" replace />} />
             <Route 
               path="/personal-details" 
               element={

@@ -51,9 +51,28 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
       return;
     }
     
-    // Check if current step is appropriate - only redirect if user is on wrong step
-    if (currentPath !== firstIncompleteStep) {
-      handleNavigation(`/onboarding/${firstIncompleteStep}`, `Redirecting from ${currentPath} to correct step`);
+    // Sequential access validation - allow access to current target step
+    const stepOrder = ['personal-details', 'cscs-card', 'emergency-contact', 'work-types'];
+    const currentStepIndex = stepOrder.indexOf(currentPath);
+    const targetStepIndex = stepOrder.indexOf(firstIncompleteStep);
+    
+    // Allow access if:
+    // 1. User is on the correct target step
+    // 2. User is on a completed step (going back)
+    if (currentPath === firstIncompleteStep) {
+      console.log('[OnboardingRouter] User is on correct step, allowing access');
+      return;
+    }
+    
+    // Only redirect if user tries to skip ahead or is on wrong incomplete step
+    if (currentStepIndex > targetStepIndex) {
+      handleNavigation(`/onboarding/${firstIncompleteStep}`, `Redirecting from ${currentPath} to correct step (skipped ahead)`);
+    } else if (currentStepIndex < targetStepIndex && currentStepIndex !== -1) {
+      // Allow going back to completed steps, but don't force navigation
+      console.log('[OnboardingRouter] User accessing completed step, allowing');
+    } else if (currentStepIndex === -1) {
+      // Unknown step, redirect to correct one
+      handleNavigation(`/onboarding/${firstIncompleteStep}`, `Redirecting from unknown step ${currentPath} to correct step`);
     }
   }, [user, isLoading, flags.allComplete, location.pathname, firstIncompleteStep, handleNavigation, isNavigating]);
 

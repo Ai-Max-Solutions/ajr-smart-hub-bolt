@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Phone, AlertCircle, Loader2 } from 'lucide-react';
 import { OnboardingData } from '@/pages/OnboardingFlow';
+import { useOnboarding } from '@/context/OnboardingContext';
 
 interface EmergencyContactProps {
   data: OnboardingData;
@@ -24,12 +25,13 @@ const EmergencyContact = ({ data, updateData }: EmergencyContactProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { refreshOnboarding } = useOnboarding();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   console.log('[EmergencyContact] Component loaded, user:', user?.id);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {};
 
     // Emergency contact validation
@@ -44,14 +46,21 @@ const EmergencyContact = ({ data, updateData }: EmergencyContactProps) => {
       newErrors.emergencyEmail = 'Invalid email format';
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    return { errors: newErrors, isValid: Object.keys(newErrors).length === 0 };
+  }, [data.emergencyContact]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validationResult = useMemo(() => validateForm(), [validateForm]);
+  const isFormValid = validationResult.isValid;
+
+  // Update errors when validation changes
+  useMemo(() => {
+    setErrors(validationResult.errors);
+  }, [validationResult.errors]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!isFormValid) return;
     if (!user) {
       toast({
         title: "Error",
@@ -107,6 +116,9 @@ const EmergencyContact = ({ data, updateData }: EmergencyContactProps) => {
 
       console.log('[EmergencyContact] Emergency contact saved successfully');
       
+      // Refresh onboarding flags
+      refreshOnboarding();
+      
       toast({
         title: "Emergency Contact Saved",
         description: "Now let's select your work types.",
@@ -123,7 +135,7 @@ const EmergencyContact = ({ data, updateData }: EmergencyContactProps) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isFormValid, user, data.emergencyContact, toast, refreshOnboarding, navigate]);
 
   return (
     <div className="space-y-6">
@@ -238,7 +250,7 @@ const EmergencyContact = ({ data, updateData }: EmergencyContactProps) => {
               <Button 
                 type="submit" 
                 className="w-full btn-primary"
-                disabled={isLoading || !validateForm()}
+                disabled={isLoading || !isFormValid}
               >
                 {isLoading ? (
                   <>
