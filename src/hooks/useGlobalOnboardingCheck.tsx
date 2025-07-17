@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -35,7 +35,7 @@ export const useGlobalOnboardingCheck = () => {
     missingSteps: []
   });
 
-  const performGlobalCheck = async () => {
+  const performGlobalCheck = useCallback(async () => {
     if (!user) {
       setResult(prev => ({ ...prev, isLoading: false }));
       return;
@@ -191,13 +191,13 @@ export const useGlobalOnboardingCheck = () => {
         missingSteps: ['personal-details']
       }));
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     performGlobalCheck();
-  }, [user]);
+  }, [performGlobalCheck]);
 
-  const redirectToMissingStep = (currentPath: string) => {
+  const redirectToMissingStep = useCallback((currentPath: string) => {
     if (result.missingSteps.length > 0) {
       const targetStep = result.firstIncompleteStep;
       if (currentPath !== `/onboarding/${targetStep}`) {
@@ -207,11 +207,13 @@ export const useGlobalOnboardingCheck = () => {
       }
     }
     return null;
-  };
+  }, [result.missingSteps, result.firstIncompleteStep]);
 
-  return {
+  const memoizedResult = useMemo(() => ({
     ...result,
     performGlobalCheck,
     redirectToMissingStep
-  };
+  }), [result, performGlobalCheck, redirectToMissingStep]);
+
+  return memoizedResult;
 };

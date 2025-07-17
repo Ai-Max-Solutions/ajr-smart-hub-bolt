@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { RouteProtection } from "@/components/auth/RouteProtection";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { IndexWrapper } from "@/components/dashboard/IndexWrapper";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import DocumentStatusChecker from "./pages/DocumentStatusChecker";
 import OnboardingFlow from "./pages/OnboardingFlow";
@@ -50,21 +51,25 @@ function App() {
               
               {/* Protected routes with navigation */}
               <Route path="/" element={
-                <RouteProtection fallbackPath="/auth" requireCSCS={false}>
-                  <AppLayout>
-                    <IndexWrapper />
-                  </AppLayout>
-                </RouteProtection>
+                <ErrorBoundary>
+                  <RouteProtection fallbackPath="/auth" requireCSCS={false}>
+                    <AppLayout>
+                      <IndexWrapper />
+                    </AppLayout>
+                  </RouteProtection>
+                </ErrorBoundary>
               } />
               
               <Route 
                 path="/onboarding/*" 
                 element={
-                  <RouteProtection requiredResource="onboarding" requireCSCS={false}>
-                    <AppLayout>
-                      <OnboardingFlow />
-                    </AppLayout>
-                  </RouteProtection>
+                  <ErrorBoundary>
+                    <RouteProtection requiredResource="onboarding" requireCSCS={false}>
+                      <AppLayout>
+                        <OnboardingFlow />
+                      </AppLayout>
+                    </RouteProtection>
+                  </ErrorBoundary>
                 } 
               />
               
