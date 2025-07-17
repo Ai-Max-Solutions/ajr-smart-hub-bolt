@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { OnboardingData } from '@/pages/OnboardingFlow';
-import { useAuth } from '@/components/auth/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SignUpProps {
   data: OnboardingData;

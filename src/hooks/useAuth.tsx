@@ -9,6 +9,9 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  signUp: (email: string, password: string, userData?: any) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
   userProfile: any;
   refreshProfile: () => Promise<void>;
 }
@@ -82,10 +85,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const signUp = async (email: string, password: string, userData?: any) => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: userData
+        }
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return { error };
+      }
+
+      toast.success('Account created! Please check your email to verify your account.');
+      return { error: null };
+    } catch (error: any) {
+      toast.error('An unexpected error occurred');
+      return { error };
+    }
+  };
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Invalid email or password');
+        } else {
+          toast.error(error.message);
+        }
+        return { error };
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      toast.error('An unexpected error occurred');
+      return { error };
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return { error };
+      }
+
+      toast.success('Password reset email sent!');
+      return { error: null };
+    } catch (error: any) {
+      toast.error('An unexpected error occurred');
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      
+      // Handle harmless 403 "Session not found" errors
+      if (error && !error.message?.includes('Session not found')) {
+        throw error;
+      }
+      
+      // Clean up local storage
+      localStorage.removeItem('sb-access-token');
+      localStorage.removeItem('sb-refresh-token');
       
       setUser(null);
       setSession(null);
@@ -100,7 +179,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    signUp,
+    signIn,
     signOut,
+    resetPassword,
     userProfile,
     refreshProfile
   };

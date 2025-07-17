@@ -7,7 +7,7 @@ import { CheckCircle, AlertTriangle, Shield, Lock } from 'lucide-react';
 import { CSCSCardUploader } from '@/components/ui/cscs-card-uploader';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/components/auth/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CSCSCardData {
   number: string;

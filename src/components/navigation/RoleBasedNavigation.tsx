@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { AJIcon } from "@/components/ui/aj-icon";
 import { Badge } from "@/components/ui/badge";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useAuth } from "@/components/auth/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 interface NavigationItem {
   id: string;

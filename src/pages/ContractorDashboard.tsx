@@ -20,7 +20,7 @@ import {
   Settings,
   HelpCircle
 } from 'lucide-react';
-import { useAuth } from '@/components/auth/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import MyTrainingDocuments from '@/components/contractor/MyTrainingDocuments';

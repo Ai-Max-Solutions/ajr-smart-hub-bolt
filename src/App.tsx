@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "@/components/auth/AuthContext";
+import { AuthProvider } from "@/hooks/useAuth";
 import { RouteProtection } from "@/components/auth/RouteProtection";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { IndexWrapper } from "@/components/dashboard/IndexWrapper";
