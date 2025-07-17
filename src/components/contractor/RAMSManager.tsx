@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { validateAndSanitizeSignature } from '@/lib/utils';
 import EnhancedRAMSViewer from './EnhancedRAMSViewer';
 
 interface RAMSDocument {
@@ -182,6 +183,9 @@ By signing this document, you confirm understanding of all safety requirements.`
 
   const handleDocumentSigned = async (documentId: string, signature: string, readingTime: number) => {
     try {
+      // Validate and sanitize signature first
+      const sanitizedSignature = validateAndSanitizeSignature(signature);
+
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -199,13 +203,13 @@ By signing this document, you confirm understanding of all safety requirements.`
         throw new Error('Contractor profile not found');
       }
 
-      // Insert signature into database
+      // Insert signature into database with sanitized data
       const { error: signatureError } = await supabase
         .from('contractor_rams_signatures')
         .insert({
           contractor_id: userData.id,
           rams_document_id: documentId,
-          signature_data: signature,
+          signature_data: sanitizedSignature,
           reading_time_seconds: readingTime
         });
 
@@ -244,7 +248,7 @@ By signing this document, you confirm understanding of all safety requirements.`
     } catch (error: any) {
       console.error('Error signing document:', error);
       toast({
-        title: "Error Signing Document",
+        title: "Signature Error",
         description: error.message || 'Failed to save signature. Please try again.',
         variant: "destructive"
       });

@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { validateAndSanitizeSignature } from '@/lib/utils';
 import { AlertCircle, CheckCircle, Clock, FileText, Shield, Lock, Unlock } from 'lucide-react';
 import { format } from 'date-fns';
 import EnhancedRAMSViewer from './EnhancedRAMSViewer';
@@ -123,6 +124,9 @@ export const EnhancedRAMSCompliance: React.FC = () => {
 
   const handleDocumentSigned = async (signature: string, readingTime: number) => {
     try {
+      // Validate and sanitize signature first
+      const sanitizedSignature = validateAndSanitizeSignature(signature);
+
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -144,13 +148,13 @@ export const EnhancedRAMSCompliance: React.FC = () => {
       const entry = entries.find(e => e.rams_document_id === selectedDocument?.id);
       if (!entry) throw new Error('Entry not found');
 
-      // Insert signature into database
+      // Insert signature into database with sanitized data
       const { error: signatureError } = await supabase
         .from('contractor_rams_signatures')
         .insert({
           contractor_id: userData.id,
           rams_document_id: selectedDocument.id,
-          signature_data: signature,
+          signature_data: sanitizedSignature,
           reading_time_seconds: readingTime
         });
 
@@ -169,7 +173,7 @@ export const EnhancedRAMSCompliance: React.FC = () => {
     } catch (error: any) {
       console.error('Error signing document:', error);
       toast({
-        title: 'Error',
+        title: 'Signature Error',
         description: error.message || 'Failed to sign Task Plan / RAMS document',
         variant: 'destructive',
       });
