@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import AdminCRUDModule from "@/components/admin/AdminCRUDModule";
 import { TaskPlanRAMSRegister } from "@/components/admin/TaskPlanRAMSRegister";
 import { SecurityDashboard } from "@/components/admin/SecurityDashboard";
+import { UserApprovalPanel } from "@/components/admin/UserApprovalPanel";
 import { 
   Settings, 
   Users, 
@@ -348,6 +349,9 @@ const AdminDashboard = () => {
             showProgress={true}
           />
         </div>
+
+        {/* User Approval Panel */}
+        <UserApprovalPanel />
 
         {/* Additional Analytics Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
