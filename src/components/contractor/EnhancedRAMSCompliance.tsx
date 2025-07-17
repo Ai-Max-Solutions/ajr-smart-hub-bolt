@@ -45,25 +45,32 @@ export const EnhancedRAMSCompliance: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadContractorRAMS();
-  }, []);
+    const fetchContractorRAMS = async () => {
+      try {
+        setLoading(true);
 
-  const loadContractorRAMS = async () => {
-    try {
-      setLoading(true);
+        // Get current contractor profile
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
 
-      // Get current contractor profile
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+        // Get contractor from users table
+        const { data: contractor, error: contractorError } = await supabase
+          .from('users')
+          .select('id, name, firstname, lastname')
+          .eq('supabase_auth_id', user.id)
+          .single();
 
-      // Mock contractor profile
-      const mockProfile = {
-        id: '1',
-        first_name: 'John',
-        last_name: 'Doe',
-        auth_user_id: user.id
-      };
-      setContractorProfile(mockProfile);
+        if (contractorError) {
+          console.error('Failed to fetch contractor profile', contractorError);
+          toast({
+            title: "Error",
+            description: "Could not load contractor profile.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        setContractorProfile(contractor);
 
       // Mock RAMS register entries
       const mockRegisterData: TaskPlanEntry[] = [
@@ -87,20 +94,23 @@ export const EnhancedRAMSCompliance: React.FC = () => {
         }
       ];
 
-      setEntries(mockRegisterData);
-      calculateComplianceStatus(mockRegisterData);
+        setEntries(mockRegisterData);
+        calculateComplianceStatus(mockRegisterData);
 
-    } catch (error) {
-      console.error('Error loading contractor RAMS:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load Task Plan / RAMS compliance data',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      } catch (error) {
+        console.error('Error loading contractor RAMS:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load Task Plan / RAMS compliance data',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContractorRAMS();
+  }, []);
 
   const calculateComplianceStatus = (data: TaskPlanEntry[]) => {
     const required = data.length;
@@ -168,7 +178,56 @@ export const EnhancedRAMSCompliance: React.FC = () => {
       });
 
       setShowViewer(false);
-      loadContractorRAMS();
+      
+      // Refetch contractor RAMS data using the stabilized pattern
+      const refetchData = async () => {
+        try {
+          setLoading(true);
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const { data: contractor } = await supabase
+            .from('users')
+            .select('id, name, firstname, lastname')
+            .eq('supabase_auth_id', user.id)
+            .single();
+
+          if (contractor) {
+            setContractorProfile(contractor);
+            // Mock data for now - would fetch real signatures from database
+            const mockRegisterData: TaskPlanEntry[] = [
+              {
+                id: '1',
+                project_name: 'Example Project',
+                work_activity: 'Construction Work',
+                rams_name: 'Site Safety RAMS',
+                version: '1.0',
+                date_issued: new Date().toISOString(),
+                status: 'Signed', // Update status to reflect signed document
+                rams_document_id: 'doc1',
+                signed_by: contractor.name,
+                date_signed: new Date().toISOString(),
+                rams_document: {
+                  id: 'doc1',
+                  title: 'Site Safety Risk Assessment',
+                  content: 'This is a mock RAMS document for demonstration purposes.',
+                  risk_level: 'Medium',
+                  minimum_read_time: 300,
+                  requires_fresh_signature: true
+                }
+              }
+            ];
+            setEntries(mockRegisterData);
+            calculateComplianceStatus(mockRegisterData);
+          }
+        } catch (error) {
+          console.error('Error refetching data:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      refetchData();
 
     } catch (error: any) {
       console.error('Error signing document:', error);
