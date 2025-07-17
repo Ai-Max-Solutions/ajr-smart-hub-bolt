@@ -710,6 +710,7 @@ export type Database = {
       users: {
         Row: {
           airtable_created_time: string | null
+          avatar_url: string | null
           created_at: string
           currentproject: string | null
           email: string
@@ -730,6 +731,7 @@ export type Database = {
         }
         Insert: {
           airtable_created_time?: string | null
+          avatar_url?: string | null
           created_at?: string
           currentproject?: string | null
           email: string
@@ -750,6 +752,7 @@ export type Database = {
         }
         Update: {
           airtable_created_time?: string | null
+          avatar_url?: string | null
           created_at?: string
           currentproject?: string | null
           email?: string
