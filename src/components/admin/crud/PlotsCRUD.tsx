@@ -56,7 +56,7 @@ export const PlotsCRUD = ({ searchQuery, isOffline }: PlotsCRUDProps) => {
   const fetchData = async () => {
     try {
       // Use actual plots table and mock data for non-existent tables
-      const plotsRes = await supabase.from('plots').select('*').order('name');
+      const plotsRes = await supabase.from('plots').select('id,name,project_id,level,created_at,updated_at').order('name');
       const usersRes = await supabase.from('users').select('id, name').order('name');
       
       // Mock data for non-existent tables
