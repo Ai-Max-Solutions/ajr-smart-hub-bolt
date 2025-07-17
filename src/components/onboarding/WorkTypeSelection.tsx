@@ -12,7 +12,7 @@ import {
   Thermometer, 
   Fan, 
   Settings, 
-  Zap as Pipe, 
+  Zap, 
   Droplets, 
   ShieldCheck, 
   Factory, 
@@ -31,18 +31,18 @@ interface WorkTypeSelectionProps {
 }
 
 const workTypes = [
+  { id: 'electrical-installation', name: 'Electrical Installation', icon: Zap },
+  { id: 'electrical-maintenance', name: 'Electrical Maintenance', icon: Settings },
+  { id: 'testing-commissioning', name: 'Testing & Commissioning', icon: ClipboardList },
+  { id: 'sprinkler-fire', name: 'Sprinkler / Fire Suppression', icon: Droplets },
+  { id: 'general-labour', name: 'General Labour', icon: HardHat },
   { id: 'plumbing', name: 'Plumbing', icon: Wrench },
   { id: 'heating-cooling', name: 'Heating & Cooling', icon: Thermometer },
   { id: 'ventilation-ac', name: 'Ventilation & Air Conditioning', icon: Fan },
-  { id: 'testing-commissioning', name: 'Testing & Commissioning', icon: Settings },
-  { id: 'pipe-fitting', name: 'Pipe Fitting', icon: Pipe },
-  { id: 'sprinkler-fire', name: 'Sprinkler / Fire Suppression', icon: Droplets },
+  { id: 'pipe-fitting', name: 'Pipe Fitting', icon: Wrench },
   { id: 'insulation', name: 'Insulation', icon: ShieldCheck },
   { id: 'tank-plant-room', name: 'Tank / Plant Room Work', icon: Factory },
   { id: 'mechanical-engineering', name: 'Mechanical Engineering', icon: Cog },
-  { id: 'project-management', name: 'Project & Site Management', icon: ClipboardList },
-  { id: 'general-labour', name: 'General Labour', icon: HardHat },
-  { id: 'admin-contracts', name: 'Admin / Contracts Support', icon: FileText },
 ];
 
 interface RAMSDocument {
@@ -358,20 +358,40 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
                             : 'border-border hover:border-primary/50'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${
-                            isSigned ? 'bg-success' : 'bg-warning'
-                          }`} />
-                          <div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className={`w-2 h-2 rounded-full ${
+                              isSigned ? 'bg-success' : 'bg-warning'
+                            }`} />
                             <h4 className="font-medium">{rams.title}</h4>
-                            <p className="text-sm text-muted-foreground">Version {rams.version}</p>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>Version {rams.version}</span>
+                            <span>•</span>
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${
+                                rams.risk_level === 'high' ? 'border-red-200 text-red-700 bg-red-50' :
+                                rams.risk_level === 'medium' ? 'border-yellow-200 text-yellow-700 bg-yellow-50' :
+                                rams.risk_level === 'low' ? 'border-green-200 text-green-700 bg-green-50' :
+                                'border-gray-200 text-gray-700 bg-gray-50'
+                              }`}
+                            >
+                              {rams.risk_level?.toUpperCase()} RISK
+                            </Badge>
+                            {rams.minimum_read_time && (
+                              <>
+                                <span>•</span>
+                                <span>{rams.minimum_read_time} min read</span>
+                              </>
+                            )}
                           </div>
                         </div>
                         
                         <div className="flex items-center gap-2">
                           {isSigned && (
                             <Badge variant="secondary" className="bg-success/10 text-success">
-                              Signed
+                              ✓ Signed
                             </Badge>
                           )}
                           <Button
@@ -381,7 +401,7 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
                             className={!isSigned ? "btn-primary" : ""}
                           >
                             <PenTool className="w-4 h-4 mr-2" />
-                            {isSigned ? 'View' : 'Review & Sign'}
+                            {isSigned ? 'View' : 'Sign Document'}
                           </Button>
                         </div>
                       </div>
