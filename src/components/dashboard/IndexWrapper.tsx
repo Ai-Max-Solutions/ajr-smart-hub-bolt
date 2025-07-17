@@ -55,8 +55,11 @@ export const IndexWrapper = () => {
 
         // Check if user has completed full onboarding
         const onboardingCompleted = localStorage.getItem('onboardingCompleted');
+        console.log('[IndexWrapper] Onboarding completed check:', onboardingCompleted);
+        
         if (!onboardingCompleted && userData.name) {
           // User has basic info but hasn't completed full onboarding flow
+          console.log('[IndexWrapper] User has name but no onboarding completion flag');
           missingSteps.push('emergency-contact', 'cscs-card', 'work-types');
         }
 
