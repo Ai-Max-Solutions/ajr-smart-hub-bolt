@@ -507,13 +507,11 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
         </Button>
         <Button 
           onClick={handleContinue}
-          disabled={!canContinue || loadingRAMS}
-          className={`w-full ${canContinue ? 'btn-primary' : ''}`}
+          disabled={!canContinue}
+          variant="default"
+          className="w-full mt-4"
         >
-          {!canContinue 
-            ? `Sign ${requiredRAMS.length - signedCount} more documents`
-            : 'Continue to Complete'
-          }
+          Continue to Complete
         </Button>
       </div>
       
