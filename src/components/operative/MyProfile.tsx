@@ -1,9 +1,12 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ProfilePictureUploader } from "@/components/ui/profile-picture-uploader";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Camera, 
   Phone, 
@@ -14,10 +17,39 @@ import {
   Briefcase,
   CheckCircle,
   AlertTriangle,
-  Plus
+  Plus,
+  Upload
 } from 'lucide-react';
 
 export default function MyProfile() {
+  const { profile, loading } = useUserProfile();
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [cscsData, setCscsData] = useState<any>(null);
+
+  // Fetch CSCS card data
+  useEffect(() => {
+    const fetchCscsCard = async () => {
+      if (!profile?.id) return;
+      
+      const { data } = await supabase
+        .from('cscs_cards')
+        .select('*')
+        .eq('user_id', profile.id)
+        .single();
+      
+      setCscsData(data);
+    };
+    
+    fetchCscsCard();
+  }, [profile?.id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-aj-navy-deep text-white font-sans p-6 flex items-center justify-center">
+        <div className="text-aj-yellow">Loading...</div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-aj-navy-deep text-white font-sans p-6">
       <div className="max-w-7xl mx-auto grid gap-6 lg:grid-cols-3 md:grid-cols-2 grid-cols-1">
@@ -25,28 +57,49 @@ export default function MyProfile() {
         {/* Header */}
         <div className="lg:col-span-3 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Good evening, Mark!</h1>
+            <h1 className="text-3xl font-bold text-white">
+              Good evening, {profile?.firstname || profile?.fullname || 'User'}!
+            </h1>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="secondary" className="bg-aj-yellow text-aj-navy-deep">
-                Operative
+                {profile?.role || 'Operative'}
               </Badge>
               <span className="text-aj-blue-calm">•</span>
-              <span className="text-sm text-aj-blue-calm">Active</span>
+              <span className="text-sm text-aj-blue-calm">{profile?.employmentstatus || 'Active'}</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="relative">
               <Avatar className="w-12 h-12 border-2 border-aj-yellow">
-                <AvatarImage src="/avatar.jpg" />
-                <AvatarFallback className="bg-aj-yellow text-aj-navy-deep">MC</AvatarFallback>
+                <AvatarImage src={avatarUrl || "/avatar.jpg"} />
+                <AvatarFallback className="bg-aj-yellow text-aj-navy-deep">
+                  {profile?.firstname?.charAt(0) || ''}{profile?.lastname?.charAt(0) || 'U'}
+                </AvatarFallback>
               </Avatar>
             </div>
-            <Button className="bg-aj-yellow text-aj-navy-deep hover:bg-aj-yellow-bright font-medium">
-              <Camera className="h-4 w-4 mr-2" />
-              Capture Selfie
-            </Button>
           </div>
         </div>
+
+        {/* Profile Picture Upload Box */}
+        <Card className="lg:col-span-1 bg-aj-navy-light/50 border-aj-blue-calm/20 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
+              <Upload className="h-5 w-5 text-aj-yellow" />
+              Profile Picture
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="[&_.card]:bg-transparent [&_.card]:border-0 [&_.card]:shadow-none">
+              <ProfilePictureUploader
+                currentAvatarUrl={avatarUrl}
+                userName={profile?.fullname || `${profile?.firstname} ${profile?.lastname}`.trim()}
+                userRole={profile?.role}
+                cscsLevel={cscsData?.card_type}
+                onAvatarUpdate={setAvatarUrl}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Profile Completion */}
         <Card className="bg-aj-navy-light/50 border-aj-blue-calm/20 backdrop-blur-sm">
@@ -63,14 +116,14 @@ export default function MyProfile() {
             <CardTitle className="text-lg font-bold text-white">Personal Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <p className="text-white">Mark Croud</p>
+            <p className="text-white">{profile?.fullname || `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim() || 'Name not set'}</p>
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-aj-blue-calm" />
-              <span className="text-aj-blue-calm">croudmark@gmail.com</span>
+              <span className="text-aj-blue-calm">{profile?.auth_email || 'Email not available'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-aj-blue-calm" />
-              <span className="text-aj-blue-calm">07944505151</span>
+              <span className="text-aj-blue-calm">{profile?.phone || 'Phone not set'}</span>
             </div>
             <Button variant="outline" size="sm" className="mt-3 border-aj-yellow text-aj-yellow hover:bg-aj-yellow hover:text-aj-navy-deep">
               Edit Details
