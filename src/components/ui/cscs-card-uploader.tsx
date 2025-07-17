@@ -77,6 +77,16 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
     return null;
   };
 
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(",")[1]); // Just the base64
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file); // Converts to data:image/...;base64,...
+    });
+  };
+
   const handleImageUpload = useCallback(async (file: File, side: 'front' | 'back') => {
     try {
       setUploadError('');
@@ -101,86 +111,72 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
       if (side === 'front') {
         setIsAnalyzing(true);
         
-        // Upload to Supabase Storage with proper user folder structure
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-front.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('cards')
-          .upload(filePath, file);
+        try {
+          // Convert file to base64 for AI analysis
+          console.log('Converting file to base64 for analysis...');
+          const base64Image = await fileToBase64(file);
           
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw new Error(`Upload failed: ${uploadError.message}`);
-        }
-        
-        // Get signed URL for private bucket
-        const { data: signedUrlData, error: urlError } = await supabase.storage
-          .from('cards')
-          .createSignedUrl(filePath, 60 * 60); // 1 hour expiry
-          
-        if (urlError) {
-          console.error('Signed URL error:', urlError);
-          throw new Error(`Failed to create signed URL: ${urlError.message}`);
-        }
-        
-        const imageUrl = signedUrlData.signedUrl;
-          
-        // Call AI analysis function
-        console.log('Calling CSCS card analyzer with URL:', imageUrl);
-        console.log('Current user session:', await supabase.auth.getSession());
-        
-        const { data: analysis, error: analysisError } = await supabase.functions
-          .invoke('cscs-card-analyzer', {
-            body: { imageUrl }
-          });
-          
-        console.log('Analysis response:', { analysis, analysisError });
-        console.log('Full analysis data:', JSON.stringify(analysis, null, 2));
-        console.log('Full error data:', JSON.stringify(analysisError, null, 2));
-          
-        if (analysisError) {
-          console.error('Analysis error details:', {
-            message: analysisError.message,
-            details: analysisError.details,
-            hint: analysisError.hint,
-            code: analysisError.code
-          });
-          
-          // Check if it's an API key issue
-          if (analysisError.message?.includes('API key')) {
-            throw new Error('AI API key not configured. Please check your Supabase edge function secrets.');
+          // Call AI analysis function with base64 data
+          console.log('Calling CSCS card analyzer with base64 data...');
+          const { data: analysis, error: analysisError } = await supabase.functions
+            .invoke('cscs-card-analyzer', {
+              body: { base64Image }
+            });
+            
+          console.log('Analysis response:', { analysis, analysisError });
+            
+          if (analysisError) {
+            console.error('Analysis error:', analysisError);
+            throw new Error(`Analysis failed: ${analysisError.message}`);
           }
           
-          throw new Error(`Analysis failed: ${analysisError.message}`);
-        }
-        
-        if (analysis?.success) {
-          const result = analysis.analysis;
-          setAnalysisResult(result);
+          // Handle successful analysis
+          if (analysis?.cardNumber || analysis?.cardType || analysis?.expiryDate) {
+            setAnalysisResult(analysis);
+            
+            // Auto-populate form fields
+            updateData({
+              number: analysis.cardNumber || data.number,
+              expiryDate: analysis.expiryDate ? formatDateForInput(analysis.expiryDate) : data.expiryDate,
+              cardType: analysis.cardType || data.cardType || 'Operative',
+              uploadComplete: true
+            });
+            
+            onAnalysisComplete?.(analysis);
+            
+            toast({
+              title: "CSCS Card Analyzed",
+              description: "Successfully extracted details from your CSCS card",
+            });
+          } else {
+            // Analysis completed but no data extracted
+            updateData({ uploadComplete: true });
+            
+            toast({
+              title: "Card Uploaded",
+              description: "Please fill in the card details manually below",
+              variant: "default"
+            });
+          }
           
-          // Auto-populate form fields and mark upload as complete
-          updateData({
-            number: result.cardNumber || data.number,
-            expiryDate: result.expiryDate ? formatDateForInput(result.expiryDate) : data.expiryDate,
-            cardType: result.cardType || data.cardType || 'Operative',
-            uploadComplete: true
-          });
+          // Upload to storage for permanent storage after successful analysis
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}-front.${fileExt}`;
+          const filePath = `${user.id}/${fileName}`;
           
-          onAnalysisComplete?.(result);
+          await supabase.storage
+            .from('cards')
+            .upload(filePath, file);
+            
+        } catch (analysisError) {
+          console.error('Analysis failed:', analysisError);
           
-          toast({
-            title: "CSCS Card Analyzed",
-            description: `Successfully extracted details from your CSCS card`,
-          });
-        } else {
-          // Analysis didn't succeed but allow manual entry
+          // Still allow manual entry even if analysis fails
           updateData({ uploadComplete: true });
           
           toast({
-            title: "Card Uploaded",
-            description: "Please fill in the card details manually below",
+            title: "Analysis failed",
+            description: "Please enter your card details manually below.",
             variant: "default"
           });
         }
