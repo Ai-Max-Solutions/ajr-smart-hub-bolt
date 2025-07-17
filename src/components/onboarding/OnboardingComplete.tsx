@@ -114,7 +114,8 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
 
       // Save CSCS card data using upsert with onConflict to handle duplicates
       const expiry = data.cscsCard.expiryDate?.trim();
-      const expiry_date = expiry !== "" ? expiry : null;
+      // Ensure expiry_date is a valid date string (required field in database)
+      const expiry_date = expiry && expiry !== "" ? expiry : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // Default to 1 year from now
       
       const { data: cscsData, error: cscsError } = await supabase
         .from('cscs_cards')
@@ -122,7 +123,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
           user_id: userId,
           card_number: data.cscsCard.number,
           card_type: data.cscsCard.cardType,
-          expiry_date: expiry_date,
+          expiry_date: expiry_date, // Now guaranteed to be a valid date
           front_image_url: data.cscsCard.frontImage ? 'pending_upload' : null,
           back_image_url: data.cscsCard.backImage ? 'pending_upload' : null,
           status: 'pending', // Admin needs to verify

@@ -63,18 +63,19 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
   const [ramsDocuments, setRamsDocuments] = useState<Record<string, RAMSDocument[]>>({});
   const [loadingRAMS, setLoadingRAMS] = useState(false);
 
-  // Fetch RAMS documents from database
+  // Fetch RAMS documents and existing signatures from database
   useEffect(() => {
-    const fetchRAMSDocuments = async () => {
+    const fetchRAMSDocumentsAndSignatures = async () => {
       setLoadingRAMS(true);
       try {
-        const { data: documents, error } = await supabase
+        // Fetch RAMS documents
+        const { data: documents, error: documentsError } = await supabase
           .from('rams_documents')
           .select('id, title, version, work_types, risk_level, minimum_read_time')
           .eq('is_active', true);
 
-        if (error) {
-          console.error('Error fetching RAMS documents:', error);
+        if (documentsError) {
+          console.error('Error fetching RAMS documents:', documentsError);
           toast({
             title: "Error loading safety documents",
             description: "Unable to load required safety documents. Please refresh the page.",
@@ -96,8 +97,44 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
         });
 
         setRamsDocuments(groupedDocuments);
+
+        // Fetch existing signatures for this user if authenticated
+        if (user) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id')
+            .eq('supabase_auth_id', user.id)
+            .single();
+
+          if (userData) {
+            const { data: signatures, error: signaturesError } = await supabase
+              .from('contractor_rams_signatures')
+              .select('rams_document_id')
+              .eq('contractor_id', userData.id)
+              .eq('is_current', true);
+
+            if (!signaturesError && signatures) {
+              // Update data with existing signatures
+              const existingSignatures = signatures.map(sig => ({
+                workType: '', // We'll determine this based on the document
+                documentId: sig.rams_document_id,
+                signedAt: new Date(),
+                signature: 'existing_signature' // Placeholder for existing signature
+              }));
+
+              console.log('[WorkTypeSelection] Found existing signatures:', existingSignatures.length);
+              
+              // Merge with any signatures already in data
+              const allSignatures = [...data.signedRAMS, ...existingSignatures.filter(
+                existing => !data.signedRAMS.some(current => current.documentId === existing.documentId)
+              )];
+
+              updateData({ signedRAMS: allSignatures });
+            }
+          }
+        }
       } catch (error) {
-        console.error('Error fetching RAMS documents:', error);
+        console.error('Error fetching RAMS documents and signatures:', error);
         toast({
           title: "Error loading safety documents",
           description: "Unable to load required safety documents. Please refresh the page.",
@@ -108,8 +145,8 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
       }
     };
 
-    fetchRAMSDocuments();
-  }, [toast]);
+    fetchRAMSDocumentsAndSignatures();
+  }, [toast, user]);
 
   const handleWorkTypeChange = (workTypeId: string, checked: boolean) => {
     const updatedWorkTypes = checked 
