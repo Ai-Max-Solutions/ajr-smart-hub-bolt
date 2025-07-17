@@ -31,6 +31,9 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
     setSaving(true);
     try {
       // First, get the user's database ID
+      console.log('[OnboardingComplete] Auth user ID:', user.id);
+      console.log('[OnboardingComplete] Auth user email:', user.email);
+      
       const { data: userData, error: userFetchError } = await supabase
         .from('users')
         .select('id')
@@ -38,7 +41,13 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
         .single();
 
       if (userFetchError || !userData) {
-        console.error('Error fetching user ID:', userFetchError);
+        console.error('[OnboardingComplete] Error fetching user ID:', userFetchError);
+        console.log('[OnboardingComplete] Available users:');
+        
+        // Debug: show all users
+        const { data: allUsers } = await supabase.from('users').select('id, supabase_auth_id, email, name');
+        console.log('[OnboardingComplete] All users in database:', allUsers);
+        
         throw new Error('Could not find user record');
       }
 

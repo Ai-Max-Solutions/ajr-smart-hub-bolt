@@ -24,6 +24,7 @@ export const IndexWrapper = () => {
 
       try {
         console.log('[IndexWrapper] Checking onboarding status for user:', user.id);
+        console.log('[IndexWrapper] User email:', user.email);
         
         const { data: userData, error } = await supabase
           .from('users')
@@ -33,7 +34,17 @@ export const IndexWrapper = () => {
 
         if (error) {
           console.error('[IndexWrapper] Error fetching user data:', error);
-          // If user doesn't exist, they definitely need onboarding
+          console.log('[IndexWrapper] Attempting to query all users with this auth ID...');
+          
+          // Debug: Check if user exists at all
+          const { data: allUsers, error: debugError } = await supabase
+            .from('users')
+            .select('id, supabase_auth_id, name, onboarding_completed')
+            .eq('supabase_auth_id', user.id);
+            
+          console.log('[IndexWrapper] Debug query result:', allUsers, debugError);
+          
+          // If user doesn't exist in users table, they definitely need onboarding
           setOnboardingResult({
             needsOnboarding: true,
             redirectPath: '/onboarding/personal-details',
@@ -43,7 +54,7 @@ export const IndexWrapper = () => {
           return;
         }
 
-        console.log('[IndexWrapper] User data:', userData);
+        console.log('[IndexWrapper] User data found:', userData);
 
         // Check for missing essential information
         const missingSteps: string[] = [];
