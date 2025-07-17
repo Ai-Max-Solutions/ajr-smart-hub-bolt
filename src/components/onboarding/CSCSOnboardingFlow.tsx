@@ -117,12 +117,25 @@ export const CSCSOnboardingFlow: React.FC = () => {
         return;
       }
 
-      // If no valid card exists, something went wrong with the upload process
-      toast({
-        title: "Upload Required",
-        description: "Please upload your CSCS card image to complete verification.",
-        variant: "destructive",
-      });
+      // If no valid analysis result, show helpful message
+      if (!analysisResult) {
+        toast({
+          title: "Card analysis failed. Please enter details manually.",
+          description: "You can still proceed by entering your CSCS card details manually.",
+          variant: "destructive",
+        });
+      } else {
+        // Analysis succeeded, proceed to completion
+        setCurrentStep(3);
+        toast({
+          title: "CSCS Verification Complete",
+          description: "Your CSCS card has been successfully analyzed and verified.",
+        });
+        
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      }
       
     } catch (error) {
       console.error('Error checking CSCS status:', error);

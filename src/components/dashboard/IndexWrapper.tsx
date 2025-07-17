@@ -28,7 +28,7 @@ export const IndexWrapper = () => {
         
         const { data: userData, error } = await supabase
           .from('users')
-          .select('name, phone, role, onboarding_completed')
+          .select('id,name,phone,role,onboarding_completed')
           .eq('supabase_auth_id', user.id)
           .single();
 
@@ -39,7 +39,7 @@ export const IndexWrapper = () => {
           // Debug: Check if user exists at all
           const { data: allUsers, error: debugError } = await supabase
             .from('users')
-            .select('id, supabase_auth_id, name, onboarding_completed')
+            .select('id,supabase_auth_id,name,onboarding_completed')
             .eq('supabase_auth_id', user.id);
             
           console.log('[IndexWrapper] Debug query result:', allUsers, debugError);
