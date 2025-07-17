@@ -33,8 +33,8 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
     if (!data.lastName?.trim()) newErrors.lastName = 'Last name is required';
     
     // Phone validation
-    if (!data.emergencyContact?.phone?.trim()) newErrors.phone = 'Phone number is required';
-    else if (!/^\+?\d{10,15}$/.test(data.emergencyContact.phone.replace(/[\s\-\(\)]/g, ''))) {
+    if (!data.phone?.trim()) newErrors.phone = 'Phone number is required';
+    else if (!/^\+?\d{10,15}$/.test(data.phone.replace(/[\s\-\(\)]/g, ''))) {
       newErrors.phone = 'Phone must be 10-15 digits (e.g., +44 7123 456789)';
     }
 
@@ -67,7 +67,7 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
           name: fullName,
           firstname: data.firstName?.trim(),
           lastname: data.lastName?.trim(),
-          phone: data.emergencyContact?.phone?.trim()
+          phone: data.phone?.trim()
         })
         .eq('supabase_auth_id', user.id);
 
@@ -158,13 +158,8 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
               <Label htmlFor="phone">Phone Number *</Label>
               <Input
                 id="phone"
-                value={data.emergencyContact?.phone || ''}
-                onChange={(e) => updateData({ 
-                  emergencyContact: { 
-                    ...data.emergencyContact, 
-                    phone: e.target.value 
-                  } 
-                })}
+                value={data.phone || ''}
+                onChange={(e) => updateData({ phone: e.target.value })}
                 placeholder="+44 7123 456789"
                 className={errors.phone ? 'border-destructive' : ''}
               />
