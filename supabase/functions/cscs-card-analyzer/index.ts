@@ -93,13 +93,32 @@ If unsure, return null values. Do NOT explain anything.`
     try {
       const outer = JSON.parse(raw);
       const content = outer.choices?.[0]?.message?.content ?? "";
+      
+      console.log("🔍 Raw GPT content:", content);
 
-      // Clean up GPT text: find first '{' and trim extras
-      const jsonStart = content.indexOf("{");
-      if (jsonStart === -1) throw new Error("No JSON object found in GPT content");
-
-      const trimmed = content.slice(jsonStart).trim();
-      parsedJson = JSON.parse(trimmed);
+      // Strip markdown code blocks and extract JSON
+      let cleanedContent = content.trim();
+      
+      // Remove ```json and ``` markers
+      if (cleanedContent.startsWith("```json")) {
+        cleanedContent = cleanedContent.replace(/^```json\s*/, "");
+      }
+      if (cleanedContent.endsWith("```")) {
+        cleanedContent = cleanedContent.replace(/\s*```$/, "");
+      }
+      
+      // Find JSON object boundaries
+      const jsonStart = cleanedContent.indexOf("{");
+      const jsonEnd = cleanedContent.lastIndexOf("}");
+      
+      if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error("No JSON object found in GPT content");
+      }
+      
+      const jsonStr = cleanedContent.slice(jsonStart, jsonEnd + 1);
+      console.log("🧹 Cleaned JSON string:", jsonStr);
+      
+      parsedJson = JSON.parse(jsonStr);
     } catch (err) {
       console.error("❌ Failed to parse JSON from GPT:", err);
       return new Response(JSON.stringify({ error: "Invalid response from AI OCR" }), {
