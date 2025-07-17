@@ -120,9 +120,17 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
   };
 
   const getRequiredRAMS = () => {
-    return data.selectedWorkTypes.flatMap(workType => 
-      ramsDocuments[workType as keyof typeof ramsDocuments] || []
-    );
+    console.log("Selected work types:", data.selectedWorkTypes);
+    console.log("Available RAMS documents by work type:", ramsDocuments);
+    
+    const requiredRAMS = data.selectedWorkTypes.flatMap(workType => {
+      const docs = ramsDocuments[workType] || [];
+      console.log(`RAMS for work type "${workType}":`, docs);
+      return docs;
+    });
+      
+    console.log("Final required RAMS:", requiredRAMS);
+    return requiredRAMS;
   };
 
   const getSignedRAMSCount = () => {
@@ -307,7 +315,7 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
       </Card>
 
       {/* RAMS Documents */}
-      {requiredRAMS.length > 0 && (
+      {data.selectedWorkTypes.length > 0 && (
         <Card className="card-hover">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
@@ -315,66 +323,84 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
               Required Safety Documents (RAMS)
             </CardTitle>
             <CardDescription>
-              You must read and sign each document before proceeding.
+              {requiredRAMS.length > 0 
+                ? "You must read and sign each document before proceeding."
+                : "No RAMS documents required for your selected work types."
+              }
             </CardDescription>
           </CardHeader>
           
           <CardContent>
-            <div className="mb-4 p-3 bg-muted rounded-lg">
-              <p className="text-sm font-medium">
-                Progress: {signedCount} of {requiredRAMS.length} documents signed
-              </p>
-              <div className="w-full bg-border rounded-full h-2 mt-2">
-                <div 
-                  className="bg-accent h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(signedCount / requiredRAMS.length) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {requiredRAMS.map((rams) => {
-                const isSigned = data.signedRAMS.some(s => s.documentId === rams.id);
-                
-                return (
-                  <div 
-                    key={rams.id}
-                    className={`flex items-center justify-between p-4 border rounded-lg transition-all duration-200 ${
-                      isSigned 
-                        ? 'border-success bg-success/5' 
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full ${
-                        isSigned ? 'bg-success' : 'bg-warning'
-                      }`} />
-                      <div>
-                        <h4 className="font-medium">{rams.title}</h4>
-                        <p className="text-sm text-muted-foreground">Version {rams.version}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {isSigned && (
-                        <Badge variant="secondary" className="bg-success/10 text-success">
-                          Signed
-                        </Badge>
-                      )}
-                      <Button
-                        variant={isSigned ? "outline" : "default"}
-                        size="sm"
-                        onClick={() => viewRAMS(rams)}
-                        className={!isSigned ? "btn-primary" : ""}
-                      >
-                        <PenTool className="w-4 h-4 mr-2" />
-                        {isSigned ? 'View' : 'Review & Sign'}
-                      </Button>
-                    </div>
+            {requiredRAMS.length > 0 ? (
+              <>
+                <div className="mb-4 p-3 bg-muted rounded-lg">
+                  <p className="text-sm font-medium">
+                    Progress: {signedCount} of {requiredRAMS.length} documents signed
+                  </p>
+                  <div className="w-full bg-border rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-accent h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(signedCount / requiredRAMS.length) * 100}%` }}
+                    />
                   </div>
-                );
-              })}
-            </div>
+                </div>
+
+                <div className="space-y-3">
+                  {requiredRAMS.map((rams) => {
+                    const isSigned = data.signedRAMS.some(s => s.documentId === rams.id);
+                    
+                    return (
+                      <div 
+                        key={rams.id}
+                        className={`flex items-center justify-between p-4 border rounded-lg transition-all duration-200 ${
+                          isSigned 
+                            ? 'border-success bg-success/5' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            isSigned ? 'bg-success' : 'bg-warning'
+                          }`} />
+                          <div>
+                            <h4 className="font-medium">{rams.title}</h4>
+                            <p className="text-sm text-muted-foreground">Version {rams.version}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {isSigned && (
+                            <Badge variant="secondary" className="bg-success/10 text-success">
+                              Signed
+                            </Badge>
+                          )}
+                          <Button
+                            variant={isSigned ? "outline" : "default"}
+                            size="sm"
+                            onClick={() => viewRAMS(rams)}
+                            className={!isSigned ? "btn-primary" : ""}
+                          >
+                            <PenTool className="w-4 h-4 mr-2" />
+                            {isSigned ? 'View' : 'Review & Sign'}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/10 flex items-center justify-center">
+                  <FileText className="w-8 h-8 text-success" />
+                </div>
+                <h3 className="font-medium text-foreground mb-2">No RAMS Required</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  The work types you've selected don't currently require any additional safety documentation. 
+                  You can proceed to the next step.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
