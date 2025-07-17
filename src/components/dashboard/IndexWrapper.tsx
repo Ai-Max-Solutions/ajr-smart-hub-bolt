@@ -28,7 +28,12 @@ export const IndexWrapper = () => {
         
         const { data: userData, error } = await supabase
           .from('users')
-          .select('id,name,phone,role,onboarding_completed')
+          .select(`
+            id, name, phone, role, onboarding_completed,
+            cscs_cards ( id ),
+            emergency_contacts ( id ),
+            contractor_rams_signatures ( id )
+          `)
           .eq('supabase_auth_id', user.id)
           .single();
 
@@ -56,29 +61,56 @@ export const IndexWrapper = () => {
 
         console.log('[IndexWrapper] User data found:', userData);
 
-        // Check for missing essential information
+        // Check for missing essential information with related records
         const missingSteps: string[] = [];
         
-        // Check personal details
+        console.log('[IndexWrapper] Checking onboarding status:');
+        console.log('- Name:', !!userData.name);
+        console.log('- Phone:', !!userData.phone);
+        console.log('- CSCS Cards:', Array.isArray(userData.cscs_cards) ? userData.cscs_cards.length : 0);
+        console.log('- Emergency Contacts:', Array.isArray(userData.emergency_contacts) ? userData.emergency_contacts.length : 0);
+        console.log('- RAMS Signatures:', Array.isArray(userData.contractor_rams_signatures) ? userData.contractor_rams_signatures.length : 0);
+        console.log('- Onboarding Completed:', userData.onboarding_completed);
+        
+        // Check personal details (basic user info)
         if (!userData.name || !userData.phone) {
           missingSteps.push('personal-details');
         }
 
-        // Check if user has completed full onboarding using database field
-        console.log('[IndexWrapper] Database onboarding_completed:', userData.onboarding_completed);
-        
-        if (!userData.onboarding_completed && userData.name) {
-          // User has basic info but hasn't completed full onboarding flow
-          console.log('[IndexWrapper] User has name but onboarding_completed=false in database');
-          missingSteps.push('emergency-contact', 'cscs-card', 'work-types');
+        // Only check related records if basic info is complete
+        if (userData.name && userData.phone) {
+          // Check if CSCS card exists - this is saved in personal-details step
+          if (!Array.isArray(userData.cscs_cards) || userData.cscs_cards.length === 0) {
+            missingSteps.push('personal-details');
+          }
+          
+          // Check if emergency contact exists - this is also saved in personal-details step
+          if (!Array.isArray(userData.emergency_contacts) || userData.emergency_contacts.length === 0) {
+            missingSteps.push('personal-details');
+          }
+          
+          // Check if RAMS signatures exist - these are signed in work-types step
+          if (!Array.isArray(userData.contractor_rams_signatures) || userData.contractor_rams_signatures.length === 0) {
+            missingSteps.push('work-types');
+          }
+        }
+
+        // If all records exist but onboarding_completed is false, user needs to finish
+        if (Array.isArray(userData.cscs_cards) && userData.cscs_cards.length > 0 && 
+            Array.isArray(userData.emergency_contacts) && userData.emergency_contacts.length > 0 && 
+            Array.isArray(userData.contractor_rams_signatures) && userData.contractor_rams_signatures.length > 0 && 
+            !userData.onboarding_completed) {
+          missingSteps.push('complete');
         }
 
         if (missingSteps.length > 0) {
-          console.log('[IndexWrapper] User needs onboarding. Missing steps:', missingSteps);
+          // Remove duplicates and get first missing step
+          const uniqueSteps = [...new Set(missingSteps)];
+          console.log('[IndexWrapper] User needs onboarding. Missing steps:', uniqueSteps);
           setOnboardingResult({
             needsOnboarding: true,
-            redirectPath: `/onboarding/${missingSteps[0]}`,
-            missingSteps
+            redirectPath: `/onboarding/${uniqueSteps[0]}`,
+            missingSteps: uniqueSteps
           });
         } else {
           console.log('[IndexWrapper] User has completed onboarding, proceeding to dashboard');
