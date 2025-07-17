@@ -8,9 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Shield, AlertCircle } from 'lucide-react';
-
 export const Auth = () => {
-  const { user, loading, signIn, signUp, resetPassword } = useAuth();
+  const {
+    user,
+    loading,
+    signIn,
+    signUp,
+    resetPassword
+  } = useAuth();
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -28,79 +33,66 @@ export const Auth = () => {
   if (!loading && user) {
     return <Navigate to={redirectTo} replace />;
   }
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
-    const { error } = await signIn(email, password);
-    
+    const {
+      error
+    } = await signIn(email, password);
     if (error) {
       setError(error.message || 'Failed to sign in');
     }
-    
     setIsLoading(false);
   };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       setIsLoading(false);
       return;
     }
-
     if (password.length < 8) {
       setError('Password must be at least 8 characters long');
       setIsLoading(false);
       return;
     }
-
-    const { error } = await signUp(email, password, {
+    const {
+      error
+    } = await signUp(email, password, {
       first_name: firstName,
       last_name: lastName,
       full_name: `${firstName} ${lastName}`.trim()
     });
-    
     if (error) {
       setError(error.message || 'Failed to create account');
     }
-    
     setIsLoading(false);
   };
-
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
-    const { error } = await resetPassword(email);
-    
+    const {
+      error
+    } = await resetPassword(email);
     if (!error) {
       setShowResetForm(false);
       setEmail('');
     } else {
       setError(error.message || 'Failed to send reset email');
     }
-    
     setIsLoading(false);
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light flex items-center justify-center">
+    return <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
-      </div>
-    );
+      </div>;
   }
-
   if (showResetForm) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light flex items-center justify-center px-4">
+    return <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light flex items-center justify-center px-4">
         <Card className="w-full max-w-md shadow-2xl backdrop-blur-sm bg-card/95 border-white/10 animate-fade-in">
           <CardHeader className="text-center">
             <Shield className="mx-auto h-12 w-12 text-primary mb-4" />
@@ -111,63 +103,37 @@ export const Auth = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleResetPassword} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
+              {error && <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+                </Alert>}
               
               <div className="space-y-2">
                 <Label htmlFor="reset-email">Email</Label>
-                <Input
-                  id="reset-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
+                <Input id="reset-email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} />
               </div>
 
               <div className="space-y-3">
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading || !email}
-                >
+                <Button type="submit" className="w-full" disabled={isLoading || !email}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Send Reset Link
                 </Button>
                 
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => setShowResetForm(false)}
-                  disabled={isLoading}
-                >
+                <Button type="button" variant="outline" className="w-full" onClick={() => setShowResetForm(false)} disabled={isLoading}>
                   Back to Sign In
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light flex items-center justify-center px-4">
+  return <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light flex items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-2xl backdrop-blur-sm bg-card/95 border-white/10 animate-fade-in">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
-            <img 
-              src="/lovable-uploads/0b275deb-8a7d-4a00-85a3-ae746d59b6f1.png" 
-              alt="A&J Ryan Logo" 
-              className="w-[180px] mr-2 rounded-[5px]"
-            />
-            <span className="text-2xl font-bold text-primary">A&J Ryan</span>
+            <img src="/lovable-uploads/0b275deb-8a7d-4a00-85a3-ae746d59b6f1.png" alt="A&J Ryan Logo" className="w-[180px] mr-2 rounded-[5px]" />
+            
           </div>
           <CardTitle>SmartWork Hub</CardTitle>
           <CardDescription>
@@ -183,54 +149,28 @@ export const Auth = () => {
             
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
-                {error && (
-                  <Alert variant="destructive">
+                {error && <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
+                  </Alert>}
                 
                 <div className="space-y-2">
                   <Label htmlFor="signin-email">Email</Label>
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
+                  <Input id="signin-email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="signin-password">Password</Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
+                  <Input id="signin-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={isLoading} />
                 </div>
 
                 <div className="space-y-3">
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isLoading || !email || !password}
-                  >
+                  <Button type="submit" className="w-full" disabled={isLoading || !email || !password}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
                   </Button>
                   
-                  <Button 
-                    type="button" 
-                    variant="link" 
-                    className="w-full text-sm"
-                    onClick={() => setShowResetForm(true)}
-                    disabled={isLoading}
-                  >
+                  <Button type="button" variant="link" className="w-full text-sm" onClick={() => setShowResetForm(true)} disabled={isLoading}>
                     Forgot your password?
                   </Button>
                 </div>
@@ -239,61 +179,30 @@ export const Auth = () => {
             
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
-                {error && (
-                  <Alert variant="destructive">
+                {error && <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
+                  </Alert>}
                 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-2">
                     <Label htmlFor="first-name">First Name</Label>
-                    <Input
-                      id="first-name"
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
+                    <Input id="first-name" type="text" value={firstName} onChange={e => setFirstName(e.target.value)} required disabled={isLoading} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last-name">Last Name</Label>
-                    <Input
-                      id="last-name"
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
+                    <Input id="last-name" type="text" value={lastName} onChange={e => setLastName(e.target.value)} required disabled={isLoading} />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
+                  <Input id="signup-email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    minLength={8}
-                  />
+                  <Input id="signup-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={isLoading} minLength={8} />
                   <p className="text-xs text-muted-foreground">
                     Password must be at least 8 characters long
                   </p>
@@ -301,28 +210,10 @@ export const Auth = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm Password</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
+                  <Input id="confirm-password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required disabled={isLoading} />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={
-                    isLoading || 
-                    !email || 
-                    !password || 
-                    !confirmPassword || 
-                    !firstName || 
-                    !lastName
-                  }
-                >
+                <Button type="submit" className="w-full" disabled={isLoading || !email || !password || !confirmPassword || !firstName || !lastName}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Create Account
                 </Button>
@@ -335,6 +226,5 @@ export const Auth = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
