@@ -3,6 +3,8 @@ import { useState } from 'react';
 import ProgressHeader from '@/components/onboarding/ProgressHeader';
 import SignUp from '@/components/onboarding/SignUp';
 import PersonalDetails from '@/components/onboarding/PersonalDetails';
+import CSCSCard from '@/components/onboarding/CSCSCard';
+import EmergencyContact from '@/components/onboarding/EmergencyContact';
 import WorkTypeSelection from '@/components/onboarding/WorkTypeSelection';
 import OnboardingComplete from '@/components/onboarding/OnboardingComplete';
 import { OnboardingRouter } from '@/components/onboarding/OnboardingRouter';
@@ -99,15 +101,33 @@ const OnboardingFlow = () => {
                 />
               } 
             />
-             <Route 
-               path="/personal-details" 
-               element={
-                 <PersonalDetails 
-                   data={onboardingData} 
-                   updateData={updateOnboardingData} 
-                 />
-               } 
-             />
+            <Route 
+              path="/personal-details" 
+              element={
+                <PersonalDetails 
+                  data={onboardingData} 
+                  updateData={updateOnboardingData} 
+                />
+              } 
+            />
+            <Route 
+              path="/cscs-card" 
+              element={
+                <CSCSCard 
+                  data={onboardingData} 
+                  updateData={updateOnboardingData} 
+                />
+              } 
+            />
+            <Route 
+              path="/emergency-contact" 
+              element={
+                <EmergencyContact 
+                  data={onboardingData} 
+                  updateData={updateOnboardingData} 
+                />
+              } 
+            />
             <Route 
               path="/work-types" 
               element={

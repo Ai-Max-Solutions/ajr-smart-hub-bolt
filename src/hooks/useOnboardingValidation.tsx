@@ -158,8 +158,11 @@ export const useOnboardingValidation = () => {
   }, [user]);
 
   const getFirstIncompleteStep = (): string => {
+    console.log('[Validation] Determining first incomplete step:', stepStatus);
+    
     if (!stepStatus.personal) return 'personal-details';
-    if (!stepStatus.cscs || !stepStatus.emergency) return 'personal-details';
+    if (!stepStatus.cscs) return 'cscs-card';
+    if (!stepStatus.emergency) return 'emergency-contact';
     if (!stepStatus.rams) return 'work-types';
     return 'complete';
   };

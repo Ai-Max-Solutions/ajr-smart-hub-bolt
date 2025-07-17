@@ -21,286 +21,48 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    // Save onboarding data to database when component mounts
-    saveOnboardingData();
+    // Mark onboarding as completed when component mounts
+    markOnboardingComplete();
   }, []);
 
-  const saveOnboardingData = async () => {
+  const markOnboardingComplete = async () => {
     if (!user || saved) return;
 
     setSaving(true);
     try {
-      // First, get or create the user's database record
-      console.log('[OnboardingComplete] Auth user ID:', user.id);
-      console.log('[OnboardingComplete] Auth user email:', user.email);
+      console.log('[OnboardingComplete] Marking onboarding as complete for user:', user.id);
       
-      let { data: userData, error: userFetchError } = await supabase
+      // Mark onboarding as completed
+      const { error } = await supabase
         .from('users')
-        .select('id')
-        .eq('supabase_auth_id', user.id)
-        .single();
-
-      if (userFetchError && userFetchError.code !== "PGRST116") {
-        // PGRST116 = not found, other errors are actual problems
-        console.error('[OnboardingComplete] Database error:', userFetchError);
-        throw new Error('Database error while fetching user');
-      }
-
-      if (!userData) {
-        console.log('[OnboardingComplete] User not found, creating new record...');
-        
-        // Create user record if it doesn't exist
-        const { data: newUser, error: createError } = await supabase
-          .from('users')
-          .insert({
-            supabase_auth_id: user.id,
-            email: user.email || '',
-            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-            role: 'Operative'
-          })
-          .select('id')
-          .single();
-          
-        if (createError || !newUser) {
-          console.error('[OnboardingComplete] Error creating user:', createError);
-          throw new Error('Could not create user record');
-        }
-        
-        userData = newUser;
-        console.log('[OnboardingComplete] Created new user:', userData);
-      }
-
-      const userId = userData.id;
-      console.log('[OnboardingComplete] Saving data for user ID:', userId);
-
-      // Update user's basic information AND mark onboarding as completed
-      const { error: userError } = await supabase
-        .from('users')
-        .update({
-          name: `${data.firstName} ${data.lastName}`.trim(),
-          phone: data.emergencyContact.phone, // Use emergency contact phone as primary phone for now
-          onboarding_completed: true, // CRITICAL: Mark onboarding as completed in database
-          is_blocked: false, // Grant immediate access - can be suspended later if needed
+        .update({ 
+          onboarding_completed: true,
+          updated_at: new Date().toISOString()
         })
         .eq('supabase_auth_id', user.id);
 
-      if (userError) {
-        console.error('Error updating user:', userError);
-        throw userError;
+      if (error) {
+        console.error('[OnboardingComplete] Failed to mark onboarding complete:', error);
+        toast({
+          title: "Error",
+          description: "Failed to complete onboarding. Please try again.",
+          variant: "destructive"
+        });
+        return;
       }
 
-      console.log('[OnboardingComplete] Successfully updated user with onboarding_completed=true');
-
-      // Save emergency contact data with returning
-      const { data: emergencyData, error: emergencyError } = await supabase
-        .from('emergency_contacts')
-        .upsert({
-          user_id: userId,
-          name: data.emergencyContact.name,
-          relationship: data.emergencyContact.relationship,
-          phone: data.emergencyContact.phone,
-          email: data.emergencyContact.email || null,
-        }, {
-          onConflict: "user_id"
-        })
-        .select('id');
-
-      if (emergencyError) {
-        console.error('Error saving emergency contact:', emergencyError);
-        throw emergencyError;
-      }
-
-      console.log('[OnboardingComplete] Successfully saved emergency contact:', emergencyData?.length || 0, 'records');
-
-      // Save CSCS card data using upsert with onConflict to handle duplicates
-      const expiry = data.cscsCard.expiryDate?.trim();
-      
-      // Auto-default expiry date if missing (current year + 3 years)
-      let expiry_date = expiry && expiry !== "" ? expiry : null;
-      if (!expiry_date && data.cscsCard.number) {
-        const defaultExpiry = new Date();
-        defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 3);
-        expiry_date = defaultExpiry.toISOString().split('T')[0]; // YYYY-MM-DD format
-        console.log('[OnboardingComplete] Auto-defaulted expiry date to:', expiry_date);
-      }
-      
-      // Validate required fields before insert
-      if (!data.cscsCard.number || !data.cscsCard.cardType) {
-        throw new Error('CSCS card number and type are required');
-      }
-      
-      // Ensure we have proper image URLs - use actual file URLs if available
-      const front_image_url = data.cscsCard.frontImage 
-        ? (typeof data.cscsCard.frontImage === 'string' ? data.cscsCard.frontImage : null)
-        : null;
-      const back_image_url = data.cscsCard.backImage 
-        ? (typeof data.cscsCard.backImage === 'string' ? data.cscsCard.backImage : null)
-        : null;
-      
-      console.log('[OnboardingComplete] CSCS card data being inserted:', {
-        user_id: userId,
-        card_number: data.cscsCard.number,
-        card_type: data.cscsCard.cardType,
-        expiry_date,
-        front_image_url,
-        back_image_url
-      });
-      
-      const { data: cscsData, error: cscsError } = await supabase
-        .from('cscs_cards')
-        .upsert({
-          user_id: userId,
-          card_number: data.cscsCard.number,
-          card_type: data.cscsCard.cardType,
-          expiry_date: expiry_date, // Now nullable, won't cause insert failures
-          front_image_url: front_image_url,
-          back_image_url: back_image_url,
-          status: 'pending', // Admin needs to verify
-        }, {
-          onConflict: 'user_id'
-        })
-        .select('id');
-
-      if (cscsError) {
-        console.error('Error saving CSCS card:', cscsError);
-        throw cscsError;
-      }
-
-      console.log('[OnboardingComplete] Successfully saved CSCS card:', cscsData?.length || 0, 'records');
-
-      // Save selected work types
-      if (data.selectedWorkTypes && data.selectedWorkTypes.length > 0) {
-        // First, delete existing work types for this user
-        const { error: deleteError } = await supabase
-          .from('user_work_types')
-          .delete()
-          .eq('user_id', userId);
-
-        if (deleteError) {
-          console.error('Error deleting existing work types:', deleteError);
-        }
-
-        // Insert new work types
-        const workTypesToInsert = data.selectedWorkTypes.map(workType => ({
-          user_id: userId,
-          work_type: workType,
-        }));
-
-        const { error: workTypesError } = await supabase
-          .from('user_work_types')
-          .insert(workTypesToInsert);
-
-        if (workTypesError) {
-          console.error('Error saving work types:', workTypesError);
-          throw workTypesError;
-        }
-
-        console.log('[OnboardingComplete] Successfully saved work types:', data.selectedWorkTypes);
-      }
-
-      // Save RAMS signatures data to contractor_rams_signatures table
-      console.log('[OnboardingComplete] Checking RAMS signatures data:');
-      console.log('- data.signedRAMS exists:', !!data.signedRAMS);
-      console.log('- data.signedRAMS length:', data.signedRAMS?.length || 0);
-      console.log('- signedRAMS data structure:', JSON.stringify(data.signedRAMS, null, 2));
-      
-      if (data.signedRAMS && data.signedRAMS.length > 0) {
-        // Validate and prepare RAMS signatures
-        const validSignatures = [];
-        
-        for (const rams of data.signedRAMS) {
-          console.log('[OnboardingComplete] Processing RAMS signature:', {
-            workType: rams.workType,
-            documentId: rams.documentId,
-            hasSignature: !!rams.signature,
-            signatureLength: rams.signature?.length || 0,
-            signedAt: rams.signedAt
-          });
-          
-          // Validate required fields
-          if (!rams.documentId) {
-            console.error('[OnboardingComplete] Missing documentId for RAMS signature');
-            continue;
-          }
-          
-          if (!rams.signature) {
-            console.error('[OnboardingComplete] Missing signature data for RAMS:', rams.documentId);
-            continue;
-          }
-          
-          // Clean signature data - remove data URL prefix if present
-          let signatureData = rams.signature;
-          if (signatureData.startsWith('data:image/png;base64,')) {
-            signatureData = signatureData.replace('data:image/png;base64,', '');
-          }
-          
-          // Use default reading time of 30 seconds since it's not tracked in the current structure
-          const readingTime = 30;
-          
-          validSignatures.push({
-            contractor_id: userId,
-            rams_document_id: rams.documentId,
-            signature_data: signatureData,
-            reading_time_seconds: readingTime,
-          });
-        }
-        
-        console.log('[OnboardingComplete] Valid signatures to save:', validSignatures.length);
-        console.log('[OnboardingComplete] Payload being sent to database:', JSON.stringify(validSignatures, null, 2));
-        
-        if (validSignatures.length > 0) {
-          const { data: insertedSignatures, error: ramsError } = await supabase
-            .from('contractor_rams_signatures')
-            .insert(validSignatures)
-            .select('id, contractor_id, rams_document_id');
-
-          if (ramsError) {
-            console.error('[OnboardingComplete] Error saving RAMS signatures:', ramsError);
-            console.error('[OnboardingComplete] Failed payload:', JSON.stringify(validSignatures, null, 2));
-            // Don't throw error for RAMS - it's not critical for onboarding completion
-            console.warn('[OnboardingComplete] RAMS signatures not saved, but continuing with onboarding completion');
-          } else {
-            console.log('[OnboardingComplete] Successfully saved RAMS signatures:', insertedSignatures);
-            console.log('[OnboardingComplete] Inserted signature count:', insertedSignatures?.length || 0);
-            
-            // Verify signatures were actually saved by fetching them back
-            const { data: verifySignatures, error: verifyError } = await supabase
-              .from('contractor_rams_signatures')
-              .select('id, contractor_id, rams_document_id')
-              .eq('contractor_id', userId);
-              
-            if (verifyError) {
-              console.error('[OnboardingComplete] Error verifying saved signatures:', verifyError);
-            } else {
-              console.log('[OnboardingComplete] Verification: Found', verifySignatures?.length || 0, 'signatures in database for user:', userId);
-            }
-          }
-        } else {
-          console.warn('[OnboardingComplete] No valid RAMS signatures to save');
-        }
-      } else {
-        console.log('[OnboardingComplete] No RAMS signatures provided in onboarding data');
-      }
-
-      // Store a simplified completion record in localStorage for quick access
-      const onboardingRecord = {
-        userId: user.id,
-        completedAt: new Date().toISOString(),
-        dataStoredInDatabase: true,
-      };
-
-      localStorage.setItem('onboardingCompleted', JSON.stringify(onboardingRecord));
-      
+      console.log('[OnboardingComplete] Onboarding marked as complete successfully');
       setSaved(true);
+      
       toast({
         title: "Onboarding Complete!",
-        description: "Your information has been saved successfully to the database.",
+        description: "Your information has been saved successfully.",
       });
     } catch (error: any) {
-      console.error('Error saving onboarding data:', error);
+      console.error('Error completing onboarding:', error);
       toast({
-        title: "Error saving data",
-        description: error.message || "There was an issue saving your information. Please try again.",
+        title: "Error",
+        description: error.message || "There was an issue completing onboarding. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -328,10 +90,10 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
 
     console.log('[OnboardingComplete] Navigating to dashboard - onboarding is complete');
     
-    // Clear onboarding data from localStorage (but keep onboardingCompleted)
+    // Clear onboarding data from localStorage
     localStorage.removeItem('onboardingData');
     
-    // Use React Router navigation instead of window.location to avoid full page reload
+    // Navigate to dashboard
     navigate('/', { replace: true });
   };
 
@@ -411,7 +173,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
               <div>
                 <h3 className="font-semibold text-gray-900">Safety Documents (RAMS)</h3>
                 <p className="text-sm text-gray-600">
-                  {data.signedRAMS.length} documents signed for {data.selectedWorkTypes.length} work types
+                  {data.signedRAMS?.length || 0} documents signed for {data.selectedWorkTypes?.length || 0} work types
                 </p>
               </div>
             </div>
@@ -462,25 +224,6 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
               <h3 className="font-semibold text-gray-900 text-lg">Start Working</h3>
               <p className="text-gray-700 mt-1">
                 Access your dashboard to view assigned projects and submit timesheets.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Important Notice */}
-      <Card className="card-hover border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 shadow-md">
-        <CardContent className="pt-6 pb-6">
-          <div className="flex items-start gap-4">
-            <AlertCircle className="w-6 h-6 text-orange-600 mt-1" />
-            <div>
-              <h3 className="font-bold text-orange-800 mb-3 text-lg">⚠️ Important Notice</h3>
-              <p className="text-gray-900 mb-4 leading-relaxed">
-                Your account is pending final approval. You'll be notified via email once the verification process is complete. 
-                Please ensure you have access to the email address you provided.
-              </p>
-              <p className="text-gray-900 leading-relaxed">
-                If you need to update any information, please contact our support team.
               </p>
             </div>
           </div>
