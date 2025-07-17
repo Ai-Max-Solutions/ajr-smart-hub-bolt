@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useGlobalOnboardingCheck } from '@/hooks/useGlobalOnboardingCheck';
+import { useOnboarding } from '@/context/OnboardingContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 
@@ -12,7 +12,7 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { flags, isLoading, firstIncompleteStep } = useGlobalOnboardingCheck();
+  const { flags, isLoading, firstIncompleteStep } = useOnboarding();
   const [isNavigating, setIsNavigating] = useState(false);
 
   const handleNavigation = useCallback((path: string, reason: string) => {
@@ -20,6 +20,11 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
     console.log(`[OnboardingRouter] ${reason}:`, path);
     setIsNavigating(true);
     navigate(path, { replace: true });
+    
+    // Reset navigation state after a short delay
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 100);
   }, [navigate, isNavigating]);
 
   // Handle completion redirect
@@ -50,7 +55,7 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
     if (currentPath !== firstIncompleteStep) {
       handleNavigation(`/onboarding/${firstIncompleteStep}`, `Redirecting from ${currentPath} to correct step`);
     }
-  }, [user, isLoading, flags, location.pathname, firstIncompleteStep, handleNavigation, isNavigating]);
+  }, [user, isLoading, flags.allComplete, location.pathname, firstIncompleteStep, handleNavigation, isNavigating]);
 
   if (!user || isLoading) {
     return (

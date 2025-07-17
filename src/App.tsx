@@ -9,6 +9,7 @@ import { RouteProtection } from "@/components/auth/RouteProtection";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { IndexWrapper } from "@/components/dashboard/IndexWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { OnboardingProvider } from "@/context/OnboardingContext";
 import Index from "./pages/Index";
 import DocumentStatusChecker from "./pages/DocumentStatusChecker";
 import OnboardingFlow from "./pages/OnboardingFlow";
@@ -34,11 +35,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+        <OnboardingProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
             <Routes>
               {/* Public routes without navigation */}
               <Route path="/auth" element={<Auth />} />
@@ -163,9 +165,10 @@ function App() {
               
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
+              </BrowserRouter>
+            </TooltipProvider>
+          </ThemeProvider>
+        </OnboardingProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

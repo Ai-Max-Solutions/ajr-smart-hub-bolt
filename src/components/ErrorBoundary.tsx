@@ -23,6 +23,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('[ErrorBoundary] Caught error:', error, errorInfo);
+    
+    // Special handling for React #301 errors (infinite render loops)
+    if (error.message.includes('Maximum update depth exceeded') || 
+        error.message.includes('Too many re-renders')) {
+      console.error('[ErrorBoundary] REACT #301 - Infinite render loop detected!');
+    }
   }
 
   handleRetry = () => {

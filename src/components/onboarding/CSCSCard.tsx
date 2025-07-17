@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CreditCard, AlertCircle, Loader2 } from 'lucide-react';
 import { OnboardingData } from '@/pages/OnboardingFlow';
 import { CSCSCardUploader } from '@/components/ui/cscs-card-uploader';
+import { useOnboarding } from '@/context/OnboardingContext';
 
 interface CSCSCardProps {
   data: OnboardingData;
@@ -18,12 +19,14 @@ const CSCSCard = ({ data, updateData }: CSCSCardProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { markStepComplete } = useOnboarding();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   console.log('[CSCSCard] Component loaded, user:', user?.id);
 
-  const validateForm = () => {
+  // Memoized validation to prevent render loops
+  const validationResult = useMemo(() => {
     const newErrors: Record<string, string> = {};
 
     // CSCS Card validation - ALL FIELDS MANDATORY
@@ -46,11 +49,22 @@ const CSCSCard = ({ data, updateData }: CSCSCardProps) => {
     
     if (!data.cscsCard.cardType) newErrors.cscsType = 'Card type is required';
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    return {
+      errors: newErrors,
+      isValid: Object.keys(newErrors).length === 0
+    };
+  }, [data.cscsCard.number, data.cscsCard.expiryDate, data.cscsCard.cardType]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Update errors when validation changes
+  useMemo(() => {
+    setErrors(validationResult.errors);
+  }, [validationResult.errors]);
+
+  const validateForm = useCallback(() => {
+    return validationResult.isValid;
+  }, [validationResult.isValid]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
@@ -111,6 +125,9 @@ const CSCSCard = ({ data, updateData }: CSCSCardProps) => {
 
       console.log('[CSCSCard] CSCS card saved successfully');
       
+      // Mark step as complete in context
+      markStepComplete('cscs');
+      
       toast({
         title: "CSCS Card Saved",
         description: "Now let's add your emergency contact.",
@@ -127,14 +144,14 @@ const CSCSCard = ({ data, updateData }: CSCSCardProps) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [validateForm, user, data.cscsCard, markStepComplete, navigate, toast]);
 
-  const handleAnalysisComplete = (analysis: any) => {
+  const handleAnalysisComplete = useCallback((analysis: any) => {
     toast({
       title: "CSCS Card Analyzed",
       description: `Successfully detected ${analysis.card_color} ${analysis.card_type} card`,
     });
-  };
+  }, [toast]);
 
   return (
     <div className="space-y-6">
@@ -158,7 +175,7 @@ const CSCSCard = ({ data, updateData }: CSCSCardProps) => {
               required={true}
             />
             
-            {Object.entries(errors).map(([key, error]) => (
+            {Object.entries(validationResult.errors).map(([key, error]) => (
               <p key={key} className="text-sm text-destructive flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" />
                 {error}
@@ -178,7 +195,7 @@ const CSCSCard = ({ data, updateData }: CSCSCardProps) => {
               <Button 
                 type="submit" 
                 className="w-full btn-primary"
-                disabled={isLoading || !validateForm()}
+                disabled={isLoading || !validationResult.isValid}
               >
                 {isLoading ? (
                   <>

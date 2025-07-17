@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useGlobalOnboardingCheck } from '@/hooks/useGlobalOnboardingCheck';
+import { useOnboarding } from '@/context/OnboardingContext';
 import Index from '@/pages/Index';
 import { Loader2 } from 'lucide-react';
 
 export const IndexWrapper = () => {
   const { user } = useAuth();
-  const { flags, isLoading, firstIncompleteStep, missingSteps } = useGlobalOnboardingCheck();
+  const { flags, isLoading, firstIncompleteStep, missingSteps } = useOnboarding();
   const navigate = useNavigate();
   const [isNavigating, setIsNavigating] = useState(false);
 
@@ -24,6 +24,11 @@ export const IndexWrapper = () => {
       console.log('[IndexWrapper] Redirecting to onboarding:', firstIncompleteStep);
       setIsNavigating(true);
       navigate(`/onboarding/${firstIncompleteStep}`, { replace: true });
+      
+      // Reset navigation state after a short delay
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 100);
     }
   }, [flags.allComplete, missingSteps, firstIncompleteStep, isLoading, isNavigating, user, navigate]);
 
