@@ -80,6 +80,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
           name: `${data.firstName} ${data.lastName}`.trim(),
           phone: data.emergencyContact.phone, // Use emergency contact phone as primary phone for now
           onboarding_completed: true, // CRITICAL: Mark onboarding as completed in database
+          is_blocked: true, // Block user pending compliance review
         })
         .eq('supabase_auth_id', user.id);
 

@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { BlockingModal } from "@/components/dashboard/BlockingModal";
 
 const Index = () => {
   const { user, session } = useAuth();
@@ -204,7 +205,14 @@ const Index = () => {
 
   // Authenticated user dashboard with navigation
   return (
-    <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light">
+    <>
+      {/* Show blocking modal if user is blocked */}
+      <BlockingModal 
+        isOpen={userProfile?.is_blocked === true} 
+        userName={userProfile?.name}
+      />
+      
+      <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light">
       <PageHeader
         title="Dashboard"
         description="Welcome back to AJ Ryan SmartWork Hub"
@@ -442,6 +450,7 @@ const Index = () => {
         </Card>
       </div>
     </div>
+    </>
   );
 };
 

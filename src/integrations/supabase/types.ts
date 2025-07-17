@@ -718,6 +718,7 @@ export type Database = {
           fullname: string | null
           id: string
           internalnotes: string | null
+          is_blocked: boolean
           last_sign_in: string | null
           lastname: string | null
           name: string
@@ -737,6 +738,7 @@ export type Database = {
           fullname?: string | null
           id?: string
           internalnotes?: string | null
+          is_blocked?: boolean
           last_sign_in?: string | null
           lastname?: string | null
           name: string
@@ -756,6 +758,7 @@ export type Database = {
           fullname?: string | null
           id?: string
           internalnotes?: string | null
+          is_blocked?: boolean
           last_sign_in?: string | null
           lastname?: string | null
           name?: string

@@ -81,7 +81,8 @@ export const IndexWrapper = () => {
             missingSteps
           });
         } else {
-          console.log('[IndexWrapper] User has completed onboarding');
+          console.log('[IndexWrapper] User has completed onboarding, proceeding to dashboard');
+          // Always proceed to dashboard - blocking will be handled in the dashboard itself
           setOnboardingResult({
             needsOnboarding: false,
             redirectPath: '',
