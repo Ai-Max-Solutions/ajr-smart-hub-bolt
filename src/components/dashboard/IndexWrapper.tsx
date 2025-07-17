@@ -27,7 +27,7 @@ export const IndexWrapper = () => {
         
         const { data: userData, error } = await supabase
           .from('users')
-          .select('name, phone, role')
+          .select('name, phone, role, onboarding_completed')
           .eq('supabase_auth_id', user.id)
           .single();
 
@@ -53,13 +53,12 @@ export const IndexWrapper = () => {
           missingSteps.push('personal-details');
         }
 
-        // Check if user has completed full onboarding
-        const onboardingCompleted = localStorage.getItem('onboardingCompleted');
-        console.log('[IndexWrapper] Onboarding completed check:', onboardingCompleted);
+        // Check if user has completed full onboarding using database field
+        console.log('[IndexWrapper] Database onboarding_completed:', userData.onboarding_completed);
         
-        if (!onboardingCompleted && userData.name) {
+        if (!userData.onboarding_completed && userData.name) {
           // User has basic info but hasn't completed full onboarding flow
-          console.log('[IndexWrapper] User has name but no onboarding completion flag');
+          console.log('[IndexWrapper] User has name but onboarding_completed=false in database');
           missingSteps.push('emergency-contact', 'cscs-card', 'work-types');
         }
 

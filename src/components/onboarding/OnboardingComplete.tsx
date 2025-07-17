@@ -30,12 +30,13 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
 
     setSaving(true);
     try {
-      // Update user's basic information
+      // Update user's basic information AND mark onboarding as completed
       const { error: userError } = await supabase
         .from('users')
         .update({
           name: `${data.firstName} ${data.lastName}`.trim(),
           phone: data.emergencyContact.phone, // Use emergency contact phone as primary phone for now
+          onboarding_completed: true, // CRITICAL: Mark onboarding as completed in database
         })
         .eq('supabase_auth_id', user.id);
 
@@ -43,6 +44,8 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
         console.error('Error updating user:', userError);
         throw userError;
       }
+
+      console.log('[OnboardingComplete] Successfully updated user with onboarding_completed=true');
 
       // For now, we'll store the onboarding completion in localStorage
       // In a real implementation, you would create additional tables for:
