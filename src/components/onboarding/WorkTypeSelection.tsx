@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,52 +45,71 @@ const workTypes = [
   { id: 'admin-contracts', name: 'Admin / Contracts Support', icon: FileText },
 ];
 
-// Mock RAMS documents for each work type
-const ramsDocuments = {
-  'plumbing': [
-    { id: 'rams-plumb-1', title: 'Plumbing Safety Procedures', version: '2.1' },
-  ],
-  'heating-cooling': [
-    { id: 'rams-hvac-1', title: 'HVAC System Safety Guidelines', version: '1.8' },
-  ],
-  'ventilation-ac': [
-    { id: 'rams-vent-1', title: 'Ventilation & AC Safety Plan', version: '2.3' },
-  ],
-  'testing-commissioning': [
-    { id: 'rams-test-1', title: 'Testing & Commissioning Safety', version: '3.0' },
-  ],
-  'pipe-fitting': [
-    { id: 'rams-pipe-1', title: 'Pipe Fitting Safety Procedures', version: '1.9' },
-  ],
-  'sprinkler-fire': [
-    { id: 'rams-fire-1', title: 'Fire Suppression System Safety', version: '2.2' },
-  ],
-  'insulation': [
-    { id: 'rams-insul-1', title: 'Insulation Work Safety Plan', version: '1.7' },
-  ],
-  'tank-plant-room': [
-    { id: 'rams-tank-1', title: 'Plant Room Safety Guidelines', version: '2.0' },
-  ],
-  'mechanical-engineering': [
-    { id: 'rams-mech-1', title: 'Mechanical Engineering Safety', version: '2.4' },
-  ],
-  'project-management': [
-    { id: 'rams-pm-1', title: 'Site Management Safety Plan', version: '1.6' },
-  ],
-  'general-labour': [
-    { id: 'rams-labour-1', title: 'General Labour Safety Guidelines', version: '2.1' },
-  ],
-  'admin-contracts': [
-    { id: 'rams-admin-1', title: 'Office & Admin Safety Procedures', version: '1.5' },
-  ],
-};
+interface RAMSDocument {
+  id: string;
+  title: string;
+  version: string;
+  work_types: string[];
+  risk_level: string;
+  minimum_read_time: number;
+}
 
 const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const [showRAMS, setShowRAMS] = useState(false);
-  const [currentRAMS, setCurrentRAMS] = useState<any>(null);
+  const [currentRAMS, setCurrentRAMS] = useState<RAMSDocument | null>(null);
+  const [ramsDocuments, setRamsDocuments] = useState<Record<string, RAMSDocument[]>>({});
+  const [loadingRAMS, setLoadingRAMS] = useState(false);
+
+  // Fetch RAMS documents from database
+  useEffect(() => {
+    const fetchRAMSDocuments = async () => {
+      setLoadingRAMS(true);
+      try {
+        const { data: documents, error } = await supabase
+          .from('rams_documents')
+          .select('id, title, version, work_types, risk_level, minimum_read_time')
+          .eq('is_active', true);
+
+        if (error) {
+          console.error('Error fetching RAMS documents:', error);
+          toast({
+            title: "Error loading safety documents",
+            description: "Unable to load required safety documents. Please refresh the page.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Group documents by work type
+        const groupedDocuments: Record<string, RAMSDocument[]> = {};
+        
+        documents?.forEach(doc => {
+          doc.work_types.forEach(workType => {
+            if (!groupedDocuments[workType]) {
+              groupedDocuments[workType] = [];
+            }
+            groupedDocuments[workType].push(doc);
+          });
+        });
+
+        setRamsDocuments(groupedDocuments);
+      } catch (error) {
+        console.error('Error fetching RAMS documents:', error);
+        toast({
+          title: "Error loading safety documents",
+          description: "Unable to load required safety documents. Please refresh the page.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingRAMS(false);
+      }
+    };
+
+    fetchRAMSDocuments();
+  }, [toast]);
 
   const handleWorkTypeChange = (workTypeId: string, checked: boolean) => {
     const updatedWorkTypes = checked 
