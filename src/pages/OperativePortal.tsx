@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { getPersonalizedGreeting } from '@/utils/greetings';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -34,8 +35,29 @@ const OperativeDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, session } = useAuth();
+  const { toast } = useToast();
   const [userData, setUserData] = useState<{ firstname?: string; lastname?: string; avatar_url?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // ✅ Role guard: Operative/Supervisor portal access
+  useEffect(() => {
+    const userRole = user?.role?.trim().toLowerCase();
+    if (user && !['operative', 'supervisor'].includes(userRole)) {
+      toast({
+        title: "Wrong tools, mate!",
+        description: "You're in boots not brogues — try your proper dashboard!",
+        variant: "destructive",
+      });
+      const rolePathMap = {
+        'pm': '/projects',
+        'admin': '/admin',
+        'director': '/director',
+        'manager': '/projects'
+      };
+      const redirectPath = rolePathMap[userRole] || '/operative';
+      navigate(redirectPath);
+    }
+  }, [user, navigate, toast]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -190,10 +212,10 @@ const OperativeDashboard = () => {
               <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                 <div className="text-center lg:text-left">
                   <CardTitle className="text-2xl lg:text-3xl font-bold text-aj-yellow mb-2">
-                    {loading ? `${getGreeting()}...` : `${getGreeting()}, ${userData?.firstname || 'User'}`}
+                    👋 Welcome, {userData?.firstname || 'Operative'}.
                   </CardTitle>
                   <p className="text-base text-white/80">
-                    Welcome to your AJ Ryan workspace
+                    Jobs, RAMS, and timesheets below.
                   </p>
                 </div>
                 <div className="flex items-center space-x-4">
@@ -211,9 +233,11 @@ const OperativeDashboard = () => {
                     ) : null}
                     <User className={`w-8 h-8 text-aj-yellow ${userData?.avatar_url ? 'hidden' : ''}`} />
                   </div>
-                  <Badge className="bg-aj-yellow text-aj-navy-deep text-sm px-3 py-1">
-                    Site Operative
-                  </Badge>
+                  {user?.role && (
+                    <Badge className="bg-aj-yellow text-aj-navy-deep text-sm px-3 py-1">
+                      🛠️ {user.role}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </CardHeader>

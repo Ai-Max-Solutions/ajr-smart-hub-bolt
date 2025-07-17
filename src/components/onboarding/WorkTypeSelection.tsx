@@ -58,6 +58,25 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  // ✅ Guard: Redirect if already completed onboarding
+  useEffect(() => {
+    if (user?.role && (user as any)?.onboarding_completed) {
+      const role = user?.role?.trim().toLowerCase();
+      const rolePathMap = {
+        'operative': '/operative',
+        'supervisor': '/operative',
+        'pm': '/projects', 
+        'admin': '/admin',
+        'director': '/director',
+        'manager': '/projects'
+      };
+      const redirectPath = rolePathMap[role] || '/operative';
+      console.log(`User already completed onboarding, redirecting ${role} to ${redirectPath}`);
+      navigate(redirectPath);
+    }
+  }, [user, navigate]);
+
   const [showRAMS, setShowRAMS] = useState(false);
   const [currentRAMS, setCurrentRAMS] = useState<RAMSDocument | null>(null);
   const [ramsDocuments, setRamsDocuments] = useState<Record<string, RAMSDocument[]>>({});
@@ -307,10 +326,22 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
         description: "Welcome aboard! Your onboarding is complete.",
       });
 
-      // ✅ 3. Add logging and navigate directly to operative dashboard
-      console.log("Redirecting to /operative");
+      // ✅ 3. Dynamic role-based redirect
+      const userRole = data.selectedWorkTypes.includes('supervisor') ? 'Supervisor' : 'Operative';
+      const rolePathMap = {
+        'operative': '/operative',
+        'supervisor': '/operative', // Supervisors also use operative dashboard for now
+        'pm': '/projects',
+        'admin': '/admin',
+        'director': '/director',
+        'manager': '/projects'
+      };
+      
+      const redirectPath = rolePathMap[userRole.toLowerCase().trim()] || '/operative';
+      console.log(`Redirecting ${userRole} to ${redirectPath}`);
+      
       setTimeout(() => {
-        navigate('/operative'); // Direct navigation to operative portal
+        navigate(redirectPath);
       }, 800);
 
     } catch (err) {

@@ -10,6 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 import AdminCRUDModule from "@/components/admin/AdminCRUDModule";
 import { TaskPlanRAMSRegister } from "@/components/admin/TaskPlanRAMSRegister";
 import { SecurityDashboard } from "@/components/admin/SecurityDashboard";
@@ -33,8 +36,31 @@ import {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [activeView, setActiveView] = useState<"dashboard" | "crud" | "rams-register" | "security">("dashboard");
   const [isLoading, setIsLoading] = useState(false);
+
+  // ✅ Role guard: Admin dashboard access only
+  useEffect(() => {
+    const userRole = user?.role?.trim().toLowerCase();
+    if (user && !['admin', 'dpo'].includes(userRole)) {
+      toast({
+        title: "Access Denied",
+        description: "Director privileges needed — back to your dashboard!",
+        variant: "destructive",
+      });
+      const rolePathMap = {
+        'operative': '/operative',
+        'supervisor': '/operative',
+        'pm': '/projects',
+        'director': '/director',
+        'manager': '/projects'
+      };
+      const redirectPath = rolePathMap[userRole] || '/operative';
+      navigate(redirectPath);
+    }
+  }, [user, navigate, toast]);
 
   // Mock data for dashboard components
   const kpiData = [
@@ -209,10 +235,10 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <PageHeader
-        title="Admin Dashboard"
-        description="Real-time insights and system management"
+        title="👋 Welcome, Admin."
+        description="System controls and company metrics."
         icon={Settings}
-        badge="Admin Only"
+        badge={user?.role ? `⚡ ${user.role}` : "Admin Only"}
         breadcrumbs={[
           { label: "Home", href: "/" },
           { label: "Admin Dashboard" }

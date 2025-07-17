@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 import { 
   Shield, 
   AlertTriangle, 
@@ -24,6 +27,29 @@ import {
 
 const DirectorDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // ✅ Role guard: Director dashboard access only
+  useEffect(() => {
+    const userRole = user?.role?.trim().toLowerCase();
+    if (user && !['director', 'admin', 'dpo'].includes(userRole)) {
+      toast({
+        title: "Wrong floor, boss!",
+        description: "This is the C-suite — back to your workspace!",
+        variant: "destructive",
+      });
+      const rolePathMap = {
+        'operative': '/operative',
+        'supervisor': '/operative',
+        'pm': '/projects',
+        'admin': '/admin',
+        'manager': '/projects'
+      };
+      const redirectPath = rolePathMap[userRole] || '/operative';
+      navigate(redirectPath);
+    }
+  }, [user, navigate, toast]);
 
   // Mock data for Director-level overview
   const complianceOverview = {
@@ -134,9 +160,16 @@ const DirectorDashboard = () => {
       <header className="bg-primary text-primary-foreground py-6 px-4">
         <div className="container mx-auto">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Director Dashboard</h1>
-              <p className="text-primary-foreground/80">Executive oversight across all AJ Ryan projects</p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold">👋 Welcome, Director.</h1>
+                <p className="text-primary-foreground/80">Company oversight and strategic metrics.</p>
+              </div>
+              {user?.role && (
+                <span className="bg-accent/20 text-accent-foreground px-3 py-1 text-sm rounded-full font-medium">
+                  🎯 {user.role}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-4">
               <Badge variant="secondary" className="bg-accent text-accent-foreground">
