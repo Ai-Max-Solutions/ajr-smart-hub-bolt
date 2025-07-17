@@ -80,7 +80,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
           name: `${data.firstName} ${data.lastName}`.trim(),
           phone: data.emergencyContact.phone, // Use emergency contact phone as primary phone for now
           onboarding_completed: true, // CRITICAL: Mark onboarding as completed in database
-          is_blocked: true, // Block user pending compliance review
+          is_blocked: false, // Grant immediate access - can be suspended later if needed
         })
         .eq('supabase_auth_id', user.id);
 
@@ -91,8 +91,8 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
 
       console.log('[OnboardingComplete] Successfully updated user with onboarding_completed=true');
 
-      // Save emergency contact data
-      const { error: emergencyError } = await supabase
+      // Save emergency contact data with returning
+      const { data: emergencyData, error: emergencyError } = await supabase
         .from('emergency_contacts')
         .upsert({
           user_id: userId,
@@ -102,20 +102,21 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
           email: data.emergencyContact.email || null,
         }, {
           onConflict: "user_id"
-        });
+        })
+        .select('id');
 
       if (emergencyError) {
         console.error('Error saving emergency contact:', emergencyError);
         throw emergencyError;
       }
 
-      console.log('[OnboardingComplete] Successfully saved emergency contact');
+      console.log('[OnboardingComplete] Successfully saved emergency contact:', emergencyData?.length || 0, 'records');
 
       // Save CSCS card data using upsert with onConflict to handle duplicates
       const expiry = data.cscsCard.expiryDate?.trim();
       const expiry_date = expiry !== "" ? expiry : null;
       
-      const { error: cscsError } = await supabase
+      const { data: cscsData, error: cscsError } = await supabase
         .from('cscs_cards')
         .upsert({
           user_id: userId,
@@ -127,14 +128,15 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
           status: 'pending', // Admin needs to verify
         }, {
           onConflict: 'user_id'
-        });
+        })
+        .select('id');
 
       if (cscsError) {
         console.error('Error saving CSCS card:', cscsError);
         throw cscsError;
       }
 
-      console.log('[OnboardingComplete] Successfully saved CSCS card');
+      console.log('[OnboardingComplete] Successfully saved CSCS card:', cscsData?.length || 0, 'records');
 
       // Save selected work types
       if (data.selectedWorkTypes && data.selectedWorkTypes.length > 0) {

@@ -26,16 +26,12 @@ export const IndexWrapper = () => {
         console.log('[IndexWrapper] Checking onboarding status for user:', user.id);
         console.log('[IndexWrapper] User email:', user.email);
         
+        // Use separate queries for better reliability and debugging
         const { data: userData, error } = await supabase
           .from('users')
-          .select(`
-            id, name, phone, role, onboarding_completed,
-            cscs_cards ( id ),
-            emergency_contacts ( id ),
-            contractor_rams_signatures ( id )
-          `)
+          .select('id, name, phone, role, onboarding_completed')
           .eq('supabase_auth_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('[IndexWrapper] Error fetching user data:', error);
@@ -61,15 +57,26 @@ export const IndexWrapper = () => {
 
         console.log('[IndexWrapper] User data found:', userData);
 
+        // Get related data with separate queries for better debugging
+        const [cscsResult, emergencyResult, ramsResult] = await Promise.all([
+          supabase.from('cscs_cards').select('id').eq('user_id', userData.id),
+          supabase.from('emergency_contacts').select('id').eq('user_id', userData.id),
+          supabase.from('contractor_rams_signatures').select('id').eq('contractor_id', userData.id)
+        ]);
+
+        const cscsCards = cscsResult.data || [];
+        const emergencyContacts = emergencyResult.data || [];
+        const ramsSignatures = ramsResult.data || [];
+
         // Check for missing essential information with related records
         const missingSteps: string[] = [];
         
         console.log('[IndexWrapper] Checking onboarding status:');
         console.log('- Name:', !!userData.name);
         console.log('- Phone:', !!userData.phone);
-        console.log('- CSCS Cards:', Array.isArray(userData.cscs_cards) ? userData.cscs_cards.length : 0);
-        console.log('- Emergency Contacts:', Array.isArray(userData.emergency_contacts) ? userData.emergency_contacts.length : 0);
-        console.log('- RAMS Signatures:', Array.isArray(userData.contractor_rams_signatures) ? userData.contractor_rams_signatures.length : 0);
+        console.log('- CSCS Cards:', cscsCards.length);
+        console.log('- Emergency Contacts:', emergencyContacts.length);
+        console.log('- RAMS Signatures:', ramsSignatures.length);
         console.log('- Onboarding Completed:', userData.onboarding_completed);
         
         // Check personal details (basic user info)
@@ -80,25 +87,25 @@ export const IndexWrapper = () => {
         // Only check related records if basic info is complete
         if (userData.name && userData.phone) {
           // Check if CSCS card exists - this is saved in personal-details step
-          if (!Array.isArray(userData.cscs_cards) || userData.cscs_cards.length === 0) {
+          if (cscsCards.length === 0) {
             missingSteps.push('personal-details');
           }
           
           // Check if emergency contact exists - this is also saved in personal-details step
-          if (!Array.isArray(userData.emergency_contacts) || userData.emergency_contacts.length === 0) {
+          if (emergencyContacts.length === 0) {
             missingSteps.push('personal-details');
           }
           
           // Check if RAMS signatures exist - these are signed in work-types step
-          if (!Array.isArray(userData.contractor_rams_signatures) || userData.contractor_rams_signatures.length === 0) {
+          if (ramsSignatures.length === 0) {
             missingSteps.push('work-types');
           }
         }
 
         // If all records exist but onboarding_completed is false, user needs to finish
-        if (Array.isArray(userData.cscs_cards) && userData.cscs_cards.length > 0 && 
-            Array.isArray(userData.emergency_contacts) && userData.emergency_contacts.length > 0 && 
-            Array.isArray(userData.contractor_rams_signatures) && userData.contractor_rams_signatures.length > 0 && 
+        if (cscsCards.length > 0 && 
+            emergencyContacts.length > 0 && 
+            ramsSignatures.length > 0 && 
             !userData.onboarding_completed) {
           missingSteps.push('complete');
         }
