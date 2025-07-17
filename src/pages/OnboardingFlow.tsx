@@ -18,9 +18,6 @@ export interface OnboardingData {
   agreedToTerms: boolean;
   
   // Personal details
-  phone: string;
-  
-  // CSCS card data
   cscsCard: {
     number: string;
     expiryDate: string;
@@ -29,8 +26,6 @@ export interface OnboardingData {
     backImage?: File;
     uploadComplete?: boolean;
   };
-  
-  // Emergency contact data
   emergencyContact: {
     name: string;
     relationship: string;
@@ -66,7 +61,6 @@ const OnboardingFlow = () => {
       email: '',
       password: '',
       agreedToTerms: false,
-      phone: '',
       cscsCard: {
         number: '',
         expiryDate: '',

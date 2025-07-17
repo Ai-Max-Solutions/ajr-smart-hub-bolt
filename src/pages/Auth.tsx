@@ -25,7 +25,6 @@ export const Auth = () => {
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [showResetForm, setShowResetForm] = useState(false);
-  const [signUpSuccess, setSignUpSuccess] = useState(false);
 
   // Get redirect URL from query params
   const redirectTo = searchParams.get('redirect') || '/';
@@ -60,23 +59,15 @@ export const Auth = () => {
       setIsLoading(false);
       return;
     }
-    const { error } = await signUp(email, password, {
+    const {
+      error
+    } = await signUp(email, password, {
       first_name: firstName,
       last_name: lastName,
       full_name: `${firstName} ${lastName}`.trim()
     });
-    
     if (error) {
       setError(error.message || 'Failed to create account');
-    } else {
-      // Clear the form and show success message
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setFirstName('');
-      setLastName('');
-      setError('');
-      setSignUpSuccess(true);
     }
     setIsLoading(false);
   };
@@ -187,25 +178,6 @@ export const Auth = () => {
             </TabsContent>
             
             <TabsContent value="signup">
-              {signUpSuccess ? (
-                <div className="space-y-4">
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>Account created successfully!</strong><br />
-                      Please check your email and click the verification link to activate your account. 
-                      Once verified, you can sign in below.
-                    </AlertDescription>
-                  </Alert>
-                  <Button 
-                    onClick={() => setSignUpSuccess(false)} 
-                    variant="outline" 
-                    className="w-full"
-                  >
-                    Back to Sign Up
-                  </Button>
-                </div>
-              ) : (
               <form onSubmit={handleSignUp} className="space-y-4">
                 {error && <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
@@ -246,7 +218,6 @@ export const Auth = () => {
                   Create Account
                 </Button>
               </form>
-              )}
             </TabsContent>
           </Tabs>
           
