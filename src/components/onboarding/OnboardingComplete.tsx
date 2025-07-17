@@ -114,15 +114,27 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
 
       // Save CSCS card data using upsert with onConflict to handle duplicates
       const expiry = data.cscsCard.expiryDate?.trim();
-      // Handle expiry_date - now nullable in DB, but provide valid data when available
-      const expiry_date = expiry && expiry !== "" ? expiry : null;
+      
+      // Auto-default expiry date if missing (current year + 3 years)
+      let expiry_date = expiry && expiry !== "" ? expiry : null;
+      if (!expiry_date && data.cscsCard.number) {
+        const defaultExpiry = new Date();
+        defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 3);
+        expiry_date = defaultExpiry.toISOString().split('T')[0]; // YYYY-MM-DD format
+        console.log('[OnboardingComplete] Auto-defaulted expiry date to:', expiry_date);
+      }
+      
+      // Validate required fields before insert
+      if (!data.cscsCard.number || !data.cscsCard.cardType) {
+        throw new Error('CSCS card number and type are required');
+      }
       
       // Ensure we have proper image URLs - use actual file URLs if available
       const front_image_url = data.cscsCard.frontImage 
-        ? (typeof data.cscsCard.frontImage === 'string' ? data.cscsCard.frontImage : 'pending_upload')
+        ? (typeof data.cscsCard.frontImage === 'string' ? data.cscsCard.frontImage : null)
         : null;
       const back_image_url = data.cscsCard.backImage 
-        ? (typeof data.cscsCard.backImage === 'string' ? data.cscsCard.backImage : 'pending_upload')
+        ? (typeof data.cscsCard.backImage === 'string' ? data.cscsCard.backImage : null)
         : null;
       
       console.log('[OnboardingComplete] CSCS card data being inserted:', {
@@ -314,6 +326,8 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
       return;
     }
 
+    console.log('[OnboardingComplete] Navigating to dashboard - onboarding is complete');
+    
     // Clear onboarding data from localStorage (but keep onboardingCompleted)
     localStorage.removeItem('onboardingData');
     

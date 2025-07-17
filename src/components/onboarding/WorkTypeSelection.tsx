@@ -228,9 +228,23 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
   };
 
   const canProceed = () => {
+    if (data.selectedWorkTypes.length === 0) {
+      console.log('[WorkTypeSelection] Cannot proceed: No work types selected');
+      return false;
+    }
+    
     const requiredRAMS = getRequiredRAMS();
     const signedCount = getSignedRAMSCount();
-    return data.selectedWorkTypes.length > 0 && signedCount === requiredRAMS.length;
+    const canContinue = signedCount === requiredRAMS.length;
+    
+    console.log('[WorkTypeSelection] Can proceed check:', {
+      selectedWorkTypes: data.selectedWorkTypes.length,
+      requiredRAMS: requiredRAMS.length,
+      signedCount,
+      canContinue
+    });
+    
+    return canContinue;
   };
 
   const handleContinue = async () => {
@@ -493,12 +507,26 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
         </Button>
         <Button 
           onClick={handleContinue}
-          disabled={!canProceed()}
-          className="w-full btn-primary"
+          disabled={!canProceed() || loadingRAMS}
+          className={`w-full ${canProceed() ? 'btn-primary' : ''}`}
         >
-          Next: Add Your Skills
+          {!canProceed() 
+            ? `Sign ${requiredRAMS.length - signedCount} more documents`
+            : 'Continue to Complete'
+          }
         </Button>
       </div>
+      
+      {/* Debug Information */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-4 p-4 bg-muted rounded-lg text-xs space-y-2">
+          <p><strong>Debug Info:</strong></p>
+          <p>Selected work types: {data.selectedWorkTypes.join(', ')}</p>
+          <p>Required RAMS: {requiredRAMS.length}</p>
+          <p>Signed RAMS: {signedCount}</p>
+          <p>Can proceed: {canProceed() ? 'Yes' : 'No'}</p>
+        </div>
+      )}
     </div>
   );
 };

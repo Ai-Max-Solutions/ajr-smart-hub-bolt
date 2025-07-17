@@ -5,7 +5,7 @@ import SignUp from '@/components/onboarding/SignUp';
 import PersonalDetails from '@/components/onboarding/PersonalDetails';
 import WorkTypeSelection from '@/components/onboarding/WorkTypeSelection';
 import OnboardingComplete from '@/components/onboarding/OnboardingComplete';
-import { PersonalDetailsStep } from '@/components/onboarding/PersonalDetailsStep';
+import { OnboardingRouter } from '@/components/onboarding/OnboardingRouter';
 
 export interface OnboardingData {
   // Sign up data
@@ -83,50 +83,52 @@ const OnboardingFlow = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      <ProgressHeader />
-      
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Routes>
-          <Route path="/" element={<Navigate to="/onboarding/personal-details" replace />} />
-          <Route 
-            path="/signup" 
-            element={
-              <SignUp 
-                data={onboardingData} 
-                updateData={updateOnboardingData} 
-              />
-            } 
-          />
-           <Route 
-             path="/personal-details" 
-             element={
-               <PersonalDetails 
-                 data={onboardingData} 
-                 updateData={updateOnboardingData} 
-               />
-             } 
-           />
-          <Route 
-            path="/work-types" 
-            element={
-              <WorkTypeSelection 
-                data={onboardingData} 
-                updateData={updateOnboardingData} 
-              />
-            } 
-          />
-          <Route 
-            path="/complete" 
-            element={
-              <OnboardingComplete 
-                data={onboardingData} 
-              />
-            } 
-          />
-        </Routes>
+    <OnboardingRouter>
+      <div className="min-h-screen bg-gradient-subtle">
+        <ProgressHeader />
+        
+        <div className="container mx-auto px-4 py-8 max-w-2xl">
+          <Routes>
+            <Route path="/" element={<Navigate to="/onboarding/personal-details" replace />} />
+            <Route 
+              path="/signup" 
+              element={
+                <SignUp 
+                  data={onboardingData} 
+                  updateData={updateOnboardingData} 
+                />
+              } 
+            />
+             <Route 
+               path="/personal-details" 
+               element={
+                 <PersonalDetails 
+                   data={onboardingData} 
+                   updateData={updateOnboardingData} 
+                 />
+               } 
+             />
+            <Route 
+              path="/work-types" 
+              element={
+                <WorkTypeSelection 
+                  data={onboardingData} 
+                  updateData={updateOnboardingData} 
+                />
+              } 
+            />
+            <Route 
+              path="/complete" 
+              element={
+                <OnboardingComplete 
+                  data={onboardingData} 
+                />
+              } 
+            />
+          </Routes>
+        </div>
       </div>
-    </div>
+    </OnboardingRouter>
   );
 };
 
