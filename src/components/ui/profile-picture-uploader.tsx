@@ -121,18 +121,6 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
     }
   };
 
-  const handleGenerateAI = async () => {
-    if (!user) return;
-
-    // This button will now use Lovable's built-in AI action
-    // The AI generation prompt should be:
-    // "Create a professional, site-ready AI avatar using this user's role (e.g. Operative), CSCS level (e.g. Labourer), and AJ Ryan brand colours (dark navy and yellow). The avatar should be a clear headshot, with a subtle neutral or white background, showing the face with clarity and no hard shadows. Must look professional and match safety + HR standards."
-    
-    toast({
-      title: "AI Avatar Generation",
-      description: "Click the button to generate your professional AJ Ryan avatar using Lovable's AI!",
-    });
-  };
 
   const startCamera = async () => {
     try {
@@ -327,7 +315,6 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
 
                  {/* AI Generation Button */}
                 <Button
-                  onClick={handleGenerateAI}
                   disabled={isUploading}
                   variant="outline"
                   className="w-full border-accent/50 hover:bg-accent/10"
