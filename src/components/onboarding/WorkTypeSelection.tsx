@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -176,7 +176,8 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
     updateData({ selectedWorkTypes: updatedWorkTypes });
   };
 
-  const getRequiredRAMS = () => {
+  // Memoized calculation of required RAMS documents
+  const finalRequiredRAMS = useMemo(() => {
     console.log("Selected work types:", data.selectedWorkTypes);
     console.log("Available RAMS documents by work type:", ramsDocuments);
     
@@ -188,12 +189,31 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
       
     console.log("Final required RAMS:", requiredRAMS);
     return requiredRAMS;
-  };
+  }, [data.selectedWorkTypes, ramsDocuments]);
+
+  // Memoized gate to check if user can continue
+  const canContinue = useMemo(() => {
+    if (!data.selectedWorkTypes.length || !finalRequiredRAMS.length) return false;
+
+    const signedCount = finalRequiredRAMS.filter(doc =>
+      data.signedRAMS.some(sig => sig.documentId === doc.id)
+    ).length;
+
+    const result = signedCount === finalRequiredRAMS.length;
+    
+    console.log('[WorkTypeSelection] Can continue check:', {
+      selectedWorkTypes: data.selectedWorkTypes.length,
+      requiredRAMS: finalRequiredRAMS.length,
+      signedCount,
+      canContinue: result
+    });
+
+    return result;
+  }, [data.selectedWorkTypes, finalRequiredRAMS, data.signedRAMS]);
 
   const getSignedRAMSCount = () => {
-    const requiredRAMS = getRequiredRAMS();
     return data.signedRAMS.filter(signed => 
-      requiredRAMS.some(rams => rams.id === signed.documentId)
+      finalRequiredRAMS.some(rams => rams.id === signed.documentId)
     ).length;
   };
 
@@ -227,28 +247,8 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
     }
   };
 
-  const canProceed = () => {
-    if (data.selectedWorkTypes.length === 0) {
-      console.log('[WorkTypeSelection] Cannot proceed: No work types selected');
-      return false;
-    }
-    
-    const requiredRAMS = getRequiredRAMS();
-    const signedCount = getSignedRAMSCount();
-    const canContinue = signedCount === requiredRAMS.length;
-    
-    console.log('[WorkTypeSelection] Can proceed check:', {
-      selectedWorkTypes: data.selectedWorkTypes.length,
-      requiredRAMS: requiredRAMS.length,
-      signedCount,
-      canContinue
-    });
-    
-    return canContinue;
-  };
-
   const handleContinue = async () => {
-    if (!canProceed()) {
+    if (!canContinue) {
       toast({
         title: "Please complete all requirements",
         description: "Select work types and sign all required RAMS documents.",
@@ -304,7 +304,7 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
     );
   }
 
-  const requiredRAMS = getRequiredRAMS();
+  const requiredRAMS = finalRequiredRAMS;
   const signedCount = getSignedRAMSCount();
 
   return (
@@ -507,10 +507,10 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
         </Button>
         <Button 
           onClick={handleContinue}
-          disabled={!canProceed() || loadingRAMS}
-          className={`w-full ${canProceed() ? 'btn-primary' : ''}`}
+          disabled={!canContinue || loadingRAMS}
+          className={`w-full ${canContinue ? 'btn-primary' : ''}`}
         >
-          {!canProceed() 
+          {!canContinue 
             ? `Sign ${requiredRAMS.length - signedCount} more documents`
             : 'Continue to Complete'
           }
@@ -524,7 +524,7 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
           <p>Selected work types: {data.selectedWorkTypes.join(', ')}</p>
           <p>Required RAMS: {requiredRAMS.length}</p>
           <p>Signed RAMS: {signedCount}</p>
-          <p>Can proceed: {canProceed() ? 'Yes' : 'No'}</p>
+          <p>Can proceed: {canContinue ? 'Yes' : 'No'}</p>
         </div>
       )}
     </div>
