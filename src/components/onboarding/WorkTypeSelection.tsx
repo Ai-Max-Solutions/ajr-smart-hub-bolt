@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -247,51 +247,53 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
     }
   };
 
-  const handleContinue = async () => {
-    if (!canContinue) {
-      toast({
-        title: "Please complete all requirements",
-        description: "Select work types and sign all required RAMS documents.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleContinue = useCallback(async () => {
     try {
-      // Mark onboarding as completed in the database
-      if (user) {
-        const { error } = await supabase
-          .from('users')
-          .update({ 
-            role: data.selectedWorkTypes.includes('supervisor') ? 'Supervisor' : 'Operative'
-          })
-          .eq('supabase_auth_id', user.id);
+      if (!canContinue) return;
 
-        if (error) {
-          console.error('Error updating onboarding status:', error);
-          toast({
-            title: "Error",
-            description: "Failed to complete onboarding. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
+      console.log('[RAMS] Proceeding to complete step…');
+      toast({
+        title: "Completing RAMS…",
+        description: "Finalizing your onboarding process...",
+      });
+
+      // Get user ID from the users table
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('supabase_auth_id', user?.id)
+        .single();
+
+      if (!userData?.id) {
+        throw new Error('User not found in database');
       }
 
+      // Update onboarding_complete = true (final step only)
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          onboarding_completed: true,
+          role: data.selectedWorkTypes.includes('supervisor') ? 'Supervisor' : 'Operative'
+        })
+        .eq('id', userData.id);
+
+      if (updateError) throw updateError;
+
       toast({
-        title: "Work Types & RAMS Complete",
-        description: "All safety documents have been signed. Finalizing onboarding...",
+        title: "RAMS complete!",
+        description: "All safety documents have been signed. Welcome aboard!",
       });
+      
       navigate('/onboarding/complete');
-    } catch (error) {
-      console.error('Error completing onboarding:', error);
+    } catch (err) {
+      console.error('[RAMS] Continue failed', err);
       toast({
         title: "Error",
-        description: "Failed to complete onboarding. Please try again.",
+        description: "Error marking onboarding complete. Try again.",
         variant: "destructive",
       });
     }
-  };
+  }, [canContinue, user?.id, navigate, data.selectedWorkTypes]);
 
   if (showRAMS && currentRAMS) {
     return (
