@@ -68,6 +68,97 @@ export type Database = {
           },
         ]
       }
+      cscs_cards: {
+        Row: {
+          back_image_url: string | null
+          card_number: string
+          card_type: string
+          created_at: string
+          expiry_date: string
+          front_image_url: string | null
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+          verification_notes: string | null
+        }
+        Insert: {
+          back_image_url?: string | null
+          card_number: string
+          card_type: string
+          created_at?: string
+          expiry_date: string
+          front_image_url?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          verification_notes?: string | null
+        }
+        Update: {
+          back_image_url?: string | null
+          card_number?: string
+          card_type?: string
+          created_at?: string
+          expiry_date?: string
+          front_image_url?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verification_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_cscs_cards_user_id"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emergency_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string
+          relationship: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone: string
+          relationship: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          relationship?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_emergency_contacts_user_id"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       on_hire_items: {
         Row: {
           category: string
@@ -509,6 +600,35 @@ export type Database = {
           },
           {
             foreignKeyName: "user_qualifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_work_types: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          work_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          work_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          work_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_user_work_types_user_id"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"

@@ -30,6 +30,21 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
 
     setSaving(true);
     try {
+      // First, get the user's database ID
+      const { data: userData, error: userFetchError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (userFetchError || !userData) {
+        console.error('Error fetching user ID:', userFetchError);
+        throw new Error('Could not find user record');
+      }
+
+      const userId = userData.id;
+      console.log('[OnboardingComplete] Saving data for user ID:', userId);
+
       // Update user's basic information AND mark onboarding as completed
       const { error: userError } = await supabase
         .from('users')
@@ -47,19 +62,101 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
 
       console.log('[OnboardingComplete] Successfully updated user with onboarding_completed=true');
 
-      // For now, we'll store the onboarding completion in localStorage
-      // In a real implementation, you would create additional tables for:
-      // - emergency_contacts
-      // - cscs_cards  
-      // - user_work_types
-      // - signed_documents
+      // Save emergency contact data
+      const { error: emergencyError } = await supabase
+        .from('emergency_contacts')
+        .upsert({
+          user_id: userId,
+          name: data.emergencyContact.name,
+          relationship: data.emergencyContact.relationship,
+          phone: data.emergencyContact.phone,
+          email: data.emergencyContact.email || null,
+        });
+
+      if (emergencyError) {
+        console.error('Error saving emergency contact:', emergencyError);
+        throw emergencyError;
+      }
+
+      console.log('[OnboardingComplete] Successfully saved emergency contact');
+
+      // Save CSCS card data
+      const { error: cscsError } = await supabase
+        .from('cscs_cards')
+        .upsert({
+          user_id: userId,
+          card_number: data.cscsCard.number,
+          card_type: data.cscsCard.cardType,
+          expiry_date: data.cscsCard.expiryDate,
+          front_image_url: data.cscsCard.frontImage ? 'pending_upload' : null,
+          back_image_url: data.cscsCard.backImage ? 'pending_upload' : null,
+          status: 'pending', // Admin needs to verify
+        });
+
+      if (cscsError) {
+        console.error('Error saving CSCS card:', cscsError);
+        throw cscsError;
+      }
+
+      console.log('[OnboardingComplete] Successfully saved CSCS card');
+
+      // Save selected work types
+      if (data.selectedWorkTypes && data.selectedWorkTypes.length > 0) {
+        // First, delete existing work types for this user
+        const { error: deleteError } = await supabase
+          .from('user_work_types')
+          .delete()
+          .eq('user_id', userId);
+
+        if (deleteError) {
+          console.error('Error deleting existing work types:', deleteError);
+        }
+
+        // Insert new work types
+        const workTypesToInsert = data.selectedWorkTypes.map(workType => ({
+          user_id: userId,
+          work_type: workType,
+        }));
+
+        const { error: workTypesError } = await supabase
+          .from('user_work_types')
+          .insert(workTypesToInsert);
+
+        if (workTypesError) {
+          console.error('Error saving work types:', workTypesError);
+          throw workTypesError;
+        }
+
+        console.log('[OnboardingComplete] Successfully saved work types:', data.selectedWorkTypes);
+      }
+
+      // Save RAMS signatures data to contractor_rams_signatures table
+      if (data.signedRAMS && data.signedRAMS.length > 0) {
+        const ramsSignaturesToInsert = data.signedRAMS.map(rams => ({
+          contractor_id: userId,
+          rams_document_id: rams.documentId,
+          signature_data: rams.signature,
+          reading_time_seconds: 30, // Default reading time
+        }));
+
+        const { error: ramsError } = await supabase
+          .from('contractor_rams_signatures')
+          .insert(ramsSignaturesToInsert);
+
+        if (ramsError) {
+          console.error('Error saving RAMS signatures:', ramsError);
+          // Don't throw error for RAMS - it's not critical for onboarding completion
+          console.warn('RAMS signatures not saved, but continuing with onboarding completion');
+        } else {
+          console.log('[OnboardingComplete] Successfully saved RAMS signatures');
+        }
+      }
+
+      // Store a simplified completion record in localStorage for quick access
       const onboardingRecord = {
         userId: user.id,
         completedAt: new Date().toISOString(),
-        emergencyContact: data.emergencyContact,
-        cscsCard: data.cscsCard,
-        workTypes: data.selectedWorkTypes,
-        signedRAMS: data.signedRAMS,
+        dataStoredInDatabase: true,
       };
 
       localStorage.setItem('onboardingCompleted', JSON.stringify(onboardingRecord));
@@ -67,13 +164,13 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
       setSaved(true);
       toast({
         title: "Onboarding Complete!",
-        description: "Your information has been saved successfully.",
+        description: "Your information has been saved successfully to the database.",
       });
     } catch (error: any) {
       console.error('Error saving onboarding data:', error);
       toast({
         title: "Error saving data",
-        description: "There was an issue saving your information. Please try again.",
+        description: error.message || "There was an issue saving your information. Please try again.",
         variant: "destructive"
       });
     } finally {
