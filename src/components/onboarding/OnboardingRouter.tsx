@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useOnboardingValidation } from '@/hooks/useOnboardingValidation';
+import { useGlobalOnboardingCheck } from '@/hooks/useGlobalOnboardingCheck';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface OnboardingRouterProps {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { stepStatus, isLoading, getFirstIncompleteStep } = useOnboardingValidation();
+  const { flags, isLoading, firstIncompleteStep, redirectToMissingStep } = useGlobalOnboardingCheck();
 
   useEffect(() => {
     if (!user || isLoading) return;
@@ -21,35 +22,29 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
     const currentPath = location.pathname.replace('/onboarding/', '');
     
     // If user has completed onboarding, redirect to dashboard
-    if (stepStatus.completed) {
+    if (flags.allComplete) {
       console.log('[OnboardingRouter] User has completed onboarding, redirecting to dashboard');
       navigate('/', { replace: true });
       return;
     }
 
-    // Get the step they should be on
-    const targetStep = getFirstIncompleteStep();
-    
-    console.log('[OnboardingRouter] Current path:', currentPath, 'Target step:', targetStep);
-    console.log('[OnboardingRouter] Step status:', stepStatus);
+    console.log('[OnboardingRouter] Current path:', currentPath, 'Target step:', firstIncompleteStep);
+    console.log('[OnboardingRouter] Flags:', flags);
     
     // Allow base onboarding route to redirect
     if (currentPath === '' || currentPath === '/') {
-      console.log('[OnboardingRouter] Base route, redirecting to', targetStep);
-      navigate(`/onboarding/${targetStep}`, { replace: true });
+      console.log('[OnboardingRouter] Base route, redirecting to', firstIncompleteStep);
+      navigate(`/onboarding/${firstIncompleteStep}`, { replace: true });
       return;
     }
     
-    // If they're not on the correct step, redirect them
-    if (currentPath !== targetStep) {
-      console.log('[OnboardingRouter] Step mismatch - redirecting from', currentPath, 'to', targetStep);
-      // Add toast notification about redirect
-      setTimeout(() => {
-        console.log('[OnboardingRouter] Missing step:', targetStep);
-      }, 100);
-      navigate(`/onboarding/${targetStep}`, { replace: true });
+    // Check if current step is appropriate
+    const redirectPath = redirectToMissingStep(location.pathname);
+    if (redirectPath) {
+      console.log('[OnboardingRouter] Redirecting from', currentPath, 'to', firstIncompleteStep);
+      navigate(redirectPath, { replace: true });
     }
-  }, [user, isLoading, stepStatus, location.pathname, navigate, getFirstIncompleteStep]);
+  }, [user, isLoading, flags, location.pathname, navigate, firstIncompleteStep, redirectToMissingStep]);
 
   if (!user || isLoading) {
     return (

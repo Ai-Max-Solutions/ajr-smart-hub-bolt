@@ -99,15 +99,6 @@ const OnboardingFlow = () => {
           <Routes>
             <Route path="/" element={<Navigate to="/onboarding/personal-details" replace />} />
             <Route 
-              path="/signup" 
-              element={
-                <SignUp 
-                  data={onboardingData} 
-                  updateData={updateOnboardingData} 
-                />
-              } 
-            />
-            <Route 
               path="/personal-details" 
               element={
                 <PersonalDetails 

@@ -2,12 +2,10 @@ import { useLocation } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 
 const steps = [
-  { id: 1, title: 'Sign Up', path: '/onboarding/signup' },
-  { id: 2, title: 'Personal Details', path: '/onboarding/personal-details' },
-  { id: 3, title: 'CSCS Card', path: '/onboarding/cscs-card' },
-  { id: 4, title: 'Emergency Contact', path: '/onboarding/emergency-contact' },
-  { id: 5, title: 'Work Types', path: '/onboarding/work-types' },
-  { id: 6, title: 'Complete', path: '/onboarding/complete' },
+  { id: 1, title: 'Personal Details', path: '/onboarding/personal-details' },
+  { id: 2, title: 'CSCS Card', path: '/onboarding/cscs-card' },
+  { id: 3, title: 'Emergency Contact', path: '/onboarding/emergency-contact' },
+  { id: 4, title: 'Work Types', path: '/onboarding/work-types' },
 ];
 
 const ProgressHeader = () => {

@@ -175,16 +175,16 @@ const PersonalDetails = ({ data, updateData }: PersonalDetailsProps) => {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => navigate('/onboarding/signup')}
+                onClick={() => navigate('/auth')}
                 className="w-full"
                 disabled={isLoading}
               >
-                Back
+                Back to Login
               </Button>
               <Button 
                 type="submit" 
                 className="w-full btn-primary"
-                disabled={isLoading || !validateForm()}
+                disabled={isLoading}
               >
                 {isLoading ? (
                   <>
