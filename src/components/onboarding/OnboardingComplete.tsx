@@ -112,13 +112,16 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
       console.log('[OnboardingComplete] Successfully saved emergency contact');
 
       // Save CSCS card data using upsert with onConflict to handle duplicates
+      const expiry = data.cscsCard.expiryDate?.trim();
+      const expiry_date = expiry !== "" ? expiry : null;
+      
       const { error: cscsError } = await supabase
         .from('cscs_cards')
         .upsert({
           user_id: userId,
           card_number: data.cscsCard.number,
           card_type: data.cscsCard.cardType,
-          expiry_date: data.cscsCard.expiryDate,
+          expiry_date: expiry_date,
           front_image_url: data.cscsCard.frontImage ? 'pending_upload' : null,
           back_image_url: data.cscsCard.backImage ? 'pending_upload' : null,
           status: 'pending', // Admin needs to verify
