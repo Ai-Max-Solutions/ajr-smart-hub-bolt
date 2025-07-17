@@ -180,33 +180,75 @@ By signing this document, you confirm understanding of all safety requirements.`
     }
   };
 
-  const handleDocumentSigned = (documentId: string, signature: string, readingTime: number) => {
-    const newSignature: RAMSSignature = {
-      id: `sig-${Date.now()}`,
-      rams_document_id: documentId,
-      signed_at: new Date().toISOString(),
-      reading_time_seconds: readingTime,
-      is_current: true
-    };
+  const handleDocumentSigned = async (documentId: string, signature: string, readingTime: number) => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
 
-    setSignatures(prev => [...prev, newSignature]);
-    
-    // Update compliance
-    const newSignedCount = signatures.length + 1;
-    setCompliance(prev => prev ? {
-      ...prev,
-      signed_documents: newSignedCount,
-      compliance_percentage: Math.round((newSignedCount / prev.required_documents) * 100),
-      is_compliant: newSignedCount >= prev.required_documents
-    } : null);
+      // Get contractor ID from users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('supabase_auth_id', user.id)
+        .single();
 
-    setShowViewer(false);
-    setSelectedDocument(null);
+      if (userError || !userData) {
+        throw new Error('Contractor profile not found');
+      }
 
-    toast({
-      title: "Document Signed Successfully",
-      description: `${selectedDocument?.title} has been signed and recorded.`,
-    });
+      // Insert signature into database
+      const { error: signatureError } = await supabase
+        .from('contractor_rams_signatures')
+        .insert({
+          contractor_id: userData.id,
+          rams_document_id: documentId,
+          signature_data: signature,
+          reading_time_seconds: readingTime
+        });
+
+      if (signatureError) {
+        throw signatureError;
+      }
+
+      // Create new signature object for local state
+      const newSignature: RAMSSignature = {
+        id: `sig-${Date.now()}`,
+        rams_document_id: documentId,
+        signed_at: new Date().toISOString(),
+        reading_time_seconds: readingTime,
+        is_current: true
+      };
+
+      setSignatures(prev => [...prev, newSignature]);
+      
+      // Update compliance
+      const newSignedCount = signatures.length + 1;
+      setCompliance(prev => prev ? {
+        ...prev,
+        signed_documents: newSignedCount,
+        compliance_percentage: Math.round((newSignedCount / prev.required_documents) * 100),
+        is_compliant: newSignedCount >= prev.required_documents
+      } : null);
+
+      setShowViewer(false);
+      setSelectedDocument(null);
+
+      toast({
+        title: "Document Signed Successfully",
+        description: `${selectedDocument?.title} has been signed and recorded.`,
+      });
+
+    } catch (error: any) {
+      console.error('Error signing document:', error);
+      toast({
+        title: "Error Signing Document",
+        description: error.message || 'Failed to save signature. Please try again.',
+        variant: "destructive"
+      });
+    }
   };
 
   const viewDocument = (document: RAMSDocument) => {

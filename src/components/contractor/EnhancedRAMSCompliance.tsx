@@ -123,17 +123,40 @@ export const EnhancedRAMSCompliance: React.FC = () => {
 
   const handleDocumentSigned = async (signature: string, readingTime: number) => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+
+      // Get contractor ID from users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (userError || !userData) {
+        throw new Error('Contractor profile not found');
+      }
+
       // Update the register entry status for the currently selected document
       const entry = entries.find(e => e.rams_document_id === selectedDocument?.id);
       if (!entry) throw new Error('Entry not found');
 
-      // Mock update - in a real app this would update the database
-      console.log('Would update register with signature:', {
-        entry_id: entry.id,
-        signature,
-        signed_by: `${contractorProfile.first_name} ${contractorProfile.last_name}`,
-        reading_time: readingTime
-      });
+      // Insert signature into database
+      const { error: signatureError } = await supabase
+        .from('contractor_rams_signatures')
+        .insert({
+          contractor_id: userData.id,
+          rams_document_id: selectedDocument.id,
+          signature_data: signature,
+          reading_time_seconds: readingTime
+        });
+
+      if (signatureError) {
+        throw signatureError;
+      }
 
       toast({
         title: 'Success',
@@ -143,11 +166,11 @@ export const EnhancedRAMSCompliance: React.FC = () => {
       setShowViewer(false);
       loadContractorRAMS();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing document:', error);
       toast({
         title: 'Error',
-        description: 'Failed to sign Task Plan / RAMS document',
+        description: error.message || 'Failed to sign Task Plan / RAMS document',
         variant: 'destructive',
       });
     }
