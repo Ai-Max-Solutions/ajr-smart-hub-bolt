@@ -167,25 +167,87 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
       }
 
       // Save RAMS signatures data to contractor_rams_signatures table
+      console.log('[OnboardingComplete] Checking RAMS signatures data:');
+      console.log('- data.signedRAMS exists:', !!data.signedRAMS);
+      console.log('- data.signedRAMS length:', data.signedRAMS?.length || 0);
+      console.log('- signedRAMS data structure:', JSON.stringify(data.signedRAMS, null, 2));
+      
       if (data.signedRAMS && data.signedRAMS.length > 0) {
-        const ramsSignaturesToInsert = data.signedRAMS.map(rams => ({
-          contractor_id: userId,
-          rams_document_id: rams.documentId,
-          signature_data: rams.signature,
-          reading_time_seconds: 30, // Default reading time
-        }));
-
-        const { error: ramsError } = await supabase
-          .from('contractor_rams_signatures')
-          .insert(ramsSignaturesToInsert);
-
-        if (ramsError) {
-          console.error('Error saving RAMS signatures:', ramsError);
-          // Don't throw error for RAMS - it's not critical for onboarding completion
-          console.warn('RAMS signatures not saved, but continuing with onboarding completion');
-        } else {
-          console.log('[OnboardingComplete] Successfully saved RAMS signatures');
+        // Validate and prepare RAMS signatures
+        const validSignatures = [];
+        
+        for (const rams of data.signedRAMS) {
+          console.log('[OnboardingComplete] Processing RAMS signature:', {
+            workType: rams.workType,
+            documentId: rams.documentId,
+            hasSignature: !!rams.signature,
+            signatureLength: rams.signature?.length || 0,
+            signedAt: rams.signedAt
+          });
+          
+          // Validate required fields
+          if (!rams.documentId) {
+            console.error('[OnboardingComplete] Missing documentId for RAMS signature');
+            continue;
+          }
+          
+          if (!rams.signature) {
+            console.error('[OnboardingComplete] Missing signature data for RAMS:', rams.documentId);
+            continue;
+          }
+          
+          // Clean signature data - remove data URL prefix if present
+          let signatureData = rams.signature;
+          if (signatureData.startsWith('data:image/png;base64,')) {
+            signatureData = signatureData.replace('data:image/png;base64,', '');
+          }
+          
+          // Use default reading time of 30 seconds since it's not tracked in the current structure
+          const readingTime = 30;
+          
+          validSignatures.push({
+            contractor_id: userId,
+            rams_document_id: rams.documentId,
+            signature_data: signatureData,
+            reading_time_seconds: readingTime,
+          });
         }
+        
+        console.log('[OnboardingComplete] Valid signatures to save:', validSignatures.length);
+        console.log('[OnboardingComplete] Payload being sent to database:', JSON.stringify(validSignatures, null, 2));
+        
+        if (validSignatures.length > 0) {
+          const { data: insertedSignatures, error: ramsError } = await supabase
+            .from('contractor_rams_signatures')
+            .insert(validSignatures)
+            .select('id, contractor_id, rams_document_id');
+
+          if (ramsError) {
+            console.error('[OnboardingComplete] Error saving RAMS signatures:', ramsError);
+            console.error('[OnboardingComplete] Failed payload:', JSON.stringify(validSignatures, null, 2));
+            // Don't throw error for RAMS - it's not critical for onboarding completion
+            console.warn('[OnboardingComplete] RAMS signatures not saved, but continuing with onboarding completion');
+          } else {
+            console.log('[OnboardingComplete] Successfully saved RAMS signatures:', insertedSignatures);
+            console.log('[OnboardingComplete] Inserted signature count:', insertedSignatures?.length || 0);
+            
+            // Verify signatures were actually saved by fetching them back
+            const { data: verifySignatures, error: verifyError } = await supabase
+              .from('contractor_rams_signatures')
+              .select('id, contractor_id, rams_document_id')
+              .eq('contractor_id', userId);
+              
+            if (verifyError) {
+              console.error('[OnboardingComplete] Error verifying saved signatures:', verifyError);
+            } else {
+              console.log('[OnboardingComplete] Verification: Found', verifySignatures?.length || 0, 'signatures in database for user:', userId);
+            }
+          }
+        } else {
+          console.warn('[OnboardingComplete] No valid RAMS signatures to save');
+        }
+      } else {
+        console.log('[OnboardingComplete] No RAMS signatures provided in onboarding data');
       }
 
       // Store a simplified completion record in localStorage for quick access
