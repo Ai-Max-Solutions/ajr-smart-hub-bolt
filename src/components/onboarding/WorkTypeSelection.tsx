@@ -303,14 +303,15 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
       }
 
       toast({
-        title: "All set! Redirecting to dashboard...",
+        title: "Done! To dashboard...",
         description: "Welcome aboard! Your onboarding is complete.",
       });
 
-      // ✅ 3. Delay slightly to let toast display, then navigate
+      // ✅ 3. Add logging and navigate directly to operative dashboard
+      console.log("Redirecting to /operative");
       setTimeout(() => {
-        navigate('/'); // Navigate to root to let IndexWrapper handle routing
-      }, 1200);
+        navigate('/operative'); // Direct navigation to operative portal
+      }, 800);
 
     } catch (err) {
       console.error("Unexpected error:", err);
@@ -342,26 +343,10 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
       <Card className="card-hover">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary mb-2">
-            Choose the type of work you do — so we can get it right every time!
+            Work Types
           </CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            <div className="space-y-3">
-              <p>
-                At A&J Ryan, we cover a range of specialist trades and roles.
-                Select the main work type that best describes what you do day-to-day.
-                This helps us match you with the right tasks, rates, and compliance checks.
-              </p>
-              
-              <div className="bg-success/10 border border-success/20 rounded-lg p-3">
-                <p className="text-sm font-medium text-success-foreground">
-                  ✅ Our streamlined work types
-                </p>
-              </div>
-              
-              <p className="text-sm text-muted-foreground italic">
-                <strong>Tip:</strong> Pick the one that fits most of your work — you'll still be able to log different tasks under your projects.
-              </p>
-            </div>
+            Pick your main trade. This sets your jobs, rates, and safety docs right.
           </CardDescription>
         </CardHeader>
         
@@ -540,7 +525,7 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
           variant="default"
           className="w-full mt-4"
         >
-          Continue to Complete
+          Finish & Go to Dashboard
         </Button>
       </div>
       
