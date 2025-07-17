@@ -110,7 +110,7 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
 
       console.log('[OnboardingComplete] Successfully saved emergency contact');
 
-      // Save CSCS card data
+      // Save CSCS card data using upsert with onConflict to handle duplicates
       const { error: cscsError } = await supabase
         .from('cscs_cards')
         .upsert({
@@ -121,6 +121,8 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
           front_image_url: data.cscsCard.frontImage ? 'pending_upload' : null,
           back_image_url: data.cscsCard.backImage ? 'pending_upload' : null,
           status: 'pending', // Admin needs to verify
+        }, {
+          onConflict: 'user_id'
         });
 
       if (cscsError) {
