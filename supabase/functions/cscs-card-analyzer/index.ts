@@ -114,47 +114,19 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `You are an expert at analyzing CSCS (Construction Skills Certification Scheme) cards from the UK construction industry.
+                text: `You are a CSCS card OCR assistant. Read the uploaded card and extract:
+- Card Number (8–16 digits)
+- Card Type (e.g., Green, Blue, Gold)
+- Expiry Date (in YYYY-MM-DD)
 
-Analyze this CSCS card image and extract information in JSON format. Map the card type to one of these specific values:
-- "Labourer" (Green cards)
-- "Apprentice" (Red cards)
-- "Trainee" (Red cards)
-- "Experienced Worker" (Red cards)
-- "Experienced Technical/Supervisor/Manager" (Red cards)
-- "Skilled Worker" (Blue cards)
-- "Gold – Advanced Craft" (Gold cards)
-- "Gold – Supervisor" (Gold cards)
-- "Academically Qualified Person" (White cards)
-- "Professionally Qualified Person" (White cards)
-- "Manager" (Black cards)
-- "Operative" (Default when unsure)
+If any info is missing or unclear, return it as null.
 
+Output JSON:
 {
-  "card_number": "Card/Registration number (look for REG.NO., CARD NO.)",
-  "expiry_date": "Expiry date in YYYY-MM-DD format",
-  "card_color": "Main card color (Green, Red, Blue, Gold, White, Black)",
-  "card_type": "Mapped to one of the values above - default to 'Operative' if unsure",
-  "qualifications": {
-    "primary_qualification": "Main qualification shown",
-    "additional_qualifications": ["Additional qualifications"],
-    "work_categories": ["Work categories authorized"]
-  },
-  "confidence_score": 0.95,
-  "extracted_text": "Key text from the card"
-}
-
-Mapping Rules:
-- If you see "MATE" or similar basic text → use "Operative"
-- Green cards → typically "Labourer" or "Operative"
-- Red cards → "Apprentice", "Trainee", "Experienced Worker", or "Experienced Technical/Supervisor/Manager"
-- Blue cards → "Skilled Worker"
-- Gold cards → "Gold – Advanced Craft" or "Gold – Supervisor"
-- White cards → "Academically Qualified Person" or "Professionally Qualified Person"
-- Black cards → "Manager"
-- When in doubt → use "Operative"
-
-Return only valid JSON.`
+  "cardNumber": "...",
+  "cardType": "...",
+  "expiryDate": "..."
+}`
               },
               {
                 type: 'image_url',
@@ -213,14 +185,11 @@ Return only valid JSON.`
         .from('cscs_cards')
         .insert({
           user_id: user.id,
-          file_url: imageUrl,
-          cscs_card_type: analysisResult.card_type || 'Operative',
-          custom_card_type: analysisResult.card_type && !['Labourer', 'Apprentice', 'Trainee', 'Experienced Worker', 'Experienced Technical/Supervisor/Manager', 'Skilled Worker', 'Gold – Advanced Craft', 'Gold – Supervisor', 'Academically Qualified Person', 'Professionally Qualified Person', 'Manager', 'Operative'].includes(analysisResult.card_type) ? analysisResult.card_type : null,
-          expiry_date: analysisResult.expiry_date,
-          card_number: analysisResult.card_number,
-          card_color: analysisResult.card_color,
-          qualifications: analysisResult.qualifications,
-          confidence_score: analysisResult.confidence_score,
+          front_image_url: imageUrl,
+          card_type: analysisResult.cardType || 'Operative',
+          expiry_date: analysisResult.expiryDate,
+          card_number: analysisResult.cardNumber,
+          confidence_score: 0.8, // Default confidence for simplified analysis
           raw_ai_response: aiResponse
         })
         .select()

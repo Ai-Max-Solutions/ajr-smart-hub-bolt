@@ -162,9 +162,9 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
           
           // Auto-populate form fields and mark upload as complete
           updateData({
-            number: result.card_number || data.number,
-            expiryDate: result.expiry_date ? formatDateForInput(result.expiry_date) : data.expiryDate,
-            cardType: result.card_type || data.cardType || 'Operative',
+            number: result.cardNumber || data.number,
+            expiryDate: result.expiryDate ? formatDateForInput(result.expiryDate) : data.expiryDate,
+            cardType: result.cardType || data.cardType || 'Operative',
             uploadComplete: true
           });
           
