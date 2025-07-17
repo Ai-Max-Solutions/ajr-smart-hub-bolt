@@ -251,10 +251,9 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
     try {
       if (!canContinue) return;
 
-      console.log('[RAMS] Proceeding to complete step…');
       toast({
-        title: "Completing RAMS…",
-        description: "Finalizing your onboarding process...",
+        title: "Saving your progress...",
+        description: "Please wait while we complete your onboarding.",
       });
 
       // Get user ID from the users table
@@ -268,8 +267,24 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
         throw new Error('User not found in database');
       }
 
-      // Update onboarding_complete = true (final step only)
-      const { error: updateError } = await supabase
+      // ✅ 1. Mark RAMS signatures as current (optional safeguard)
+      const { error: sigError } = await supabase
+        .from('contractor_rams_signatures')
+        .update({ is_current: true })
+        .eq('contractor_id', userData.id);
+
+      if (sigError) {
+        toast({
+          title: "Error",
+          description: "Couldn't finalise your RAMS. Try again.",
+          variant: "destructive",
+        });
+        console.error("Signature update failed:", sigError);
+        return;
+      }
+
+      // ✅ 2. Flag user as onboarded
+      const { error: userError } = await supabase
         .from('users')
         .update({ 
           onboarding_completed: true,
@@ -277,19 +292,31 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
         })
         .eq('id', userData.id);
 
-      if (updateError) throw updateError;
+      if (userError) {
+        toast({
+          title: "Error",
+          description: "Couldn't complete onboarding.",
+          variant: "destructive",
+        });
+        console.error("User onboarding update failed:", userError);
+        return;
+      }
 
       toast({
-        title: "RAMS complete!",
-        description: "All safety documents have been signed. Welcome aboard!",
+        title: "All set! Redirecting to dashboard...",
+        description: "Welcome aboard! Your onboarding is complete.",
       });
-      
-      navigate('/onboarding/complete');
+
+      // ✅ 3. Delay slightly to let toast display, then navigate
+      setTimeout(() => {
+        navigate('/'); // Navigate to root to let IndexWrapper handle routing
+      }, 1200);
+
     } catch (err) {
-      console.error('[RAMS] Continue failed', err);
+      console.error("Unexpected error:", err);
       toast({
         title: "Error",
-        description: "Error marking onboarding complete. Try again.",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
     }
