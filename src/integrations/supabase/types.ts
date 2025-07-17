@@ -71,12 +71,16 @@ export type Database = {
       cscs_cards: {
         Row: {
           back_image_url: string | null
+          card_color: string | null
           card_number: string
           card_type: string
+          confidence_score: number | null
           created_at: string
           expiry_date: string
           front_image_url: string | null
           id: string
+          qualifications: Json | null
+          raw_ai_response: Json | null
           status: string
           updated_at: string
           user_id: string
@@ -84,12 +88,16 @@ export type Database = {
         }
         Insert: {
           back_image_url?: string | null
+          card_color?: string | null
           card_number: string
           card_type: string
+          confidence_score?: number | null
           created_at?: string
           expiry_date: string
           front_image_url?: string | null
           id?: string
+          qualifications?: Json | null
+          raw_ai_response?: Json | null
           status?: string
           updated_at?: string
           user_id: string
@@ -97,12 +105,16 @@ export type Database = {
         }
         Update: {
           back_image_url?: string | null
+          card_color?: string | null
           card_number?: string
           card_type?: string
+          confidence_score?: number | null
           created_at?: string
           expiry_date?: string
           front_image_url?: string | null
           id?: string
+          qualifications?: Json | null
+          raw_ai_response?: Json | null
           status?: string
           updated_at?: string
           user_id?: string

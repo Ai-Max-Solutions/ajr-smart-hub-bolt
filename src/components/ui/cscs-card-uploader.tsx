@@ -174,15 +174,28 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
             title: "CSCS Card Analyzed",
             description: `Successfully extracted details from your CSCS card`,
           });
+        } else {
+          // Analysis didn't succeed but allow manual entry
+          updateData({ uploadComplete: true });
+          
+          toast({
+            title: "Card Uploaded",
+            description: "Please fill in the card details manually below",
+            variant: "default"
+          });
         }
       }
     } catch (error) {
       console.error('Error analyzing CSCS card:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      // Set upload as complete even if analysis fails, allowing manual entry
+      updateData({ uploadComplete: true });
+      
       toast({
-        title: "Analysis Failed",
-        description: `Failed to analyze the card: ${errorMessage}. Please enter details manually.`,
-        variant: "destructive",
+        title: "Card analysis failed",
+        description: "Please enter your card details manually below.",
+        variant: "default"
       });
     } finally {
       setIsAnalyzing(false);
@@ -244,7 +257,7 @@ export const CSCSCardUploader: React.FC<CSCSCardUploaderProps> = ({
   };
 
   const validateForm = (): string | null => {
-    if (!data.frontImage) return 'Please upload a CSCS card image.';
+    if (!data.frontImage && !data.uploadComplete) return 'Please upload a CSCS card image.';
     if (!data.cardType) return 'Please select a card type.';
     if (isCustomType && !data.cardType.trim()) return 'Please enter a custom card type.';
     if (showGoldSubtype && !goldSubtype) return 'Please select Advanced Craft or Supervisor for Gold card.';

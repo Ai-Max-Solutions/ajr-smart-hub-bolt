@@ -30,25 +30,38 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
 
     setSaving(true);
     try {
-      // First, get the user's database ID
+      // First, get or create the user's database record
       console.log('[OnboardingComplete] Auth user ID:', user.id);
       console.log('[OnboardingComplete] Auth user email:', user.email);
       
-      const { data: userData, error: userFetchError } = await supabase
+      let { data: userData, error: userFetchError } = await supabase
         .from('users')
         .select('id')
         .eq('supabase_auth_id', user.id)
         .single();
 
       if (userFetchError || !userData) {
-        console.error('[OnboardingComplete] Error fetching user ID:', userFetchError);
-        console.log('[OnboardingComplete] Available users:');
+        console.log('[OnboardingComplete] User not found, creating new record...');
         
-        // Debug: show all users
-        const { data: allUsers } = await supabase.from('users').select('id, supabase_auth_id, email, name');
-        console.log('[OnboardingComplete] All users in database:', allUsers);
+        // Create user record if it doesn't exist
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert({
+            supabase_auth_id: user.id,
+            email: user.email || '',
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+            role: 'Operative'
+          })
+          .select('id')
+          .single();
+          
+        if (createError || !newUser) {
+          console.error('[OnboardingComplete] Error creating user:', createError);
+          throw new Error('Could not create user record');
+        }
         
-        throw new Error('Could not find user record');
+        userData = newUser;
+        console.log('[OnboardingComplete] Created new user:', userData);
       }
 
       const userId = userData.id;
