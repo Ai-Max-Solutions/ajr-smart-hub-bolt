@@ -68,6 +68,8 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
     const fetchRAMSDocumentsAndSignatures = async () => {
       setLoadingRAMS(true);
       try {
+        console.log('[WorkTypeSelection] Fetching RAMS documents and signatures...');
+        
         // Fetch RAMS documents
         const { data: documents, error: documentsError } = await supabase
           .from('rams_documents')
@@ -84,6 +86,8 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
           return;
         }
 
+        console.log('[WorkTypeSelection] Fetched RAMS documents:', documents?.length || 0);
+
         // Group documents by work type
         const groupedDocuments: Record<string, RAMSDocument[]> = {};
         
@@ -97,40 +101,56 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
         });
 
         setRamsDocuments(groupedDocuments);
+        console.log('[WorkTypeSelection] Grouped RAMS documents:', Object.keys(groupedDocuments));
 
         // Fetch existing signatures for this user if authenticated
         if (user) {
+          console.log('[WorkTypeSelection] Fetching user data and existing signatures...');
+          
           const { data: userData } = await supabase
             .from('users')
             .select('id')
             .eq('supabase_auth_id', user.id)
-            .single();
+            .maybeSingle();
 
           if (userData) {
+            console.log('[WorkTypeSelection] Found user ID:', userData.id);
+            
             const { data: signatures, error: signaturesError } = await supabase
               .from('contractor_rams_signatures')
-              .select('rams_document_id')
+              .select('rams_document_id, signed_at')
               .eq('contractor_id', userData.id)
               .eq('is_current', true);
 
             if (!signaturesError && signatures) {
-              // Update data with existing signatures
+              console.log('[WorkTypeSelection] Found existing signatures:', signatures.length);
+              
+              // Create signature objects that match our data structure
               const existingSignatures = signatures.map(sig => ({
-                workType: '', // We'll determine this based on the document
+                workType: '', // Will be determined from the document
                 documentId: sig.rams_document_id,
-                signedAt: new Date(),
+                signedAt: new Date(sig.signed_at),
                 signature: 'existing_signature' // Placeholder for existing signature
               }));
 
-              console.log('[WorkTypeSelection] Found existing signatures:', existingSignatures.length);
-              
-              // Merge with any signatures already in data
-              const allSignatures = [...data.signedRAMS, ...existingSignatures.filter(
-                existing => !data.signedRAMS.some(current => current.documentId === existing.documentId)
-              )];
+              // Only add signatures that aren't already in the data
+              const currentSignatureIds = new Set(data.signedRAMS.map(s => s.documentId));
+              const newSignatures = existingSignatures.filter(
+                existing => !currentSignatureIds.has(existing.documentId)
+              );
 
-              updateData({ signedRAMS: allSignatures });
+              if (newSignatures.length > 0) {
+                console.log('[WorkTypeSelection] Adding', newSignatures.length, 'existing signatures to data');
+                const allSignatures = [...data.signedRAMS, ...newSignatures];
+                updateData({ signedRAMS: allSignatures });
+              }
+            } else if (signaturesError) {
+              console.error('[WorkTypeSelection] Error fetching signatures:', signaturesError);
+            } else {
+              console.log('[WorkTypeSelection] No existing signatures found');
             }
+          } else {
+            console.log('[WorkTypeSelection] User not found in database yet');
           }
         }
       } catch (error) {
@@ -146,7 +166,7 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
     };
 
     fetchRAMSDocumentsAndSignatures();
-  }, [toast, user]);
+  }, [toast, user]); // Removed data dependency to avoid infinite loops
 
   const handleWorkTypeChange = (workTypeId: string, checked: boolean) => {
     const updatedWorkTypes = checked 

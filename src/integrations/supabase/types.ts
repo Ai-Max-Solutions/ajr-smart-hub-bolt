@@ -76,7 +76,7 @@ export type Database = {
           card_type: string
           confidence_score: number | null
           created_at: string
-          expiry_date: string
+          expiry_date: string | null
           front_image_url: string | null
           id: string
           qualifications: Json | null
@@ -93,7 +93,7 @@ export type Database = {
           card_type: string
           confidence_score?: number | null
           created_at?: string
-          expiry_date: string
+          expiry_date?: string | null
           front_image_url?: string | null
           id?: string
           qualifications?: Json | null
@@ -110,7 +110,7 @@ export type Database = {
           card_type?: string
           confidence_score?: number | null
           created_at?: string
-          expiry_date?: string
+          expiry_date?: string | null
           front_image_url?: string | null
           id?: string
           qualifications?: Json | null

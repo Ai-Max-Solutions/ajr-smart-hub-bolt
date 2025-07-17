@@ -114,8 +114,25 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
 
       // Save CSCS card data using upsert with onConflict to handle duplicates
       const expiry = data.cscsCard.expiryDate?.trim();
-      // Ensure expiry_date is a valid date string (required field in database)
-      const expiry_date = expiry && expiry !== "" ? expiry : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // Default to 1 year from now
+      // Handle expiry_date - now nullable in DB, but provide valid data when available
+      const expiry_date = expiry && expiry !== "" ? expiry : null;
+      
+      // Ensure we have proper image URLs - use actual file URLs if available
+      const front_image_url = data.cscsCard.frontImage 
+        ? (typeof data.cscsCard.frontImage === 'string' ? data.cscsCard.frontImage : 'pending_upload')
+        : null;
+      const back_image_url = data.cscsCard.backImage 
+        ? (typeof data.cscsCard.backImage === 'string' ? data.cscsCard.backImage : 'pending_upload')
+        : null;
+      
+      console.log('[OnboardingComplete] CSCS card data being inserted:', {
+        user_id: userId,
+        card_number: data.cscsCard.number,
+        card_type: data.cscsCard.cardType,
+        expiry_date,
+        front_image_url,
+        back_image_url
+      });
       
       const { data: cscsData, error: cscsError } = await supabase
         .from('cscs_cards')
@@ -123,9 +140,9 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
           user_id: userId,
           card_number: data.cscsCard.number,
           card_type: data.cscsCard.cardType,
-          expiry_date: expiry_date, // Now guaranteed to be a valid date
-          front_image_url: data.cscsCard.frontImage ? 'pending_upload' : null,
-          back_image_url: data.cscsCard.backImage ? 'pending_upload' : null,
+          expiry_date: expiry_date, // Now nullable, won't cause insert failures
+          front_image_url: front_image_url,
+          back_image_url: back_image_url,
           status: 'pending', // Admin needs to verify
         }, {
           onConflict: 'user_id'
