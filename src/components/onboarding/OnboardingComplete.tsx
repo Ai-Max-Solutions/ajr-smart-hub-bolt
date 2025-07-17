@@ -40,7 +40,13 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
         .eq('supabase_auth_id', user.id)
         .single();
 
-      if (userFetchError || !userData) {
+      if (userFetchError && userFetchError.code !== "PGRST116") {
+        // PGRST116 = not found, other errors are actual problems
+        console.error('[OnboardingComplete] Database error:', userFetchError);
+        throw new Error('Database error while fetching user');
+      }
+
+      if (!userData) {
         console.log('[OnboardingComplete] User not found, creating new record...');
         
         // Create user record if it doesn't exist
@@ -93,6 +99,8 @@ const OnboardingComplete = ({ data }: OnboardingCompleteProps) => {
           relationship: data.emergencyContact.relationship,
           phone: data.emergencyContact.phone,
           email: data.emergencyContact.email || null,
+        }, {
+          onConflict: "user_id"
         });
 
       if (emergencyError) {

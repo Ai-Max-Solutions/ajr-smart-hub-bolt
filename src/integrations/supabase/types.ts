@@ -171,6 +171,65 @@ export type Database = {
           },
         ]
       }
+      notification_recipients: {
+        Row: {
+          dismissed: boolean | null
+          id: number
+          notification_id: number | null
+          received_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          dismissed?: boolean | null
+          id?: never
+          notification_id?: number | null
+          received_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          dismissed?: boolean | null
+          id?: never
+          notification_id?: number | null
+          received_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_recipients_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string | null
+          creator_id: string | null
+          id: number
+          link: string | null
+          type: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          creator_id?: string | null
+          id?: never
+          link?: string | null
+          type: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          creator_id?: string | null
+          id?: never
+          link?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       on_hire_items: {
         Row: {
           category: string
