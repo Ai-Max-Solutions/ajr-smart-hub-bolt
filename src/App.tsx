@@ -18,6 +18,7 @@ import { CSCSOnboardingFlow } from "./components/onboarding/CSCSOnboardingFlow";
 import ProjectsManagement from "./pages/ProjectsManagement";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminReports from "./pages/AdminReports";
+import AdminUserManagement from "@/components/admin/AdminUserManagement";
 import DirectorDashboard from "./pages/DirectorDashboard";
 import AIAssistant from "./pages/AIAssistant";
 import { Auth } from "./pages/Auth";
@@ -103,6 +104,17 @@ function App() {
                   <RouteProtection requiredRole={['admin', 'dpo']}>
                     <AppLayout>
                       <AdminDashboard />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/admin/users" 
+                element={
+                  <RouteProtection requiredRole={['admin', 'dpo']}>
+                    <AppLayout>
+                      <AdminUserManagement />
                     </AppLayout>
                   </RouteProtection>
                 } 

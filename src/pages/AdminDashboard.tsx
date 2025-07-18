@@ -1,22 +1,21 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { KPICard } from "@/components/dashboard/KPICard";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { ProgressArc } from "@/components/dashboard/ProgressArc";
-import { SparklineChart } from "@/components/dashboard/SparklineChart";
-import { ShipmentTracker } from "@/components/dashboard/ShipmentTracker";
-import { BarChart } from "@/components/dashboard/BarChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
-import AdminCRUDModule from "@/components/admin/AdminCRUDModule";
-import { TaskPlanRAMSRegister } from "@/components/admin/TaskPlanRAMSRegister";
-import { SecurityDashboard } from "@/components/admin/SecurityDashboard";
-import { UserApprovalPanel } from "@/components/admin/UserApprovalPanel";
+import { RoleGuard } from "@/components/auth/withRoleGuard";
+import AdminUserManagement from "@/components/admin/AdminUserManagement";
+import AdminAuditLogs from "@/components/admin/AdminAuditLogs";
+import AdminSystemSettings from "@/components/admin/AdminSystemSettings";
 import { 
   Settings, 
   Users, 
@@ -26,465 +25,279 @@ import {
   Clock, 
   AlertTriangle,
   CheckCircle,
-  Package,
-  FileText,
-  Zap,
   Activity,
   Download,
-  RefreshCw
+  RefreshCw,
+  Wrench,
+  Gauge
 } from "lucide-react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeView, setActiveView] = useState<"dashboard" | "crud" | "rams-register" | "security">("dashboard");
+  const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ Role guard: Admin dashboard access only
-  useEffect(() => {
-    const userRole = user?.role?.trim().toLowerCase();
-    if (user && !['admin', 'dpo'].includes(userRole)) {
-      toast({
-        title: "Access Denied",
-        description: "Director privileges needed — back to your dashboard!",
-        variant: "destructive",
-      });
-      const rolePathMap = {
-        'operative': '/operative',
-        'supervisor': '/operative',
-        'pm': '/projects',
-        'director': '/director',
-        'manager': '/projects'
-      };
-      const redirectPath = rolePathMap[userRole] || '/operative';
-      navigate(redirectPath);
-    }
-  }, [user, navigate, toast]);
+  // Mock real-time metrics - in production, these would come from your analytics service
+  const [metrics, setMetrics] = useState({
+    totalUsers: 1247,
+    activeSessions: 342,
+    pendingApprovals: 23,
+    errorRate: 0.8
+  });
 
-  // Mock data for dashboard components
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    toast({
+      title: "Refreshing the Flow",
+      description: "Checking all pipes for updates...",
+    });
+    
+    // Simulate data refresh
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Mock data update
+    setMetrics(prev => ({
+      ...prev,
+      activeSessions: prev.activeSessions + Math.floor(Math.random() * 10) - 5,
+      pendingApprovals: Math.max(0, prev.pendingApprovals + Math.floor(Math.random() * 6) - 3),
+      errorRate: Math.max(0, Math.min(5, prev.errorRate + (Math.random() - 0.5)))
+    }));
+    
+    setIsLoading(false);
+    toast({
+      title: "System Refreshed",
+      description: "All flows running smooth as silk! 🔧",
+    });
+  };
+
   const kpiData = [
     {
       title: "Total Users",
-      value: "1,247",
+      value: metrics.totalUsers.toLocaleString(),
       change: 12,
       changeLabel: "vs last month",
       icon: Users,
       trend: "up" as const,
       progress: 85,
       target: 1500,
-      subtitle: "Active users across all projects"
+      subtitle: "Crew size steady, no leaks!"
     },
     {
-      title: "Active Projects",
-      value: "43",
-      change: 8,
-      changeLabel: "vs last month", 
-      icon: Building2,
+      title: "Active Sessions",
+      value: metrics.activeSessions.toString(),
+      change: 5,
+      changeLabel: "real-time flow",
+      icon: Activity,
       trend: "up" as const,
-      badge: "Live"
+      badge: "Live",
+      subtitle: "Team flowing strong"
     },
     {
-      title: "Compliance Rate",
-      value: "97.8%",
+      title: "Pending Approvals",
+      value: metrics.pendingApprovals.toString(),
       change: -2,
-      changeLabel: "needs attention",
-      icon: Shield,
-      trend: "down" as const,
-      progress: 98
+      changeLabel: "backlog clearing",
+      icon: Clock,
+      trend: metrics.pendingApprovals > 30 ? "down" as const : "up" as const,
+      progress: Math.max(0, 100 - (metrics.pendingApprovals * 2)),
+      subtitle: metrics.pendingApprovals > 30 ? "Backlog? Let's unblock it!" : "Smooth flowing approvals"
     },
     {
-      title: "System Performance",
-      value: "99.2%",
-      change: 1,
-      changeLabel: "uptime this month",
-      icon: TrendingUp,
-      trend: "up" as const,
-      badge: "Excellent"
+      title: "Error Rate (24h)",
+      value: `${metrics.errorRate.toFixed(1)}%`,
+      change: metrics.errorRate > 1 ? 1 : -1,
+      changeLabel: "system stability",
+      icon: metrics.errorRate > 2 ? AlertTriangle : CheckCircle,
+      trend: metrics.errorRate > 1 ? "down" as const : "up" as const,
+      badge: metrics.errorRate < 1 ? "Excellent" : metrics.errorRate < 3 ? "Good" : "Needs Attention",
+      subtitle: metrics.errorRate < 1 ? "Smooth sailing!" : "Time for a fix?"
     }
   ];
-
-  const activityData = [
-    {
-      id: "1",
-      type: "user_action" as const,
-      title: "New user registration",
-      description: "John Smith completed onboarding and joined Project Alpha",
-      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-      user: "System",
-      status: "success" as const,
-      badge: "New User"
-    },
-    {
-      id: "2", 
-      type: "alert" as const,
-      title: "Compliance alert",
-      description: "3 users have expiring CSCS cards in the next 30 days",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-      user: "Compliance System",
-      status: "warning" as const,
-      badge: "Action Required"
-    },
-    {
-      id: "3",
-      type: "completion" as const,
-      title: "Project milestone",
-      description: "Riverside Development - Phase 1 completed successfully",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
-      user: "Project Manager",
-      status: "success" as const,
-      badge: "Milestone"
-    },
-    {
-      id: "4",
-      type: "system" as const,
-      title: "System maintenance",
-      description: "Automated backup completed successfully - 847GB archived",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
-      user: "System",
-      status: "info" as const
-    },
-    {
-      id: "5",
-      type: "user_action" as const,
-      title: "Role upgrade request",
-      description: "Sarah Connor requested upgrade to Project Manager role",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
-      user: "Sarah Connor",
-      status: "warning" as const,
-      badge: "Pending Review"
-    }
-  ];
-
-  const sparklineData = [
-    { value: 45 }, { value: 52 }, { value: 48 }, { value: 61 }, { value: 55 },
-    { value: 67 }, { value: 73 }, { value: 69 }, { value: 78 }, { value: 82 },
-    { value: 89 }, { value: 95 }, { value: 92 }, { value: 98 }
-  ];
-
-  const shipmentData = [
-    {
-      id: "1",
-      reference: "SH-2024-001",
-      supplier: "BuildMart Ltd",
-      status: "in_transit" as const,
-      expectedDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString(),
-      location: "Manchester Depot",
-      progress: 75,
-      items: [
-        { name: "Steel Beams", quantity: 50, unit: "units" },
-        { name: "Concrete Blocks", quantity: 200, unit: "units" }
-      ],
-      priority: "high" as const
-    },
-    {
-      id: "2", 
-      reference: "SH-2024-002",
-      supplier: "SafeEquip Solutions",
-      status: "delivered" as const,
-      expectedDate: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      actualDate: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
-      location: "Site Office",
-      progress: 100,
-      items: [
-        { name: "Safety Helmets", quantity: 100, unit: "units" },
-        { name: "High-vis Vests", quantity: 150, unit: "units" }
-      ]
-    },
-    {
-      id: "3",
-      reference: "SH-2024-003", 
-      supplier: "PowerTools Direct",
-      status: "delayed" as const,
-      expectedDate: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      location: "Distribution Center",
-      progress: 45,
-      items: [
-        { name: "Drilling Equipment", quantity: 12, unit: "sets" }
-      ],
-      priority: "medium" as const
-    }
-  ];
-
-  const chartData = [
-    { label: "Operatives", value: 892, color: "hsl(var(--accent))" },
-    { label: "Supervisors", value: 234, color: "hsl(var(--success))" },
-    { label: "Managers", value: 87, color: "hsl(var(--warning))" },
-    { label: "Admins", value: 34, color: "hsl(var(--destructive))" }
-  ];
-
-  const handleRefresh = async () => {
-    setIsLoading(true);
-    // Simulate data refresh
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-  };
-
-  if (activeView === "crud") {
-    return <AdminCRUDModule />;
-  }
-
-  if (activeView === "rams-register") {
-    return <TaskPlanRAMSRegister />;
-  }
-
-  if (activeView === "security") {
-    return <SecurityDashboard />;
-  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <PageHeader
-        title="👋 Welcome, Admin."
-        description="System controls and company metrics."
-        icon={Settings}
-        badge={user?.role ? `⚡ ${user.role}` : "Admin Only"}
-        breadcrumbs={[
-          { label: "Home", href: "/" },
-          { label: "Admin Dashboard" }
-        ]}
-        actions={
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              size="touch" 
-              onClick={() => setActiveView("crud")}
-              className="font-poppins"
-            >
-              <FileText className="w-5 h-5 mr-2" />
-              Data Management
-            </Button>
-            <Button 
-              variant="outline" 
-              size="touch" 
-              onClick={() => setActiveView("rams-register")}
-              className="font-poppins"
-            >
-              <Shield className="w-5 h-5 mr-2" />
-              Task Plan / RAMS Register
-            </Button>
-            <Button 
-              variant="outline" 
-              size="touch" 
-              onClick={() => setActiveView("security")}
-              className="font-poppins"
-            >
-              <Shield className="w-5 h-5 mr-2" />
-              Security Dashboard
-            </Button>
-            <Button 
-              variant="outline" 
-              size="touch" 
-              onClick={() => navigate("/admin/reports")}
-              className="font-poppins"
-            >
-              <FileText className="w-5 h-5 mr-2" />
-              Admin Reports
-            </Button>
-            <Button 
-              variant="outline" 
-              size="touch" 
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="font-poppins"
-            >
-              <RefreshCw className={`w-5 h-5 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
-            <Button variant="accent" size="touch" className="font-poppins">
-              <Download className="w-5 h-5 mr-2" />
-              Export Report
-            </Button>
-          </div>
-        }
-      />
+    <RoleGuard allowedRoles={["Admin", "DPO"]} showFunnyMessage={true}>
+      <div className="min-h-screen bg-background">
+        <PageHeader
+          title="🔧 Master Control Room"
+          description="All the valves, gauges, and switches to keep the operation flowing smooth as silk."
+          icon={Wrench}
+          badge={user?.role ? `⚡ Chief ${user.role}` : "Admin Control"}
+          breadcrumbs={[
+            { label: "Home", href: "/" },
+            { label: "Admin Dashboard" }
+          ]}
+          actions={
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                size="touch" 
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="font-poppins"
+              >
+                <RefreshCw className={`w-5 h-5 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                {isLoading ? "Checking Pipes..." : "Refresh Flow"}
+              </Button>
+              <Button variant="accent" size="touch" className="font-poppins">
+                <Download className="w-5 h-5 mr-2" />
+                Export System Report
+              </Button>
+            </div>
+          }
+        />
 
-      <div className="container mx-auto px-lg py-8 space-y-8">
-        {/* KPI Cards Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {kpiData.map((kpi, index) => (
-            <KPICard
-              key={index}
-              title={kpi.title}
-              value={kpi.value}
-              change={kpi.change}
-              changeLabel={kpi.changeLabel}
-              icon={kpi.icon}
-              trend={kpi.trend}
-              progress={kpi.progress}
-              target={kpi.target}
-              subtitle={kpi.subtitle}
-              badge={kpi.badge}
-            />
-          ))}
-        </div>
-
-        {/* Charts and Analytics Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Progress Arcs */}
-          <div className="grid grid-cols-2 gap-4">
-            <ProgressArc
-              title="System Health"
-              percentage={97}
-              color="accent"
-              badge="Excellent"
-              subtitle="Overall performance"
-            />
-            <ProgressArc
-              title="Data Sync"
-              percentage={88}
-              color="success"
-              badge="Good"
-              subtitle="Real-time updates"
-            />
+        <div className="container mx-auto px-lg py-8 space-y-8">
+          {/* Top Metrics Cards - 2x2 Layout */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {kpiData.map((kpi, index) => (
+              <KPICard
+                key={index}
+                title={kpi.title}
+                value={kpi.value}
+                change={kpi.change}
+                changeLabel={kpi.changeLabel}
+                icon={kpi.icon}
+                trend={kpi.trend}
+                progress={kpi.progress}
+                target={kpi.target}
+                subtitle={kpi.subtitle}
+                badge={kpi.badge}
+              />
+            ))}
           </div>
 
-          {/* User Distribution Chart */}
-          <BarChart
-            title="User Distribution by Role"
-            data={chartData}
-            height={200}
-            showValues={true}
-          />
-
-          {/* Performance Sparkline */}
-          <SparklineChart
-            title="Server Performance"
-            data={sparklineData}
-            value="98.7%"
-            change={5}
-            changeLabel="vs last week"
-            trend="up"
-            color="accent"
-            showDots={true}
-          />
-        </div>
-
-        {/* Activity and Shipments Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ActivityFeed
-            title="System Activity"
-            activities={activityData}
-            maxItems={8}
-          />
-          
-          <ShipmentTracker
-            title="Delivery Tracking"
-            shipments={shipmentData}
-            maxItems={6}
-            showProgress={true}
-          />
-        </div>
-
-        {/* User Approval Panel */}
-        <UserApprovalPanel />
-
-        {/* Additional Analytics Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Quick Stats */}
+          {/* System Status Quick View */}
           <Card>
             <CardHeader>
               <CardTitle className="font-poppins flex items-center gap-2">
-                <Activity className="w-5 h-5 text-accent" />
-                Quick Stats
+                <Gauge className="w-5 h-5 text-accent" />
+                System Status - All Pipes Flowing?
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-poppins">Active Sessions</span>
-                  <Badge variant="default" className="font-poppins">342</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-poppins">Pending Approvals</span>
-                  <Badge variant="secondary" className="font-poppins bg-warning/20 text-warning">23</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-poppins">System Alerts</span>
-                  <Badge variant="destructive" className="font-poppins">7</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-poppins">Completed Tasks</span>
-                  <Badge variant="default" className="font-poppins">1,247</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* System Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-poppins flex items-center gap-2">
-                <Shield className="w-5 h-5 text-accent" />
-                System Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground font-poppins">Database</span>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="flex items-center justify-between p-3 bg-accent/10 rounded-lg">
+                  <span className="text-sm font-medium">Database</span>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-accent" />
-                    <span className="text-accent font-poppins text-sm">Healthy</span>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-green-500 text-sm">Flowing Strong</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground font-poppins">API Services</span>
+                <div className="flex items-center justify-between p-3 bg-accent/10 rounded-lg">
+                  <span className="text-sm font-medium">API Services</span>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-accent" />
-                    <span className="text-accent font-poppins text-sm">Online</span>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-green-500 text-sm">No Leaks</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground font-poppins">Backup System</span>
+                <div className="flex items-center justify-between p-3 bg-warning/10 rounded-lg">
+                  <span className="text-sm font-medium">Background Jobs</span>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-warning" />
-                    <span className="text-warning font-poppins text-sm">Running</span>
+                    <span className="text-warning text-sm">Working Hard</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground font-poppins">Security</span>
+                <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg">
+                  <span className="text-sm font-medium">Security</span>
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-destructive" />
-                    <span className="text-destructive font-poppins text-sm">Alert</span>
+                    <Shield className="w-4 h-4 text-destructive" />
+                    <span className="text-destructive text-sm">Tight as a Pipe</span>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-poppins flex items-center gap-2">
-                <Zap className="w-5 h-5 text-accent" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <Button variant="outline" className="w-full justify-start font-poppins">
-                  <Users className="w-4 h-4 mr-2" />
-                  Manage Users
-                </Button>
-                <Button variant="outline" className="w-full justify-start font-poppins">
-                  <Building2 className="w-4 h-4 mr-2" />
-                  Project Overview
-                </Button>
-                <Button variant="outline" className="w-full justify-start font-poppins">
-                  <Shield className="w-4 h-4 mr-2" />
-                  Security Audit
-                </Button>
-                <Button variant="outline" className="w-full justify-start font-poppins">
-                  <Package className="w-4 h-4 mr-2" />
-                  Inventory Check
-                </Button>
+          {/* Main Admin Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview" className="font-poppins">Overview</TabsTrigger>
+              <TabsTrigger value="users" className="font-poppins">User Management</TabsTrigger>
+              <TabsTrigger value="audit" className="font-poppins">Audit Logs</TabsTrigger>
+              <TabsTrigger value="settings" className="font-poppins">System Settings</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-poppins">Recent Activity - What's Been Flowing?</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                        <Users className="w-5 h-5 text-accent" />
+                        <div>
+                          <p className="font-medium">New user joined the crew</p>
+                          <p className="text-sm text-muted-foreground">John Smith completed onboarding</p>
+                        </div>
+                        <Badge>2 min ago</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                        <Shield className="w-5 h-5 text-warning" />
+                        <div>
+                          <p className="font-medium">CSCS cards expiring soon</p>
+                          <p className="text-sm text-muted-foreground">3 users need renewals</p>
+                        </div>
+                        <Badge variant="secondary">15 min ago</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                        <div>
+                          <p className="font-medium">Project milestone completed</p>
+                          <p className="text-sm text-muted-foreground">Riverside Development Phase 1</p>
+                        </div>
+                        <Badge variant="outline">1 hour ago</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-poppins">Quick Actions - The Essential Tools</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+                        <Users className="w-6 h-6" />
+                        <span className="text-sm">Add User</span>
+                      </Button>
+                      <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+                        <Building2 className="w-6 h-6" />
+                        <span className="text-sm">New Project</span>
+                      </Button>
+                      <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+                        <Shield className="w-6 h-6" />
+                        <span className="text-sm">Security Audit</span>
+                      </Button>
+                      <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+                        <Download className="w-6 h-6" />
+                        <span className="text-sm">Export Data</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
+            </TabsContent>
+
+            <TabsContent value="users">
+              <AdminUserManagement />
+            </TabsContent>
+
+            <TabsContent value="audit">
+              <AdminAuditLogs />
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <AdminSystemSettings />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
-    </div>
+    </RoleGuard>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -23,9 +22,12 @@ import {
   Clock,
   FileText,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Settings,
+  Users
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface ModernSidebarProps {
   collapsed: boolean;
@@ -45,8 +47,14 @@ export const ModernSidebar = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { profile } = useUserProfile();
   const [complianceExpanded, setComplianceExpanded] = useState(true);
   const [workExpanded, setWorkExpanded] = useState(true);
+  const [adminExpanded, setAdminExpanded] = useState(true);
+
+  // Get user role for conditional rendering
+  const userRole = profile?.role?.toLowerCase() || 'operative';
+  const isAdmin = ['admin', 'dpo'].includes(userRole);
 
   const mainNavItems = [
     {
@@ -129,6 +137,27 @@ export const ModernSidebar = ({
       path: '/operative/data-retention',
       icon: Shield,
       active: location.pathname === '/operative/data-retention'
+    }
+  ];
+
+  const adminItems = [
+    {
+      title: 'Admin Dashboard',
+      path: '/admin',
+      icon: Settings,
+      active: location.pathname === '/admin'
+    },
+    {
+      title: 'User Management',
+      path: '/admin/users',
+      icon: Users,
+      active: location.pathname === '/admin/users'
+    },
+    {
+      title: 'System Reports',
+      path: '/admin/reports',
+      icon: FileText,
+      active: location.pathname === '/admin/reports'
     }
   ];
 
@@ -272,6 +301,44 @@ export const ModernSidebar = ({
               })}
             </div>
 
+            {/* Admin Section - Only show for admin users */}
+            {isAdmin && (
+              <div className="mt-4">
+                <button
+                  onClick={() => setAdminExpanded(!adminExpanded)}
+                  className="w-full flex items-center justify-between text-sm font-medium text-[#C7C9D9] mb-2 px-3 py-1 hover:text-white transition-colors"
+                >
+                  <span>🔧 Admin Controls</span>
+                  {adminExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </button>
+                {adminExpanded && adminItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => {
+                        navigate(item.path);
+                        if (isMobile && onClose) onClose();
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 p-2 pl-6 rounded-lg transition-colors",
+                        item.active 
+                          ? "bg-[#FFCC00]/10 border border-[#FFCC00]/20 text-[#FFCC00]" 
+                          : "hover:bg-white/5 text-[#E1E1E8]"
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="text-sm">{item.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Profile Section */}
             <div className="mt-4">
               <div className="text-sm font-medium text-[#C7C9D9] mb-2 px-3 py-1">
@@ -305,7 +372,12 @@ export const ModernSidebar = ({
         {/* Collapsed state - show all items as icons */}
         {collapsed && (
           <div className="space-y-1 mt-4">
-            {[...complianceItems, ...workItems, ...profileItems].map((item) => {
+            {[
+              ...complianceItems, 
+              ...workItems, 
+              ...profileItems,
+              ...(isAdmin ? adminItems : [])
+            ].map((item) => {
               const Icon = item.icon;
               return (
                 <button
@@ -351,7 +423,7 @@ export const ModernSidebar = ({
       <div className="p-4 border-t border-white/10 space-y-3">
         {!collapsed && (
           <Badge className="bg-[#4DA6FF]/20 text-[#4DA6FF] border-[#4DA6FF]/30 w-full justify-center">
-            🛠️ {user?.role || 'Operative'} - Powers activated!
+            🛠️ {userRole.charAt(0).toUpperCase() + userRole.slice(1)} - {isAdmin ? 'Master Controls!' : 'Powers activated!'}
           </Badge>
         )}
         <Button
