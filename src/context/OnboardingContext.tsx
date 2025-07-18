@@ -94,6 +94,22 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return;
       }
 
+      // **CRITICAL FIX**: Prioritize onboarding_completed database flag first
+      if (userData.onboarding_completed === true) {
+        console.log('[OnboardingContext] User has onboarding_completed=true, marking all complete');
+        setFlags({
+          personalComplete: true,
+          cscsComplete: true,
+          emergencyComplete: true,
+          ramsComplete: true,
+          allComplete: true
+        });
+        return;
+      }
+
+      // Only perform detailed validation if onboarding_completed is false/null
+      console.log('[OnboardingContext] onboarding_completed=false/null, performing detailed validation');
+      
       const userId = userData.id;
 
       // Check all related data in parallel
@@ -119,7 +135,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           .eq('is_current', true)
       ]);
 
-      // **ENHANCED PERSONAL COMPLETION CHECK** - More robust validation
+      // Enhanced personal completion check
       const personalComplete = !!(
         userData.firstname && 
         userData.lastname && 
@@ -131,13 +147,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         userData.lastname.length > 0 &&
         userData.phone.length >= 10
       );
-
-      console.log('[OnboardingContext] Personal details check:', {
-        firstname: userData.firstname,
-        lastname: userData.lastname,
-        phone: userData.phone,
-        personalComplete
-      });
 
       const cscsCard = cscsResult.data;
       const cscsComplete = !!(
@@ -172,11 +181,11 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       };
 
       setFlags(newFlags);
-      console.log('[OnboardingContext] Flags updated:', newFlags);
+      console.log('[OnboardingContext] Detailed validation flags:', newFlags);
 
       // If all complete but onboarding_completed is false, update it
       if (allComplete && !userData.onboarding_completed) {
-        console.log('[OnboardingContext] Marking onboarding as completed');
+        console.log('[OnboardingContext] Marking onboarding as completed in database');
         await supabase
           .from('users')
           .update({ onboarding_completed: true })

@@ -3,8 +3,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useOnboarding } from '@/context/OnboardingContext';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
 import { FullScreenLoader } from '@/components/ui/full-screen-loader';
+import { toast } from 'sonner';
 
 interface OnboardingRouterProps {
   children: React.ReactNode;
@@ -13,7 +13,7 @@ interface OnboardingRouterProps {
 export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { flags, isLoading, firstIncompleteStep } = useOnboarding();
   const [isNavigating, setIsNavigating] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -23,12 +23,32 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
     console.log(`[OnboardingRouter] ${reason}:`, path);
     setIsNavigating(true);
     
-    // Navigate immediately without delay
     navigate(path, { replace: true });
-    
-    // Reset navigation state after a brief delay
     setTimeout(() => setIsNavigating(false), 200);
   }, [navigate, isNavigating]);
+
+  // **NEW**: Guard against manual onboarding URL access for completed users
+  useEffect(() => {
+    if (!user || isLoading || isNavigating) return;
+
+    // If user has completed onboarding, redirect them away from onboarding
+    if (userProfile?.onboarding_completed === true) {
+      const role = userProfile?.role?.toLowerCase() || 'operative';
+      const roleToDashboard = {
+        operative: '/operative',
+        pm: '/projects',
+        manager: '/projects',
+        director: '/director', 
+        admin: '/admin',
+        dpo: '/admin'
+      };
+      
+      const redirectPath = roleToDashboard[role] || '/';
+      toast.success("Already done? Back to the flow! 🔧");
+      handleNavigation(redirectPath, 'User already completed onboarding, redirecting to dashboard');
+      return;
+    }
+  }, [user, userProfile?.onboarding_completed, userProfile?.role, isLoading, handleNavigation, isNavigating]);
 
   // Handle completion redirect
   useEffect(() => {
@@ -41,7 +61,7 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
 
   // Handle onboarding step routing
   useEffect(() => {
-    if (!user || isLoading || isNavigating || flags.allComplete) return;
+    if (!user || isLoading || isNavigating || flags.allComplete || userProfile?.onboarding_completed === true) return;
 
     // Mark as initialized after first load
     if (!hasInitialized && !isLoading) {
@@ -59,7 +79,7 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
       return;
     }
     
-    // **CRITICAL FIX**: Only redirect if user is trying to skip steps or on wrong step
+    // Only redirect if user is trying to skip steps or on wrong step
     const stepOrder = ['personal-details', 'cscs-card', 'emergency-contact', 'work-types'];
     const currentStepIndex = stepOrder.indexOf(currentPath);
     const targetStepIndex = stepOrder.indexOf(firstIncompleteStep);
@@ -82,7 +102,7 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
       // Allow going back to completed steps
       console.log('[OnboardingRouter] User accessing completed or valid step, allowing');
     }
-  }, [user, isLoading, flags, location.pathname, firstIncompleteStep, handleNavigation, isNavigating, hasInitialized]);
+  }, [user, isLoading, flags, location.pathname, firstIncompleteStep, handleNavigation, isNavigating, hasInitialized, userProfile?.onboarding_completed]);
 
   if (!user || isLoading) {
     return <FullScreenLoader message="Checking onboarding status..." />;
