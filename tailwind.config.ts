@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -83,11 +84,17 @@ export default {
 			backgroundImage: {
 				'gradient-brand': 'var(--gradient-brand)',
 				'gradient-subtle': 'var(--gradient-subtle)',
+				'gradient-ai': 'linear-gradient(135deg, hsl(var(--aj-blue-accent)) 0%, hsl(var(--aj-yellow)) 100%)',
+				'gradient-sparkle': 'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--aj-yellow-bright)) 100%)',
+				'gradient-dark-glow': 'linear-gradient(135deg, hsl(var(--aj-navy-deep)) 0%, hsl(var(--aj-navy-light)) 100%)',
 			},
 			boxShadow: {
 				'brand': 'var(--shadow-brand)',
 				'card': 'var(--shadow-card)',
 				'elevated': 'var(--shadow-elevated)',
+				'ai': '0 8px 32px rgba(77, 166, 255, 0.15), 0 4px 16px rgba(77, 166, 255, 0.1)',
+				'sparkline': '0 4px 16px rgba(255, 204, 0, 0.1), 0 2px 8px rgba(255, 204, 0, 0.05)',
+				'glow': '0 0 20px rgba(77, 166, 255, 0.3), 0 0 40px rgba(77, 166, 255, 0.1)',
 			},
 			transitionProperty: {
 				'aj': 'all',
@@ -136,11 +143,33 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse-glow': {
+					'0%, 100%': {
+						opacity: '1',
+						transform: 'scale(1)'
+					},
+					'50%': {
+						opacity: '0.8',
+						transform: 'scale(1.02)'
+					}
+				},
+				'sparkle': {
+					'0%, 100%': {
+						opacity: '0.8',
+						transform: 'rotate(0deg) scale(1)'
+					},
+					'50%': {
+						opacity: '1',
+						transform: 'rotate(180deg) scale(1.1)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+				'sparkle': 'sparkle 3s ease-in-out infinite'
 			}
 		}
 	},
