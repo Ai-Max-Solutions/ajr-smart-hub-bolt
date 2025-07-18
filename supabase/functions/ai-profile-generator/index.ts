@@ -77,8 +77,8 @@ serve(async (req) => {
   }
 
   try {
-    const { userName, userRole, customStyle, userId } = await req.json();
-    console.log('Received request:', { userName, userRole, customStyle, userId });
+    const { userName, userRole, customStyle, userId, selfieBase64, gender, ageRange, ethnicity } = await req.json();
+    console.log('Received request:', { userName, userRole, customStyle, userId, hasSelfieMata: !!selfieBase64 });
     
     if (!openAIApiKey) {
       console.error('OpenAI API key not found in environment variables');
@@ -150,8 +150,13 @@ serve(async (req) => {
     const cscsColor = cscsData?.card_color || 'Default';
     const cscsVisuals = CSCS_VISUAL_MAPPING[cscsColor] || CSCS_VISUAL_MAPPING['Default'];
     
-    // Build enhanced prompt with personalization
+    // Build enhanced prompt with personalization and metadata
     let enhancedPrompt = `Professional headshot portrait of ${userName || 'a professional'} working as a ${effectiveRole}`;
+    
+    // Add demographic context if provided
+    if (gender) enhancedPrompt += `, ${gender}`;
+    if (ageRange) enhancedPrompt += `, ${ageRange} years old`;
+    if (ethnicity) enhancedPrompt += `, ${ethnicity} ethnicity`;
     
     // Add CSCS context
     enhancedPrompt += `, ${cscsVisuals.description}`;
@@ -168,6 +173,42 @@ serve(async (req) => {
     // Add work types context if available
     if (workTypesList.length > 0) {
       enhancedPrompt += `, specialized in ${workTypesList.join(', ')}`;
+    }
+    
+    // Enhance with selfie if provided (vision analysis)
+    if (selfieBase64) {
+      try {
+        console.log('Analyzing selfie for enhanced likeness...');
+        const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Describe this person\'s face for AI portrait generation: hair style, facial features, skin tone, distinctive characteristics. Keep it brief and professional.' },
+                { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${selfieBase64}` } }
+              ]
+            }],
+            max_tokens: 150
+          }),
+        });
+        
+        if (visionResponse.ok) {
+          const visionData = await visionResponse.json();
+          const faceDescription = visionData.choices[0]?.message?.content;
+          if (faceDescription) {
+            enhancedPrompt += `, matching facial features: ${faceDescription}`;
+            console.log('Vision analysis completed:', faceDescription);
+          }
+        }
+      } catch (visionError) {
+        console.error('Vision analysis failed, proceeding without:', visionError);
+      }
     }
     
     // Use custom style or enhanced AI mood
@@ -195,7 +236,8 @@ serve(async (req) => {
         prompt: finalPrompt,
         n: 1,
         size: '1024x1024',
-        quality: 'hd'
+        quality: 'hd',
+        response_format: 'b64_json'  // Get base64 for better handling
       }),
     });
 
@@ -210,8 +252,8 @@ serve(async (req) => {
 
     const data = await response.json();
     
-    // Check if we have the expected response structure
-    if (!data.data || !data.data[0] || !data.data[0].url) {
+    // Check if we have the expected response structure for base64
+    if (!data.data || !data.data[0] || !data.data[0].b64_json) {
       console.error('Unexpected OpenAI response structure:', data);
       return new Response(
         JSON.stringify({ error: 'Invalid response from image generation service' }),
@@ -219,26 +261,15 @@ serve(async (req) => {
       );
     }
 
-    const openAIImageUrl = data.data[0].url;
-    console.log('OpenAI generated image URL:', openAIImageUrl);
+    const base64Data = data.data[0].b64_json;
+    console.log('OpenAI generated base64 image, length:', base64Data.length);
 
-    // Fetch the image from OpenAI (server-side, no CORS issues)
-    console.log('Fetching image from OpenAI...');
-    const imageResponse = await fetch(openAIImageUrl);
-    
-    if (!imageResponse.ok) {
-      console.error('Failed to fetch image from OpenAI:', imageResponse.status, imageResponse.statusText);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch generated image from OpenAI' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
+    // Convert base64 to buffer for upload
+    const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    console.log('Image buffer size:', imageBuffer.length);
 
-    const imageBlob = await imageResponse.blob();
-    console.log('Image blob size:', imageBlob.size, 'type:', imageBlob.type);
-
-    if (imageBlob.size === 0) {
-      console.error('Generated image is empty');
+    if (imageBuffer.length === 0) {
+      console.error('Generated image buffer is empty');
       return new Response(
         JSON.stringify({ error: 'Generated image is empty' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -251,9 +282,10 @@ serve(async (req) => {
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(fileName, imageBlob, {
+      .upload(fileName, imageBuffer, {
         cacheControl: '3600',
-        upsert: true
+        upsert: true,
+        contentType: 'image/png'
       });
 
     if (uploadError) {
@@ -291,12 +323,13 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        avatarUrl: publicUrl,
+        imageUrl: publicUrl,  // Standardized response key
+        avatarUrl: publicUrl, // Keep for backwards compatibility
         aiMood: selectedMood.name,
         aiPersonality: selectedMood.personality,
         prompt: finalPrompt
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error) {
     console.error('Error in ai-profile-generator function:', error);
