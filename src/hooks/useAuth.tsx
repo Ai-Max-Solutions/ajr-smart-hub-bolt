@@ -14,6 +14,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: any }>;
   userProfile: any;
   refreshProfile: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,6 +49,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       const profile = await fetchUserProfile(user.id);
       setUserProfile(profile);
+    }
+  };
+
+  const refreshSession = async () => {
+    try {
+      console.log('[Auth] Refreshing session to pick up role changes...');
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('[Auth] Session refresh failed:', error);
+        toast.error(`Session refresh failed: ${error.message}. Try signing out and back in.`);
+        return;
+      }
+      
+      if (data.session) {
+        console.log('[Auth] Session refreshed successfully');
+        
+        // Update local session state
+        setSession(data.session);
+        setUser(data.session.user);
+        
+        // Fetch updated profile data
+        const profile = await fetchUserProfile(data.session.user.id);
+        setUserProfile(profile);
+        
+        toast.success("Role permissions refreshed—pipes flowing with new access! 🔧");
+        
+        // Force a page reload to trigger any route guards with updated data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        console.warn('[Auth] No session returned from refresh');
+        toast.warning("No active session found—please sign in again.");
+      }
+    } catch (error: any) {
+      console.error('[Auth] Unexpected error during session refresh:', error);
+      toast.error('Unexpected error refreshing session');
     }
   };
 
@@ -195,7 +234,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     resetPassword,
     userProfile,
-    refreshProfile
+    refreshProfile,
+    refreshSession
   };
 
   return (

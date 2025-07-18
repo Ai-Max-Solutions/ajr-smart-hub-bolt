@@ -17,6 +17,8 @@ export const IndexWrapper = () => {
     console.log('[IndexWrapper] Flags updated:', flags);
     console.log('[IndexWrapper] Missing steps:', missingSteps);
     console.log('[IndexWrapper] User profile:', userProfile);
+    console.log('[IndexWrapper] User profile role:', userProfile?.role);
+    console.log('[IndexWrapper] User profile onboarding_completed:', userProfile?.onboarding_completed);
   }, [flags, missingSteps, userProfile]);
 
   useEffect(() => {
@@ -25,6 +27,7 @@ export const IndexWrapper = () => {
     // **CRITICAL FIX**: Check onboarding_completed flag FIRST
     if (userProfile?.onboarding_completed === true) {
       console.log('[IndexWrapper] User onboarding completed, routing to role dashboard');
+      console.log('[IndexWrapper] User role for routing:', userProfile?.role);
       
       // Role-based routing for completed users
       const role = userProfile?.role?.toLowerCase() || 'operative';
@@ -32,18 +35,21 @@ export const IndexWrapper = () => {
         operative: '/operative',
         pm: '/projects',
         manager: '/projects', 
+        supervisor: '/operative',
         director: '/director',
         admin: '/admin',
         dpo: '/admin'
       };
       
-      const redirectPath = roleToDashboard[role] || '/';
+      const redirectPath = roleToDashboard[role] || '/operative';
+      console.log('[IndexWrapper] Calculated redirect path:', redirectPath, 'for role:', role);
       
       if (redirectPath !== '/') {
         setIsNavigating(true);
         toast.success("Welcome back—pipes flowing smoothly! 🔧");
         
         setTimeout(() => {
+          console.log('[IndexWrapper] Navigating to:', redirectPath);
           navigate(redirectPath, { replace: true });
           setTimeout(() => setIsNavigating(false), 100);
         }, 500);
