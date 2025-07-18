@@ -20,6 +20,7 @@ import {
   Wrench
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Enums } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 interface User {
@@ -81,7 +82,7 @@ const AdminUserManagement = () => {
     return matchesSearch && matchesRole;
   });
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
+  const handleRoleChange = async (userId: string, newRole: Enums<'user_role_enum'>) => {
     try {
       const { error } = await supabase
         .from('users')
@@ -312,7 +313,7 @@ const AdminUserManagement = () => {
                       <TableCell>
                         <Select
                           value={user.role}
-                          onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
+                          onValueChange={(newRole) => handleRoleChange(user.id, newRole as Enums<'user_role_enum'>)}
                         >
                           <SelectTrigger className="w-32">
                             <Badge variant={getRoleVariant(user.role)}>
