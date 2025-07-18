@@ -304,21 +304,71 @@ const OperativeDashboard = () => {
   );
 };
 
+// Layout wrapper for all operative pages
+const OperativePageLayout = ({ children }: { children: React.ReactNode }) => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-[#0B0E1A] text-[#E1E1E8] flex">
+      {/* Desktop Sidebar */}
+      <ModernSidebar 
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        isMobile={false}
+      />
+      
+      {/* Mobile Sidebar */}
+      <ModernSidebar 
+        collapsed={false}
+        onToggle={() => setMobileNavOpen(!mobileNavOpen)}
+        isMobile={true}
+        isOpen={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+      />
+
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-[#1E2435]/95 backdrop-blur-sm border-b border-white/10 p-4">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileNavOpen(true)}
+            className="text-white hover:bg-white/10"
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-bold text-white">A&J Ryan</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 min-h-screen bg-[#141A2B] lg:ml-0">
+        <div className="p-6 lg:p-8 mt-16 lg:mt-0">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const OperativePortal = () => {
   return (
     <Routes>
       <Route path="/" element={<OperativeDashboard />} />
-      <Route path="/notices" element={<SiteNotices />} />
-      <Route path="/payslips" element={<MyPayslips />} />
-      <Route path="/qualifications" element={<MyQualifications />} />
-      <Route path="/training" element={<MyTraining />} />
-      <Route path="/inductions" element={<MyInductions />} />
-      <Route path="/signatures" element={<MySignatures />} />
-      <Route path="/data-retention" element={<MyDataRetention />} />
-      <Route path="/my-data" element={<PrivacyDashboard userId="current-user" />} />
-      <Route path="/timesheets" element={<MyTimesheets />} />
-      <Route path="/profile" element={<MyProfile />} />
-      <Route path="/documents" element={<div className="p-8 text-center text-muted-foreground">Documents coming soon...</div>} />
+      <Route path="/notices" element={<OperativePageLayout><SiteNotices /></OperativePageLayout>} />
+      <Route path="/payslips" element={<OperativePageLayout><MyPayslips /></OperativePageLayout>} />
+      <Route path="/qualifications" element={<OperativePageLayout><MyQualifications /></OperativePageLayout>} />
+      <Route path="/training" element={<OperativePageLayout><MyTraining /></OperativePageLayout>} />
+      <Route path="/inductions" element={<OperativePageLayout><MyInductions /></OperativePageLayout>} />
+      <Route path="/signatures" element={<OperativePageLayout><MySignatures /></OperativePageLayout>} />
+      <Route path="/data-retention" element={<OperativePageLayout><MyDataRetention /></OperativePageLayout>} />
+      <Route path="/my-data" element={<OperativePageLayout><PrivacyDashboard userId="current-user" /></OperativePageLayout>} />
+      <Route path="/timesheets" element={<OperativePageLayout><MyTimesheets /></OperativePageLayout>} />
+      <Route path="/profile" element={<OperativePageLayout><MyProfile /></OperativePageLayout>} />
+      <Route path="/documents" element={<OperativePageLayout><div className="p-8 text-center text-muted-foreground">Documents coming soon...</div></OperativePageLayout>} />
     </Routes>
   );
 };
