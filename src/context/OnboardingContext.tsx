@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +18,7 @@ interface OnboardingContextType {
   error: string | null;
   firstIncompleteStep: string;
   missingSteps: string[];
-  refreshOnboarding: () => void;
+  refreshOnboarding: () => Promise<void>;
   markStepComplete: (step: string) => void;
 }
 
@@ -34,16 +35,12 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastCheckTime, setLastCheckTime] = useState<number>(0);
 
   const performOnboardingCheck = useCallback(async () => {
     if (!user) {
       setIsLoading(false);
       return;
     }
-
-    // Remove debounce to allow immediate checks when needed
-    setLastCheckTime(Date.now());
 
     setIsLoading(true);
     setError(null);
@@ -122,19 +119,25 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           .eq('is_current', true)
       ]);
 
-      // Compute completion flags
-      // Force personal details step for users created within 24 hours
-      const userAge = Date.now() - new Date(userData.created_at).getTime();
-      const isNewUser = userAge < 24 * 60 * 60 * 1000; // 24 hours
-      
-      const personalComplete = !isNewUser && !!(
+      // **ENHANCED PERSONAL COMPLETION CHECK** - More robust validation
+      const personalComplete = !!(
         userData.firstname && 
         userData.lastname && 
         userData.phone &&
         userData.firstname.trim() !== '' &&
         userData.lastname.trim() !== '' &&
-        userData.phone.trim() !== ''
+        userData.phone.trim() !== '' &&
+        userData.firstname.length > 0 &&
+        userData.lastname.length > 0 &&
+        userData.phone.length >= 10
       );
+
+      console.log('[OnboardingContext] Personal details check:', {
+        firstname: userData.firstname,
+        lastname: userData.lastname,
+        phone: userData.phone,
+        personalComplete
+      });
 
       const cscsCard = cscsResult.data;
       const cscsComplete = !!(
@@ -186,29 +189,30 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } finally {
       setIsLoading(false);
     }
-  }, [user, lastCheckTime]);
+  }, [user]);
 
   // Initial check on mount and when user changes
   useEffect(() => {
     performOnboardingCheck();
   }, [performOnboardingCheck]);
 
-  const refreshOnboarding = useCallback(() => {
-    setLastCheckTime(0); // Reset debounce
-    performOnboardingCheck();
+  const refreshOnboarding = useCallback(async () => {
+    console.log('[OnboardingContext] Manual refresh triggered');
+    await performOnboardingCheck();
   }, [performOnboardingCheck]);
 
   const markStepComplete = useCallback((step: string) => {
+    console.log('[OnboardingContext] Marking step complete:', step);
     // Optimistically update the flag
     setFlags(prev => ({
       ...prev,
       [`${step}Complete`]: true
     }));
     
-    // Refresh to get actual state
+    // Refresh to get actual state after a brief delay
     setTimeout(() => {
       refreshOnboarding();
-    }, 100);
+    }, 500);
   }, [refreshOnboarding]);
 
   // Compute derived values
