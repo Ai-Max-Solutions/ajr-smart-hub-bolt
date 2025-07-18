@@ -53,15 +53,21 @@
 
     --radius: 0.75rem; /* 12px border radius for modern look */
 
-    /* AJ Ryan Premium Gradients */
+    /* AJ Ryan Premium Gradients - 2025 Enhanced */
     --gradient-brand: linear-gradient(135deg, hsl(var(--aj-navy-deep)), hsl(var(--accent)));
     --gradient-subtle: linear-gradient(180deg, hsl(0 0% 98%), hsl(210 20% 96%));
     --gradient-hero: linear-gradient(135deg, hsl(48 100% 96%), hsl(210 25% 96%));
+    --gradient-ai: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--aj-yellow)) 100%);
+    --gradient-sparkle: linear-gradient(45deg, hsl(var(--aj-yellow)) 0%, hsl(var(--accent)) 50%, hsl(var(--aj-yellow)) 100%);
+    --gradient-dark-glow: linear-gradient(135deg, hsl(var(--aj-navy-deep)) 0%, hsl(223 35% 8%) 100%);
     
-    /* AJ Ryan Premium Shadows */
+    /* AJ Ryan Premium Shadows - 2025 Enhanced */
     --shadow-brand: 0 4px 20px hsla(var(--accent), 0.15);
     --shadow-card: 0 2px 12px hsla(223 45% 11%, 0.08);
     --shadow-elevated: 0 8px 32px hsla(223 45% 11%, 0.12);
+    --shadow-glow: 0 0 40px hsla(var(--aj-yellow), 0.3);
+    --shadow-ai: 0 8px 32px hsla(var(--accent), 0.25);
+    --shadow-sparkline: 0 2px 8px hsla(var(--aj-yellow), 0.2);
     
     /* AJ Ryan Animations - 0.3s ease as specified */
     --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);

@@ -29,7 +29,9 @@ import {
   Download,
   RefreshCw,
   Wrench,
-  Gauge
+  Gauge,
+  Truck,
+  Camera
 } from "lucide-react";
 
 const AdminDashboard = () => {
@@ -255,31 +257,28 @@ const AdminDashboard = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="font-poppins">Quick Actions - The Essential Tools</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-                        <Users className="w-6 h-6" />
-                        <span className="text-sm">Add User</span>
-                      </Button>
-                      <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-                        <Building2 className="w-6 h-6" />
-                        <span className="text-sm">New Project</span>
-                      </Button>
-                      <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-                        <Shield className="w-6 h-6" />
-                        <span className="text-sm">Security Audit</span>
-                      </Button>
-                      <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-                        <Download className="w-6 h-6" />
-                        <span className="text-sm">Export Data</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Enhanced Quick Actions with AI */}
+                <div className="space-y-4">
+                  <h3 className="font-poppins text-lg font-semibold">AI-Powered Quick Actions</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 bg-gradient-ai/10 hover:bg-gradient-ai/20">
+                      <Truck className="w-6 h-6 text-accent" />
+                      <span className="text-sm">AI Hire Request</span>
+                    </Button>
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 bg-gradient-sparkle/10 hover:bg-gradient-sparkle/20">
+                      <Camera className="w-6 h-6 text-warning" />
+                      <span className="text-sm">Smart POD Upload</span>
+                    </Button>
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+                      <Users className="w-6 h-6" />
+                      <span className="text-sm">Add User</span>
+                    </Button>
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+                      <Shield className="w-6 h-6" />
+                      <span className="text-sm">Security Audit</span>
+                    </Button>
+                  </div>
+                </div>
               </div>
             </TabsContent>
 
