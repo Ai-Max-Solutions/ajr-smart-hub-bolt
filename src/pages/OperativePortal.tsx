@@ -1,12 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { getPersonalizedGreeting } from '@/utils/greetings';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   PoundSterling, 
@@ -18,7 +19,16 @@ import {
   Shield,
   BookOpen,
   Bell,
-  Database
+  Database,
+  Search,
+  TrendingUp,
+  AlertTriangle,
+  Menu,
+  X,
+  Sparkles,
+  Coffee,
+  Moon,
+  Sun
 } from 'lucide-react';
 import MyPayslips from '@/components/operative/MyPayslips';
 import MyQualifications from '@/components/compliance/MyQualifications';
@@ -38,6 +48,10 @@ const OperativeDashboard = () => {
   const { toast } = useToast();
   const [userData, setUserData] = useState<{ firstname?: string; lastname?: string; avatar_url?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [greeting, setGreeting] = useState('');
+  const [greetingEmoji, setGreetingEmoji] = useState('👋');
 
   // ✅ Role guard: Operative/Supervisor portal access
   useEffect(() => {
@@ -59,6 +73,21 @@ const OperativeDashboard = () => {
     }
   }, [user, navigate, toast]);
 
+  // Set dynamic greeting with emoji
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) {
+      setGreeting('Good morning');
+      setGreetingEmoji('☕');
+    } else if (hour < 17) {
+      setGreeting('Good afternoon');
+      setGreetingEmoji('☀️');
+    } else {
+      setGreeting('Good evening');
+      setGreetingEmoji('🌙');
+    }
+  }, []);
+
   useEffect(() => {
     const fetchUserData = async () => {
       if (!session?.user) {
@@ -79,7 +108,6 @@ const OperativeDashboard = () => {
 
         if (error) {
           console.error('Error fetching user data:', error);
-          // If user not found in database, create a basic user record
           if (error.code === 'PGRST116') {
             console.log('User not found in database, creating basic record...');
             const { data: insertData, error: insertError } = await supabase
@@ -95,7 +123,6 @@ const OperativeDashboard = () => {
             
             if (insertError) {
               console.error('Error creating user record:', insertError);
-              // Fallback to auth metadata
               setUserData({
                 firstname: session.user.user_metadata?.first_name || session.user.email?.split('@')[0] || 'User',
                 lastname: session.user.user_metadata?.last_name || ''
@@ -116,7 +143,6 @@ const OperativeDashboard = () => {
         }
       } catch (err) {
         console.error('Error:', err);
-        // Final fallback
         setUserData({
           firstname: session.user.email?.split('@')[0] || 'User',
           lastname: ''
@@ -127,215 +153,478 @@ const OperativeDashboard = () => {
     };
 
     fetchUserData();
-  }, [session, location.pathname]); // Re-fetch when returning to dashboard route
+  }, [session, location.pathname]);
 
-  const quickActions = [
+  const safetyActions = [
     {
       title: 'Site Notices',
-      description: 'View important safety alerts and notices',
+      description: 'Stay sharp—don\'t get caught out!',
       icon: Bell,
       action: () => navigate('/operative/notices'),
-      highlight: true
+      highlight: true,
+      color: 'bg-red-500/10 border-red-500/20'
     },
     {
       title: 'My Inductions',
-      description: 'Complete required site inductions',
+      description: 'Knowledge is power—get inducted!',
       icon: FileText,
       action: () => navigate('/operative/inductions'),
-      highlight: true
-    },
-    {
-      title: 'My Payslips',
-      description: 'View weekly earnings and payment status',
-      icon: PoundSterling,
-      action: () => navigate('/operative/payslips'),
+      highlight: true,
+      color: 'bg-blue-500/10 border-blue-500/20'
     },
     {
       title: 'My Qualifications',
-      description: 'Manage certifications and training records',
+      description: 'Keep your tickets fresh!',
       icon: Shield,
       action: () => navigate('/operative/qualifications'),
+      color: 'bg-green-500/10 border-green-500/20'
     },
     {
       title: 'My Training',
-      description: 'Track training progress and compliance',
+      description: 'Level up your skills!',
       icon: BookOpen,
       action: () => navigate('/operative/training'),
+      color: 'bg-purple-500/10 border-purple-500/20'
+    }
+  ];
+
+  const paperworkActions = [
+    {
+      title: 'My Payslips',
+      description: 'Ka-ching! Check your earnings',
+      icon: PoundSterling,
+      action: () => navigate('/operative/payslips'),
+      color: 'bg-yellow-500/10 border-yellow-500/20'
     },
     {
       title: 'My Signatures',
-      description: 'View signature history and compliance records',
+      description: 'Signed, sealed, delivered!',
       icon: FileText,
       action: () => navigate('/operative/signatures'),
+      color: 'bg-indigo-500/10 border-indigo-500/20'
     },
     {
       title: 'My Data',
-      description: 'View data retention and deletion status',
+      description: 'Your digital footprint matters',
       icon: Database,
       action: () => navigate('/operative/data-retention'),
+      color: 'bg-cyan-500/10 border-cyan-500/20'
     },
     {
       title: 'My Timesheets',
-      description: 'Submit and track weekly timesheets',
+      description: 'Time is money—track it well!',
       icon: Clock,
       action: () => navigate('/operative/timesheets'),
-    },
+      color: 'bg-orange-500/10 border-orange-500/20'
+    }
+  ];
+
+  const personalActions = [
     {
       title: 'My Profile',
-      description: 'Update personal details and CSCS info',
+      description: 'Update your deets!',
       icon: User,
       action: () => navigate('/operative/profile'),
+      color: 'bg-pink-500/10 border-pink-500/20'
     }
   ];
 
   const stats = [
-    { label: 'This Week Status', value: 'Approved', color: 'success' },
-    { label: 'YTD Earnings', value: '£26,420', color: 'primary' },
-    { label: 'Current Project', value: 'Woodberry Down', color: 'accent' },
-    { label: 'Qualification Status', value: '3 Valid, 1 Expiring', color: 'warning' }
+    { 
+      label: 'This Week Status', 
+      value: 'Approved', 
+      color: 'text-green-400', 
+      bgColor: 'bg-green-500/10',
+      icon: '✅',
+      trend: '+2 hrs vs last week'
+    },
+    { 
+      label: 'YTD Earnings', 
+      value: '£26,420', 
+      color: 'text-yellow-400', 
+      bgColor: 'bg-yellow-500/10',
+      icon: '💰',
+      trend: 'Ka-ching—up 5%!'
+    },
+    { 
+      label: 'Current Project', 
+      value: 'Woodberry Down', 
+      color: 'text-blue-400', 
+      bgColor: 'bg-blue-500/10',
+      icon: '🏗️',
+      trend: '3 quals expiring soon'
+    },
+    { 
+      label: 'Qualification Status', 
+      value: '3 Valid, 1 Expiring', 
+      color: 'text-orange-400', 
+      bgColor: 'bg-orange-500/10',
+      icon: '🎓',
+      trend: 'Renew by March 15th'
+    }
   ];
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
-  };
+  const recentActivities = [
+    {
+      id: '1',
+      title: 'Week ending 21 July 2025',
+      description: 'Timesheet approved by Jane—nice one!',
+      status: 'Paid',
+      statusColor: 'bg-green-500/20 text-green-400 border-green-500/30',
+      timestamp: '2 hours ago'
+    },
+    {
+      id: '2',
+      title: 'Week ending 14 July 2025',
+      description: 'Exported to payroll—sorted!',
+      status: 'Exported',
+      statusColor: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      timestamp: '1 day ago'
+    },
+    {
+      id: '3',
+      title: 'CSCS Card Verification',
+      description: 'Card verified and updated—top notch!',
+      status: 'Valid',
+      statusColor: 'bg-green-500/20 text-green-400 border-green-500/30',
+      timestamp: '3 days ago'
+    }
+  ];
+
+  const filteredActivities = recentActivities.filter(activity =>
+    activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    activity.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    activity.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0B0E1A] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-pulse">
+            <Sparkles className="h-12 w-12 mx-auto text-[#FFCC00] mb-4" />
+          </div>
+          <p className="text-[#E1E1E8]">Loading your workspace...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light">
-      {/* Premium Hero Header */}
-      <div className="bg-gradient-to-r from-aj-navy-deep/50 to-aj-navy-light/50 border-b border-white/10">
-        <div className="max-w-6xl mx-auto p-4">
-          <Card className="shadow-elevated border-0 bg-aj-navy-deep/60 backdrop-blur-sm border border-white/20">
-            <CardHeader className="pb-4">
-              <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-                <div className="text-center lg:text-left">
-                  <CardTitle className="text-2xl lg:text-3xl font-bold text-aj-yellow mb-2">
-                    👋 Welcome, {userData?.firstname || 'Operative'}.
-                  </CardTitle>
-                  <p className="text-base text-white/80">
-                    Jobs, RAMS, and timesheets below.
-                  </p>
+    <div className="min-h-screen bg-[#0B0E1A] text-[#E1E1E8]">
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-[#0B0E1A] to-[#1a1f2e] transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 border-r border-white/10`}>
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="p-6 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-[#FFCC00] rounded-lg flex items-center justify-center">
+                <Building2 className="h-5 w-5 text-[#0B0E1A]" />
+              </div>
+              <span className="text-xl font-bold text-white">AJ Ryan</span>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-2">
+            <div className="bg-[#FFCC00]/10 border border-[#FFCC00]/20 rounded-lg p-3">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#FFCC00] rounded flex items-center justify-center">
+                  <Building2 className="h-4 w-4 text-[#0B0E1A]" />
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 rounded-full bg-aj-yellow/20 flex items-center justify-center overflow-hidden">
-                    {userData?.avatar_url ? (
-                      <img 
-                        src={userData.avatar_url} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <User className={`w-8 h-8 text-aj-yellow ${userData?.avatar_url ? 'hidden' : ''}`} />
+                <span className="text-[#FFCC00] font-medium">Dashboard</span>
+              </div>
+            </div>
+            
+            <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+              <User className="h-5 w-5 text-[#4DA6FF]" />
+              <span className="text-[#E1E1E8]">My Portal</span>
+            </button>
+            
+            <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-[#4DA6FF]" />
+                <span className="text-[#E1E1E8]">AI Assistant</span>
+                <span className="text-xs bg-[#4DA6FF]/20 text-[#4DA6FF] px-2 py-1 rounded-full">Ask me anything!</span>
+              </div>
+            </button>
+          </nav>
+
+          {/* Bottom */}
+          <div className="p-4 border-t border-white/10 space-y-3">
+            <Badge className="bg-[#4DA6FF]/20 text-[#4DA6FF] border-[#4DA6FF]/30">
+              🛠️ {user?.role || 'Operative'}
+            </Badge>
+            <button className="w-full flex items-center gap-2 p-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+              <span>Sign Out</span>
+              <span className="text-xs opacity-60">See ya—stay safe!</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Header */}
+      <div className="lg:hidden sticky top-0 z-40 bg-[#1E2435]/95 backdrop-blur-sm border-b border-white/10 p-4">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          >
+            {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#FFCC00] rounded-lg flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-[#0B0E1A]" />
+            </div>
+            <span className="text-lg font-bold text-white">AJ Ryan</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="lg:ml-64 min-h-screen bg-[#141A2B]">
+        <div className="p-6 lg:p-8 space-y-8">
+          {/* Personal Header Card */}
+          <Card className="bg-[#1E2435] border-white/10 shadow-xl">
+            <CardContent className="p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#FFCC00] to-[#4DA6FF] p-1">
+                      <div className="w-full h-full rounded-full bg-[#1E2435] flex items-center justify-center">
+                        {userData?.avatar_url ? (
+                          <img 
+                            src={userData.avatar_url} 
+                            alt={`${userData.firstname}'s profile`}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-8 h-8 text-[#FFCC00]" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#FFCC00] rounded-full flex items-center justify-center">
+                      <span className="text-sm">{greetingEmoji}</span>
+                    </div>
                   </div>
-                  {user?.role && (
-                    <Badge className="bg-aj-yellow text-aj-navy-deep text-sm px-3 py-1">
-                      🛠️ {user.role}
-                    </Badge>
-                  )}
+                  <div>
+                    <h1 className="text-2xl lg:text-3xl font-bold text-white">
+                      {greeting}, {userData?.firstname || 'Mate'}!
+                    </h1>
+                    <p className="text-[#C7C9D9] mt-1">
+                      Ready to conquer Woodberry Down? Let's smash it! 💪
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className="bg-[#2A3350] px-4 py-2 rounded-lg border border-[#4DA6FF]/30">
+                    <span className="text-[#4DA6FF] font-medium">Authenticated ✓</span>
+                  </div>
+                  <div className="hidden lg:block text-sm text-[#C7C9D9] bg-[#4DA6FF]/10 px-3 py-2 rounded-lg">
+                    💡 Fancy a qual boost? Check training!
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.map((stat, index) => (
+              <Card key={index} className="bg-[#1C2234] border-white/10 hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={`w-10 h-10 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
+                      <span className="text-lg">{stat.icon}</span>
+                    </div>
+                    <TrendingUp className="h-4 w-4 text-[#4DA6FF] opacity-60" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#C7C9D9] mb-1">{stat.label}</p>
+                    <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
+                    <p className="text-xs text-[#A1A6B3] mt-1">{stat.trend}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-bold text-white">Quick Actions – Let's Crush the Day!</h2>
+              <span className="text-2xl">⚡</span>
+            </div>
+
+            {/* Safety & Sharp */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-[#FFCC00] flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Stay Safe & Sharp
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {safetyActions.map((action, index) => {
+                  const Icon = action.icon;
+                  return (
+                    <Card 
+                      key={index} 
+                      className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
+                      onClick={action.action}
+                    >
+                      <CardContent className="p-5">
+                        <div className="text-center space-y-4">
+                          <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                            <Icon className="w-6 h-6 text-[#0B0E1A]" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
+                            <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
+                            <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium">
+                              Open
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Handle the Paperwork */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-[#4DA6FF] flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Handle the Paperwork
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {paperworkActions.map((action, index) => {
+                  const Icon = action.icon;
+                  return (
+                    <Card 
+                      key={index} 
+                      className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
+                      onClick={action.action}
+                    >
+                      <CardContent className="p-5">
+                        <div className="text-center space-y-4">
+                          <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                            <Icon className="w-6 h-6 text-[#0B0E1A]" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
+                            <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
+                            <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium">
+                              Open
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Update Your Deets */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-[#E1E1E8] flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Update Your Deets
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {personalActions.map((action, index) => {
+                  const Icon = action.icon;
+                  return (
+                    <Card 
+                      key={index} 
+                      className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
+                      onClick={action.action}
+                    >
+                      <CardContent className="p-5">
+                        <div className="text-center space-y-4">
+                          <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                            <Icon className="w-6 h-6 text-[#0B0E1A]" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
+                            <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
+                            <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium">
+                              Open
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <Card className="bg-[#1E2435] border-white/10">
+            <CardHeader>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                  <span className="text-xl">📅</span>
+                  Recent Activity – What's the Craic?
+                </CardTitle>
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#A1A6B3]" />
+                  <Input
+                    placeholder="Search activity..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 bg-[#2A3350] border-white/20 text-[#E1E1E8] placeholder:text-[#A1A6B3]"
+                  />
                 </div>
               </div>
             </CardHeader>
+            <CardContent>
+              {filteredActivities.length === 0 ? (
+                <div className="text-center py-8">
+                  <Coffee className="h-12 w-12 mx-auto text-[#A1A6B3] mb-4" />
+                  <p className="text-[#A1A6B3]">
+                    {searchTerm ? 'No matching activity found' : 'All quiet on the western front—time for a brew? ☕'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredActivities.map((activity) => (
+                    <div key={activity.id} className="bg-[#2A3350] rounded-lg p-4 hover:bg-[#2A3350]/80 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-white">{activity.title}</h4>
+                            <span className="text-sm text-[#A1A6B3]">{activity.timestamp}</span>
+                          </div>
+                          <p className="text-sm text-[#A1A6B3] mt-1">{activity.description}</p>
+                        </div>
+                        <Badge className={`ml-4 ${activity.statusColor}`}>
+                          {activity.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="max-w-6xl mx-auto mb-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((stat, index) => (
-            <Card key={index} className="card-hover">
-              <CardContent className="pt-6 text-center">
-                <div className={`text-xl font-bold text-${stat.color} mb-1`}>
-                  {stat.value}
-                </div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-        {/* Quick Actions */}
-        <div className="max-w-6xl mx-auto">
-          <h3 className="text-xl font-semibold mb-6 text-primary">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <Card 
-                key={index} 
-                className={`card-hover cursor-pointer transition-all ${
-                  action.highlight ? 'ring-2 ring-accent' : ''
-                }`}
-                onClick={action.action}
-              >
-                <CardHeader className="text-center">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-3 ${
-                    action.highlight ? 'bg-accent text-accent-foreground' : 'bg-primary/10'
-                  }`}>
-                    <Icon className={`w-6 h-6 ${action.highlight ? '' : 'text-primary'}`} />
-                  </div>
-                  <CardTitle className="text-lg">{action.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-center text-muted-foreground text-sm mb-4">
-                    {action.description}
-                  </p>
-                  <Button 
-                    className={action.highlight ? 'btn-accent w-full' : 'btn-primary w-full'}
-                  >
-                    Open
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="max-w-6xl mx-auto mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-primary" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div>
-                  <div className="font-medium">Week ending 21 July 2025</div>
-                  <div className="text-sm text-muted-foreground">Timesheet approved by Jane Doe</div>
-                </div>
-                <Badge className="bg-success text-success-foreground">Paid</Badge>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div>
-                  <div className="font-medium">Week ending 14 July 2025</div>
-                  <div className="text-sm text-muted-foreground">Exported to payroll</div>
-                </div>
-                <Badge variant="outline" className="text-success border-success">Exported</Badge>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div>
-                  <div className="font-medium">CSCS Card Verification</div>
-                  <div className="text-sm text-muted-foreground">Card verified and updated</div>
-                </div>
-                <Badge variant="outline" className="text-success border-success">Valid</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };
@@ -354,7 +643,6 @@ const OperativePortal = () => {
       <Route path="/my-data" element={<PrivacyDashboard userId="current-user" />} />
       <Route path="/timesheets" element={<MyTimesheets />} />
       <Route path="/profile" element={<MyProfile />} />
-      {/* Placeholder routes for future components */}
       <Route path="/documents" element={<div className="p-8 text-center text-muted-foreground">Documents coming soon...</div>} />
     </Routes>
   );
