@@ -69,24 +69,46 @@ const AI_MOODS = [
 ];
 
 serve(async (req) => {
+  console.log(`[${new Date().toISOString()}] Request received: ${req.method}`);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get and validate OpenAI API key first
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    console.log('OpenAI API key check:', {
-      hasKey: !!openAIApiKey,
+    // Enhanced OpenAI API key validation with multiple fallback checks
+    let openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    // Additional environment variable checks for different possible names
+    if (!openAIApiKey) {
+      openAIApiKey = Deno.env.get('OPENAI_KEY');
+    }
+    if (!openAIApiKey) {
+      openAIApiKey = Deno.env.get('OPEN_AI_API_KEY');
+    }
+    
+    console.log('Environment check:', {
+      hasOpenAIKey: !!openAIApiKey,
       keyLength: openAIApiKey?.length || 0,
-      keyPrefix: openAIApiKey?.substring(0, 7) || 'none'
+      keyPrefix: openAIApiKey?.substring(0, 10) || 'none',
+      allEnvKeys: Object.keys(Deno.env.toObject()).filter(key => 
+        key.toLowerCase().includes('openai') || key.toLowerCase().includes('api')
+      )
     });
     
     if (!openAIApiKey) {
-      console.error('OpenAI API key not found in environment variables');
+      console.error('OpenAI API key not found - checked multiple environment variable names');
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not found in environment variables' }),
+        JSON.stringify({ 
+          error: 'OpenAI API key not configured in environment variables. Please ensure OPENAI_API_KEY is set in Supabase secrets.',
+          debug: {
+            checkedKeys: ['OPENAI_API_KEY', 'OPENAI_KEY', 'OPEN_AI_API_KEY'],
+            availableKeys: Object.keys(Deno.env.toObject()).filter(key => 
+              key.toLowerCase().includes('api') || key.toLowerCase().includes('key')
+            )
+          }
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
@@ -105,7 +127,7 @@ serve(async (req) => {
 
     const { userName, userRole, customStyle, userId, selfieBase64, gender, ageRange, ethnicity } = requestBody;
     
-    console.log('Received request:', { 
+    console.log('Request payload:', { 
       userName, 
       userRole, 
       customStyle: !!customStyle, 
@@ -272,6 +294,30 @@ serve(async (req) => {
     });
 
     console.log(`Generating image with AI mood: ${selectedMood.name}`);
+
+    // Test OpenAI API connectivity first
+    console.log('Testing OpenAI API connectivity...');
+    const testResponse = await fetch('https://api.openai.com/v1/models', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!testResponse.ok) {
+      const testError = await testResponse.text();
+      console.error('OpenAI API connectivity test failed:', testError);
+      return new Response(
+        JSON.stringify({ 
+          error: `OpenAI API key validation failed: ${testResponse.status} ${testResponse.statusText}`,
+          details: testError
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    console.log('OpenAI API connectivity confirmed - proceeding with image generation');
 
     // Generate image with OpenAI
     const response = await fetch('https://api.openai.com/v1/images/generations', {
