@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useToast } from "@/hooks/use-toast";
 import { RoleGuard } from "@/components/auth/withRoleGuard";
 import AdminUserManagement from "@/components/admin/AdminUserManagement";
@@ -31,6 +32,7 @@ import {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(false);
@@ -211,7 +213,7 @@ const AdminDashboard = () => {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              <EnhancedQuickActions userName={user?.name || 'Chief'} />
+              <EnhancedQuickActions userName={profile?.firstname || profile?.fullname || 'Chief'} />
             </TabsContent>
 
             <TabsContent value="users">

@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Settings, Bell, Wrench, Zap } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface PersonalizedHeaderProps {
   pendingCount?: number;
@@ -17,10 +18,11 @@ export const PersonalizedHeader: React.FC<PersonalizedHeaderProps> = ({
   systemHealth = 'excellent'
 }) => {
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   
   const getGreeting = () => {
     const hour = new Date().getHours();
-    const name = user?.name || user?.email?.split('@')[0] || 'Chief';
+    const name = profile?.firstname || profile?.fullname || user?.email?.split('@')[0] || 'Chief';
     
     if (hour < 12) {
       return `Good morning, ${name}! ☕`;
@@ -71,9 +73,9 @@ export const PersonalizedHeader: React.FC<PersonalizedHeaderProps> = ({
           {/* Left: User Info & Greeting */}
           <div className="flex items-center gap-4">
             <Avatar className="w-12 h-12 ring-2 ring-accent/20 ring-offset-2 ring-offset-background">
-              <AvatarImage src={user?.avatar_url} alt={user?.name || 'Admin'} />
+              <AvatarImage src={profile?.avatar_url} alt={profile?.firstname || 'Admin'} />
               <AvatarFallback className="bg-gradient-to-br from-accent to-accent/80 text-accent-foreground font-bold">
-                {(user?.name || user?.email || 'A').charAt(0).toUpperCase()}
+                {(profile?.firstname || profile?.fullname || user?.email || 'A').charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             
