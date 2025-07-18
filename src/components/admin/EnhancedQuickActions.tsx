@@ -1,229 +1,182 @@
-import { useState } from 'react';
+
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Truck, 
-  Camera, 
-  Sparkles, 
-  Clock, 
-  MapPin, 
-  Package,
-  Wrench,
-  Zap,
-  CheckCircle,
-  AlertTriangle
+  UserPlus, 
+  FileUp, 
+  Shield, 
+  Zap, 
+  Wrench, 
+  Search,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { HireRequestModal } from './HireRequestModal';
-import { PODUploadModal } from './PODUploadModal';
-
-interface QuickAction {
-  id: string;
-  title: string;
-  description: string;
-  icon: any;
-  color: string;
-  badge?: string;
-  onClick: () => void;
-  isAI?: boolean;
-}
 
 interface EnhancedQuickActionsProps {
-  userName?: string;
+  userName: string;
 }
 
-export const EnhancedQuickActions = ({ userName = 'Chief' }: EnhancedQuickActionsProps) => {
-  const { toast } = useToast();
-  const [showHireModal, setShowHireModal] = useState(false);
-  const [showPODModal, setShowPODModal] = useState(false);
-
-  const handleAIAction = (actionType: string) => {
-    toast({
-      title: "AI Magic in Progress! ✨",
-      description: "That's watertight - no leaks in this operation!",
-    });
-  };
-
-  const quickActions: QuickAction[] = [
+export const EnhancedQuickActions: React.FC<EnhancedQuickActionsProps> = ({ userName }) => {
+  const quickActions = [
     {
-      id: 'hire-company',
       title: 'AI Hire Request',
-      description: 'Smart equipment booking with voice calls',
-      icon: Truck,
-      color: 'bg-gradient-ai',
-      badge: 'AI Powered',
-      isAI: true,
-      onClick: () => setShowHireModal(true)
-    },
-    {
-      id: 'pod-upload',
-      title: 'Smart POD Upload',
-      description: 'OCR processing with auto-extraction',
-      icon: Camera,
-      color: 'bg-gradient-sparkle',
-      badge: 'OCR Ready',
-      isAI: true,
-      onClick: () => setShowPODModal(true)
-    },
-    {
-      id: 'ai-insights',
-      title: 'AI Insights',
-      description: 'Smart suggestions for your team',
-      icon: Sparkles,
-      color: 'bg-accent',
-      badge: 'Beta',
-      onClick: () => handleAIAction('insights')
-    },
-    {
-      id: 'quick-approval',
-      title: 'Rapid Approval',
-      description: 'One-click team decisions',
+      description: 'Smart recruitment—let AI find the best crew!',
       icon: Zap,
-      color: 'bg-success',
-      onClick: () => handleAIAction('approval')
+      color: 'bg-aj-blue-accent/10 text-aj-blue-accent border-aj-blue-accent/20',
+      action: () => console.log('AI Hire Request'),
+      wittyHint: 'No manual sifting—AI does the heavy lifting! 🤖'
+    },
+    {
+      title: 'Smart POD Upload',
+      description: 'OCR magic—turn photos into data!',
+      icon: FileUp,
+      color: 'bg-aj-yellow/10 text-aj-yellow border-aj-yellow/20',
+      action: () => console.log('Smart POD Upload'),
+      wittyHint: 'Snap, scan, sorted—like magic but better! 📱'
+    },
+    {
+      title: 'Add New User',
+      description: 'Expand the crew—no leaks in onboarding!',
+      icon: UserPlus,
+      color: 'bg-success/10 text-success border-success/20',
+      action: () => console.log('Add New User'),
+      wittyHint: 'Growing the team—quality pipes need quality people! 👷‍♂️'
+    },
+    {
+      title: 'Security Audit',
+      description: 'System health check—tight as a sealed pipe!',
+      icon: Shield,
+      color: 'bg-warning/10 text-warning border-warning/20',
+      action: () => console.log('Security Audit'),
+      wittyHint: 'Fort Knox wishes it was this secure! 🔐'
     }
   ];
 
   const recentActivity = [
     {
-      id: 1,
-      type: 'hire',
-      title: 'Equipment hired successfully',
-      description: 'Excavator delivered to Riverside site',
-      time: '5 mins ago',
-      icon: CheckCircle,
-      color: 'text-success'
+      user: 'John Smith',
+      action: 'Completed CSCS upload',
+      time: '2 minutes ago',
+      status: 'success',
+      icon: CheckCircle
     },
     {
-      id: 2,
-      type: 'pod',
-      title: '3 PODs processed via OCR',
-      description: 'All delivery notes extracted perfectly',
-      time: '12 mins ago',
-      icon: Package,
-      color: 'text-accent'
+      user: 'Sarah Johnson',
+      action: 'Requested role change',
+      time: '15 minutes ago',
+      status: 'pending',
+      icon: AlertTriangle
     },
     {
-      id: 3,
-      type: 'alert',
-      title: 'Equipment maintenance due',
-      description: '2 items need servicing this week',
+      user: 'Mike Wilson',
+      action: 'Updated profile',
       time: '1 hour ago',
-      icon: AlertTriangle,
-      color: 'text-warning'
+      status: 'success',
+      icon: CheckCircle
     }
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Wrench className="w-8 h-8 text-aj-yellow" />
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">
-            Control Room, {userName}!
-          </h2>
-          <p className="text-muted-foreground">
-            AI-powered tools to keep operations flowing smooth as silk
-          </p>
-        </div>
-      </div>
-
-      {/* AI-Powered Quick Actions Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {quickActions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <Card 
-              key={action.id}
-              className="group relative overflow-hidden border-muted/20 hover:border-accent/50 transition-all duration-300 hover:shadow-ai cursor-pointer"
-              onClick={action.onClick}
-            >
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <div className={`w-16 h-16 rounded-xl ${action.color} flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className="w-8 h-8 text-white" />
-                    {action.isAI && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-aj-yellow rounded-full flex items-center justify-center">
-                        <Sparkles className="w-3 h-3 text-aj-navy-deep" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <h3 className="font-semibold text-card-foreground">{action.title}</h3>
-                      {action.badge && (
-                        <Badge variant="secondary" className="text-xs">
-                          {action.badge}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{action.description}</p>
-                  </div>
-
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full group-hover:bg-accent group-hover:text-accent-foreground transition-colors"
-                  >
-                    Launch
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Recent AI Activity */}
-      <Card>
+    <div className="space-y-8">
+      {/* AI Quick Actions */}
+      <Card className="shadow-ai">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-accent" />
-            Recent Activity - AI at Work
+            <Wrench className="w-5 h-5 text-accent animate-pulse" />
+            AI Quick Actions—{userName}'s Power Tools
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {recentActivity.map((activity) => {
-              const Icon = activity.icon;
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
               return (
-                <div 
-                  key={activity.id}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
+                <Card 
+                  key={index}
+                  className={`
+                    cursor-pointer transition-all duration-300 hover:shadow-sparkline hover:-translate-y-1
+                    ${action.color} border-2
+                  `}
+                  onClick={action.action}
                 >
-                  <div className={`mt-1 ${activity.color}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-card-foreground">
-                      {activity.title}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {activity.description}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {activity.time}
-                  </Badge>
-                </div>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-current/10 flex items-center justify-center">
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-sm mb-1">{action.title}</h3>
+                        <p className="text-xs opacity-80 mb-2">{action.description}</p>
+                        <p className="text-xs italic opacity-60">{action.wittyHint}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
         </CardContent>
       </Card>
 
-      {/* Modals */}
-      <HireRequestModal 
-        isOpen={showHireModal} 
-        onClose={() => setShowHireModal(false)} 
-      />
-      <PODUploadModal 
-        isOpen={showPODModal} 
-        onClose={() => setShowPODModal(false)} 
-      />
+      {/* Recent Activity */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-accent" />
+              Recent Activity—What's Flowing in the Pipes?
+            </CardTitle>
+            <Button variant="outline" size="sm">
+              View All
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {recentActivity.length > 0 ? (
+            <div className="space-y-3">
+              {recentActivity.map((activity, index) => {
+                const Icon = activity.icon;
+                return (
+                  <div 
+                    key={index}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-card/50 hover:bg-card/80 transition-colors"
+                  >
+                    <div className={`
+                      w-8 h-8 rounded-full flex items-center justify-center
+                      ${activity.status === 'success' ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}
+                    `}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{activity.user}</p>
+                      <p className="text-xs text-muted-foreground">{activity.action}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">{activity.time}</p>
+                      <Badge 
+                        variant={activity.status === 'success' ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {activity.status}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">All quiet—fancy a brew? ☕</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">
+                No recent activity to report—systems running smooth as silk!
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

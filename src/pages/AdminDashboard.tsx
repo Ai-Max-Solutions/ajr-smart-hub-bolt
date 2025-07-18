@@ -1,14 +1,12 @@
 
 import { useState, useEffect } from "react";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { EnhancedKPICard } from "@/components/dashboard/EnhancedKPICard";
-import { PersonalizedHeader } from "@/components/admin/PersonalizedHeader";
 import { EnhancedSystemStatus } from "@/components/admin/EnhancedSystemStatus";
 import { EnhancedQuickActions } from "@/components/admin/EnhancedQuickActions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StickyHeaderCard } from "@/components/admin/StickyHeaderCard";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useToast } from "@/hooks/use-toast";
@@ -18,19 +16,15 @@ import AdminAuditLogs from "@/components/admin/AdminAuditLogs";
 import AdminSystemSettings from "@/components/admin/AdminSystemSettings";
 import { 
   Users, 
-  Shield, 
-  TrendingUp, 
+  Activity, 
   Clock, 
   AlertTriangle,
   CheckCircle,
-  Activity,
   Download,
-  RefreshCw,
-  Wrench
+  RefreshCw
 } from "lucide-react";
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const { toast } = useToast();
@@ -133,44 +127,31 @@ const AdminDashboard = () => {
 
   return (
     <RoleGuard allowedRoles={["Admin", "DPO"]} showFunnyMessage={true}>
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5">
-        {/* Personalized Header */}
-        <div className="p-6 pb-0">
-          <PersonalizedHeader 
+      <AdminLayout>
+        <div className="space-y-8">
+          {/* Sticky Header Card */}
+          <StickyHeaderCard 
             pendingCount={metrics.pendingApprovals}
             systemHealth={metrics.errorRate < 1 ? 'excellent' : metrics.errorRate < 3 ? 'good' : 'warning'}
           />
-        </div>
 
-        {/* Page Header */}
-        <PageHeader
-          title="🔧 Master Control Room"
-          description="All the valves, gauges, and switches to keep the operation flowing smooth as silk."
-          icon={Wrench}
-          badge={user?.role ? `⚡ Chief ${user.role}` : "Admin Control"}
-          breadcrumbs={[
-            { label: "Home", href: "/" },
-            { label: "Admin Dashboard" }
-          ]}
-          actions={
-            <div className="flex gap-3">
-              <button 
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-              >
-                <RefreshCw className={`w-5 h-5 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                {isLoading ? "Checking Pipes..." : "Refresh Flow"}
-              </button>
-              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                <Download className="w-5 h-5 mr-2" />
-                Export System Report
-              </button>
-            </div>
-          }
-        />
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3">
+            <Button 
+              onClick={handleRefresh}
+              disabled={isLoading}
+              variant="outline"
+              className="shadow-card"
+            >
+              <RefreshCw className={`w-5 h-5 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+              {isLoading ? "Checking Pipes..." : "Refresh Flow"}
+            </Button>
+            <Button className="shadow-card">
+              <Download className="w-5 h-5 mr-2" />
+              Export System Report
+            </Button>
+          </div>
 
-        <div className="container mx-auto px-lg py-8 space-y-8">
           {/* Enhanced KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {kpiData.map((kpi, index) => (
@@ -197,17 +178,17 @@ const AdminDashboard = () => {
 
           {/* Main Admin Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 bg-card/50 backdrop-blur-sm">
-              <TabsTrigger value="overview" className="font-poppins data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+            <TabsList className="grid w-full grid-cols-4 bg-card/50 backdrop-blur-sm shadow-card">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-aj-yellow data-[state=active]:text-aj-navy-deep">
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="users" className="font-poppins data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+              <TabsTrigger value="users" className="data-[state=active]:bg-aj-yellow data-[state=active]:text-aj-navy-deep">
                 User Management
               </TabsTrigger>
-              <TabsTrigger value="audit" className="font-poppins data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+              <TabsTrigger value="audit" className="data-[state=active]:bg-aj-yellow data-[state=active]:text-aj-navy-deep">
                 Audit Logs
               </TabsTrigger>
-              <TabsTrigger value="settings" className="font-poppins data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+              <TabsTrigger value="settings" className="data-[state=active]:bg-aj-yellow data-[state=active]:text-aj-navy-deep">
                 System Settings
               </TabsTrigger>
             </TabsList>
@@ -229,7 +210,7 @@ const AdminDashboard = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
+      </AdminLayout>
     </RoleGuard>
   );
 };

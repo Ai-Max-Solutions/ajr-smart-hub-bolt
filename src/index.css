@@ -1,416 +1,225 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* AJ Ryan SmartWork Hub - Design System */
-
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-
-@layer base {
-  :root {
-    /* AJ Ryan Brand Colors - Official Brand Guidelines */
-    --aj-navy-deep: 223 45% 11%; /* #1d1e3d - Dark Blue Primary */
-    --aj-navy-light: 223 35% 20%; /* Lighter navy for panels */
-    --aj-yellow: 48 100% 56%; /* #ffcf21 - Official Strong Yellow */
-    --aj-yellow-bright: 48 100% 65%; /* Brighter yellow variant */
-    --aj-blue-calm: 215 25% 70%; /* #acb7d1 - Calming Blue */
-    --aj-blue-accent: 203 100% 31%; /* #006198 - Official Strong Blue */
-    
-    /* AJ Ryan Premium Light Theme */
-    --background: 0 0% 100%; /* Pure white background */
-    --foreground: 223 45% 11%; /* Dark navy text */
-
-    --card: 0 0% 100%; /* White cards */
-    --card-foreground: 223 45% 11%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 223 45% 11%;
-
-    --primary: 223 45% 11%; /* Dark navy primary */
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 20% 95%; /* Very light grey */
-    --secondary-foreground: 223 45% 11%;
-
-    --accent: 203 85% 35%; /* Strong blue accent instead of bright yellow */
-    --accent-foreground: 0 0% 100%; /* White text on blue accent */
-
-    --muted: 210 20% 95%; /* Light grey for muted elements */
-    --muted-foreground: 215 25% 50%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 223 45% 11%;
-
-    --border: 210 20% 90%; /* Light borders */
-    --input: 210 20% 95%;
-    --ring: 48 100% 56%; /* Yellow focus rings */
-
-    --radius: 0.75rem; /* 12px border radius for modern look */
-
-    /* AJ Ryan Premium Gradients - 2025 Enhanced */
-    --gradient-brand: linear-gradient(135deg, hsl(var(--aj-navy-deep)), hsl(var(--accent)));
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 98%), hsl(210 20% 96%));
-    --gradient-hero: linear-gradient(135deg, hsl(48 100% 96%), hsl(210 25% 96%));
-    --gradient-ai: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--aj-yellow)) 100%);
-    --gradient-sparkle: linear-gradient(45deg, hsl(var(--aj-yellow)) 0%, hsl(var(--accent)) 50%, hsl(var(--aj-yellow)) 100%);
-    --gradient-dark-glow: linear-gradient(135deg, hsl(var(--aj-navy-deep)) 0%, hsl(223 35% 8%) 100%);
-    
-    /* AJ Ryan Premium Shadows - 2025 Enhanced */
-    --shadow-brand: 0 4px 20px hsla(var(--accent), 0.15);
-    --shadow-card: 0 2px 12px hsla(223 45% 11%, 0.08);
-    --shadow-elevated: 0 8px 32px hsla(223 45% 11%, 0.12);
-    --shadow-glow: 0 0 40px hsla(var(--aj-yellow), 0.3);
-    --shadow-ai: 0 8px 32px hsla(var(--accent), 0.25);
-    --shadow-sparkline: 0 2px 8px hsla(var(--aj-yellow), 0.2);
-    
-    /* AJ Ryan Animations - 0.3s ease as specified */
-    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-smooth: all 0.3s ease;
-    --transition-hover: all 0.3s ease;
-    
-    /* AJ Ryan Typography Scale */
-    --font-size-header: 24px;
-    --font-size-body: 16px;
-    --font-size-label: 12px;
-    --line-height-base: 1.5;
-    
-    /* AJ Ryan Spacing System */
-    --spacing-xs: 4px;
-    --spacing-sm: 8px;
-    --spacing-md: 16px;
-    --spacing-lg: 24px;
-    --spacing-xl: 32px;
-
-    /* AJ Ryan Contractor Portal Specific */
-    --contractor-bg: 215 25% 70%; /* #acb7d1 - Calming Blue */
-    --contractor-accent: 203 100% 31%; /* #006198 - Strong Blue */
-    --contractor-pattern: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23acb7d1' fill-opacity='0.05'%3E%3Cpath d='m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-    --contractor-alert-bg: 215 25% 95%; /* Soft calming blue for alerts */
-  }
-
-  .dark {
-    /* AJ Ryan Premium Dark Theme - Enhanced Contrast */
-    --background: 223 45% 6%; /* Very dark navy background */
-    --foreground: 0 0% 95%; /* Near-white text for better readability */
-
-    --card: 223 35% 8%; /* Slightly lighter navy for cards */
-    --card-foreground: 0 0% 95%; /* Near-white text on dark cards */
-
-    --popover: 223 35% 8%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 48 100% 56%; /* Yellow primary in dark mode */
-    --primary-foreground: 223 45% 11%; /* Navy text on yellow */
-
-    --secondary: 223 35% 12%; /* Dark navy secondary */
-    --secondary-foreground: 0 0% 95%; /* Near-white text for better contrast */
-
-    --accent: 203 85% 35%; /* Strong blue accent in dark mode */
-    --accent-foreground: 0 0% 100%; /* White text on blue accent */
-
-    --muted: 223 35% 12%; /* Dark muted background */
-    --muted-foreground: 0 0% 70%; /* Light grey for muted text */
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 223 45% 11%;
-
-    --border: 223 35% 15%; /* Dark navy borders */
-    --input: 223 35% 12%; /* Dark input backgrounds */
-    --ring: 48 100% 65%; /* Yellow focus rings */
-    
-    /* Dark mode shadows */
-    --shadow-card: 0 2px 12px hsla(0 0% 0%, 0.3);
-    --shadow-elevated: 0 8px 32px hsla(0 0% 0%, 0.4);
-  }
-}
 
 @layer base {
   * {
     @apply border-border;
   }
-
+  
   body {
-    @apply bg-background text-foreground font-sans;
-    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    font-size: var(--font-size-body);
-    line-height: var(--line-height-base);
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 9%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+
+    /* AJ Ryan Brand Colors */
+    --aj-navy-deep: 215 100% 6%;
+    --aj-navy-light: 215 50% 15%;
+    --aj-yellow: 45 100% 50%;
+    --aj-yellow-bright: 45 100% 60%;
+    --aj-blue-calm: 200 100% 60%;
+    --aj-blue-accent: 213 100% 65%;
+    
+    /* Contractor specific colors */
+    --contractor-bg: 210 20% 98%;
+    --contractor-accent: 210 100% 40%;
+    --contractor-alert-bg: 10 100% 95%;
+    
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 0 0% 9%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 96.1%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 89.8%;
+    --sidebar-ring: 0 0% 3.9%;
+
+    /* Enhanced gradients */
+    --gradient-brand: linear-gradient(135deg, hsl(var(--aj-blue-accent)) 0%, hsl(var(--aj-yellow)) 100%);
+    --gradient-subtle: linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--accent)) 100%);
+    
+    /* Enhanced shadows */
+    --shadow-brand: 0 10px 40px rgba(77, 166, 255, 0.15);
+    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.05);
+    --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.1);
+    
+    /* Spacing tokens */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    
+    /* Typography tokens */
+    --font-size-header: 1.5rem;
+    --font-size-body: 1rem;
+    --font-size-label: 0.875rem;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight text-foreground;
-    font-family: 'Poppins', sans-serif;
+  .dark {
+    --background: 215 100% 8%;
+    --foreground: 210 20% 98%;
+    --card: 215 50% 10%;
+    --card-foreground: 210 20% 98%;
+    --popover: 215 50% 10%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 210 20% 98%;
+    --primary-foreground: 215 100% 8%;
+    --secondary: 215 30% 15%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 30% 15%;
+    --muted-foreground: 210 10% 70%;
+    --accent: 213 100% 65%;
+    --accent-foreground: 215 100% 8%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 9%;
+    --border: 215 30% 20%;
+    --input: 215 30% 20%;
+    --ring: 213 100% 65%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    /* Dark mode sidebar */
+    --sidebar-background: 215 50% 10%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 210 20% 98%;
+    --sidebar-primary-foreground: 215 100% 8%;
+    --sidebar-accent: 215 30% 15%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 215 30% 20%;
+    --sidebar-ring: 213 100% 65%;
+    
+    /* Enhanced gradients for dark mode */
+    --gradient-brand: linear-gradient(135deg, hsl(var(--aj-blue-accent)) 0%, hsl(var(--aj-yellow)) 100%);
+    --gradient-subtle: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--accent))/5 100%);
+    
+    /* Enhanced shadows for dark mode */
+    --shadow-brand: 0 10px 40px rgba(77, 166, 255, 0.25);
+    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--accent));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--accent-foreground));
+}
+
+/* Enhanced animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+/* Utility classes */
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Focus styles */
+.focus-ring {
+  @apply focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: 0 0% 50%;
+    --accent: 213 100% 40%;
   }
   
-  h1 { font-size: var(--font-size-header); }
-  h2 { font-size: calc(var(--font-size-header) * 0.875); }
-  h3 { font-size: var(--font-size-body); }
-  
-  /* AJ Ryan Interactive Elements */
-  .aj-icon {
-    width: 24px;
-    height: 24px;
-    transition: var(--transition-hover);
-  }
-  
-  .aj-icon:hover {
-    transform: scale(1.1);
-    filter: brightness(1.1);
-  }
-  
-  .aj-icon-yellow {
-    color: hsl(var(--accent));
-  }
-  
-  .aj-icon-white {
-    color: hsl(var(--foreground));
-  }
-
-  /* Form enhancements */
-  .form-field {
-    @apply transition-all duration-200;
-  }
-
-  .form-field:focus-within {
-    @apply scale-[1.02];
-  }
-
-  /* Button animations */
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200;
-    box-shadow: var(--shadow-brand);
-  }
-
-  .btn-primary:hover {
-    @apply -translate-y-0.5;
-    box-shadow: 0 8px 25px hsl(var(--primary) / 0.25);
-  }
-
-  .btn-accent {
-    @apply bg-accent text-accent-foreground hover:bg-accent/90 transition-all duration-200;
-  }
-
-  .btn-accent:hover {
-    @apply -translate-y-0.5;
-  }
-
-  /* Progress indicators */
-  .progress-step {
-    @apply transition-all duration-300;
-  }
-
-  .progress-step.completed {
-    @apply bg-accent text-accent-foreground;
-  }
-
-  .progress-step.active {
-    @apply bg-primary text-primary-foreground scale-110;
-  }
-
-  /* Card animations */
-  .card-hover {
-    @apply transition-all duration-200;
-  }
-
-  .card-hover:hover {
-    @apply -translate-y-1;
-    box-shadow: var(--shadow-card);
+  .dark {
+    --border: 0 0% 70%;
+    --accent: 213 100% 80%;
   }
 }
-
-/* Mobile & PWA Optimizations */
-.mobile-optimized {
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* One-handed mode */
-.one-handed-mode {
-  --mobile-safe-area: env(safe-area-inset-bottom, 20px);
-}
-
-.one-handed-mode .fixed.bottom-0,
-.one-handed-mode .absolute.bottom-0 {
-  bottom: var(--mobile-safe-area);
-}
-
-.one-handed-mode .chat-interface {
-  max-height: 50vh;
-  transform: translateY(25vh);
-}
-
-.one-handed-mode .ai-controls {
-  position: fixed;
-  bottom: var(--mobile-safe-area);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 300px;
-}
-
-/* Touch optimizations */
-@media (max-width: 768px) {
-  .one-handed-mode .text-input {
-    font-size: 16px; /* Prevent zoom on iOS */
-  }
-  
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  /* Smooth scrolling for mobile */
-  .mobile-scroll {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-  }
-
-  /* Enhanced tap targets */
-  button, .clickable {
-    touch-action: manipulation;
-  }
-}
-
-/* PWA splash screen */
-@media (display-mode: standalone) {
-  .pwa-active {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
-/* Offline indicators */
-.offline-indicator {
-  background: linear-gradient(45deg, hsl(var(--warning)) 25%, transparent 25%),
-              linear-gradient(-45deg, hsl(var(--warning)) 25%, transparent 25%),
-              linear-gradient(45deg, transparent 75%, hsl(var(--warning)) 75%),
-              linear-gradient(-45deg, transparent 75%, hsl(var(--warning)) 75%);
-  background-size: 20px 20px;
-  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-}
-
-/* Audio visualizations */
-.audio-waveform {
-  @apply bg-primary/20 rounded-full transition-all duration-150;
-}
-
-.audio-active .audio-waveform {
-  @apply bg-primary animate-pulse;
-}
-
-/* Smart suggestions */
-.suggestion-card {
-  @apply transition-all duration-200 hover:scale-105 hover:shadow-md;
-}
-
-.suggestion-card:active {
-  @apply scale-95;
-}
-
-/* Loading states optimized for mobile */
-.mobile-loading {
-  @apply animate-pulse bg-gradient-to-r from-muted via-muted/50 to-muted;
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite linear;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-/* Focus ring improvements */
-.focus-ring-brand {
-  @apply focus-visible:ring-2 focus-visible:ring-aj-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-background;
-}
-
-/* Interactive state improvements */
-.interactive-hover {
-  @apply transition-aj duration-aj-smooth hover:scale-[1.02] hover:brightness-105;
-}
-
-  /* Text hierarchy improvements */
-  .text-hierarchy-1 {
-    @apply text-header font-semibold text-foreground tracking-tight;
-  }
-
-  .text-hierarchy-2 {
-    @apply text-lg font-medium text-foreground;
-  }
-
-  .text-hierarchy-3 {
-    @apply text-body font-medium text-muted-foreground;
-  }
-
-  /* AJ Ryan Contractor Portal Styles */
-  .contractor-header {
-    background: linear-gradient(135deg, hsl(var(--contractor-bg)), hsl(var(--contractor-accent)));
-  }
-
-  .contractor-badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wide;
-    background: hsl(var(--aj-yellow));
-    color: hsl(var(--aj-navy-deep));
-  }
-
-  .contractor-pattern {
-    background-image: var(--contractor-pattern);
-    background-size: 60px 60px;
-    background-repeat: repeat;
-  }
-
-  .contractor-card {
-    @apply relative overflow-hidden;
-    background: hsl(var(--card));
-    border-left: 4px solid hsl(var(--contractor-accent));
-  }
-
-  .contractor-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100px;
-    height: 100px;
-    background-image: var(--contractor-pattern);
-    opacity: 0.03;
-    pointer-events: none;
-  }
-
-  .contractor-alert {
-    background: hsl(var(--contractor-alert-bg));
-    border: 1px solid hsl(var(--contractor-bg));
-    color: hsl(var(--contractor-accent));
-  }
-
-  .contractor-sidebar {
-    background: linear-gradient(180deg, hsl(var(--contractor-bg) / 0.1), hsl(var(--contractor-bg) / 0.05));
-    border-right: 1px solid hsl(var(--contractor-bg) / 0.2);
-  }
-
-  .contractor-accent-text {
-    color: hsl(var(--contractor-accent));
-  }
-
-  .contractor-button {
-    background: hsl(var(--contractor-accent));
-    color: white;
-    transition: all 0.3s ease;
-  }
-
-  .contractor-button:hover {
-    background: hsl(var(--contractor-accent) / 0.9);
-    transform: translateY(-1px);
-  }
