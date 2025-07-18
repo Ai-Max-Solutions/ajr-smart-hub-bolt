@@ -102,8 +102,8 @@ serve(async (req) => {
 
     // Get enhanced user data for personalization
     const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id, firstname, lastname, role')
+      .from('Users')
+      .select('id, firstname, lastname, role, primaryskill, skills')
       .eq('supabase_auth_id', userId)
       .single();
 
@@ -114,7 +114,7 @@ serve(async (req) => {
     // Get CSCS card information
     const { data: cscsData, error: cscsError } = await supabase
       .from('cscs_cards')
-      .select('card_type, card_color, qualifications')
+      .select('cscs_card_type, card_color, qualifications')
       .eq('user_id', userData?.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -131,7 +131,8 @@ serve(async (req) => {
     
     // Determine job type visuals
     const effectiveRole = userData?.role || userRole || 'Operative';
-    const jobTypeKey = effectiveRole;
+    const primarySkill = userData?.primaryskill || '';
+    const jobTypeKey = primarySkill || effectiveRole;
     const jobVisuals = JOB_TYPE_VISUALS[jobTypeKey] || JOB_TYPE_VISUALS['Default'];
     
     // Determine CSCS visuals
@@ -163,9 +164,10 @@ serve(async (req) => {
     
     console.log('Enhanced prompt context:', {
       effectiveRole,
+      primarySkill,
       jobTypeKey,
       cscsColor,
-      cscsType: cscsData?.card_type,
+      cscsType: cscsData?.cscs_card_type,
       qualifications: cscsData?.qualifications
     });
 
@@ -263,7 +265,7 @@ serve(async (req) => {
 
     // Update user's avatar URL in database
     const { error: updateError } = await supabase
-      .from('users')
+      .from('Users')
       .update({ avatar_url: publicUrl })
       .eq('supabase_auth_id', userId);
 

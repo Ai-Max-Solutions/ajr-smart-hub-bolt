@@ -29,7 +29,7 @@ import MySignatures from '@/components/signatures/MySignatures';
 import MyDataRetention from '@/components/retention/MyDataRetention';
 import PrivacyDashboard from '@/components/security/PrivacyDashboard';
 import MyTimesheets from '@/components/operative/MyTimesheets';
-import MyProfile from '@/components/operative/MyProfile';
+import { MyProfile } from '@/components/operative/MyProfile';
 
 const OperativeDashboard = () => {
   const navigate = useNavigate();
