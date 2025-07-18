@@ -1,37 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  PoundSterling, 
-  Clock, 
-  FileText, 
-  User, 
-  Building2, 
-  ArrowRight,
-  Shield,
-  BookOpen,
-  Bell,
-  Database,
-  Search,
-  TrendingUp,
-  AlertTriangle,
-  Menu,
-  X,
-  Sparkles,
-  Coffee,
-  ChevronDown,
-  ChevronRight,
-  BarChart3,
-  PieChart
-} from 'lucide-react';
+import { User, Menu, X, Sparkles } from 'lucide-react';
+
+// Import new components
+import { ModernSidebar } from '@/components/operative/ModernSidebar';
+import { StatsCard } from '@/components/operative/StatsCard';
+import { QuickActionsSection } from '@/components/operative/QuickActionsSection';
+import { ActivityFeed } from '@/components/operative/ActivityFeed';
+
+// Import existing route components
 import MyPayslips from '@/components/operative/MyPayslips';
 import MyQualifications from '@/components/compliance/MyQualifications';
 import MyTraining from '@/components/training/MyTraining';
@@ -50,16 +34,10 @@ const OperativeDashboard = () => {
   const { toast } = useToast();
   const [userData, setUserData] = useState<{ firstname?: string; lastname?: string; avatar_url?: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [actionSearchTerm, setActionSearchTerm] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [greetingEmoji, setGreetingEmoji] = useState('👋');
-  const [expandedGroups, setExpandedGroups] = useState({
-    safety: true,
-    paperwork: true,
-    personal: true
-  });
 
   // ✅ Role guard: Operative/Supervisor portal access
   useEffect(() => {
@@ -165,86 +143,6 @@ const OperativeDashboard = () => {
     fetchUserData();
   }, [session, location.pathname]);
 
-  const safetyActions = [
-    {
-      title: 'Site Notices',
-      description: 'Stay sharp—don\'t get blindsided!',
-      icon: Bell,
-      action: () => navigate('/operative/notices'),
-      highlight: true,
-      color: 'bg-red-500/10 border-red-500/20'
-    },
-    {
-      title: 'My Inductions',
-      description: 'Knowledge is power—get inducted!',
-      icon: FileText,
-      action: () => navigate('/operative/inductions'),
-      highlight: true,
-      color: 'bg-blue-500/10 border-blue-500/20'
-    },
-    {
-      title: 'My Qualifications',
-      description: 'Keep your tickets fresh—don\'t let the boss notice!',
-      icon: Shield,
-      action: () => navigate('/operative/qualifications'),
-      color: 'bg-green-500/10 border-green-500/20'
-    },
-    {
-      title: 'My Training',
-      description: 'Level up your skills—be the site legend!',
-      icon: BookOpen,
-      action: () => navigate('/operative/training'),
-      color: 'bg-purple-500/10 border-purple-500/20'
-    }
-  ];
-
-  const paperworkActions = [
-    {
-      title: 'My Payslips',
-      description: 'Ka-ching! Check your earnings',
-      icon: PoundSterling,
-      action: () => navigate('/operative/payslips'),
-      color: 'bg-yellow-500/10 border-yellow-500/20'
-    },
-    {
-      title: 'My Signatures',
-      description: 'Signed, sealed, delivered!',
-      icon: FileText,
-      action: () => navigate('/operative/signatures'),
-      color: 'bg-indigo-500/10 border-indigo-500/20'
-    },
-    {
-      title: 'My Data',
-      description: 'Your digital footprint matters',
-      icon: Database,
-      action: () => navigate('/operative/data-retention'),
-      color: 'bg-cyan-500/10 border-cyan-500/20'
-    },
-    {
-      title: 'My Timesheets',
-      description: 'Time is money—track it well!',
-      icon: Clock,
-      action: () => navigate('/operative/timesheets'),
-      color: 'bg-orange-500/10 border-orange-500/20'
-    }
-  ];
-
-  const personalActions = [
-    {
-      title: 'My Profile',
-      description: 'Update your deets!',
-      icon: User,
-      action: () => navigate('/operative/profile'),
-      color: 'bg-pink-500/10 border-pink-500/20'
-    }
-  ];
-
-  const allActions = [...safetyActions, ...paperworkActions, ...personalActions];
-  const filteredActions = allActions.filter(action =>
-    action.title.toLowerCase().includes(actionSearchTerm.toLowerCase()) ||
-    action.description.toLowerCase().includes(actionSearchTerm.toLowerCase())
-  );
-
   const stats = [
     { 
       label: 'Week Status', 
@@ -253,7 +151,7 @@ const OperativeDashboard = () => {
       bgColor: 'bg-green-500/10',
       icon: '✅',
       trend: '+2 hrs vs last week',
-      visual: 'bar'
+      visual: 'bar' as const
     },
     { 
       label: 'YTD Earnings', 
@@ -262,7 +160,7 @@ const OperativeDashboard = () => {
       bgColor: 'bg-yellow-500/10',
       icon: '💰',
       trend: 'Up 5%—ka-ching, ' + (userData?.firstname || 'mate') + '!',
-      visual: 'sparkline'
+      visual: 'sparkline' as const
     },
     { 
       label: 'Current Project', 
@@ -271,7 +169,7 @@ const OperativeDashboard = () => {
       bgColor: 'bg-blue-500/10',
       icon: '🏗️',
       trend: '75% complete—nearly there!',
-      visual: 'progress'
+      visual: 'progress' as const
     },
     { 
       label: 'Qualification Status', 
@@ -280,104 +178,9 @@ const OperativeDashboard = () => {
       bgColor: 'bg-orange-500/10',
       icon: '🎓',
       trend: 'One expiring—sort it before the boss notices!',
-      visual: 'pie'
+      visual: 'pie' as const
     }
   ];
-
-  const recentActivities = [
-    {
-      id: '1',
-      title: 'Week ending 21 July 2025',
-      description: 'Timesheet approved by Jane—nice one, team!',
-      status: 'Paid',
-      statusColor: 'bg-green-500/20 text-green-400 border-green-500/30',
-      timestamp: '2 hours ago'
-    },
-    {
-      id: '2',
-      title: 'Week ending 14 July 2025',
-      description: 'Exported to payroll—sorted!',
-      status: 'Exported',
-      statusColor: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      timestamp: '1 day ago'
-    },
-    {
-      id: '3',
-      title: 'CSCS Card Verification',
-      description: 'Card verified and updated—top notch!',
-      status: 'Valid',
-      statusColor: 'bg-green-500/20 text-green-400 border-green-500/30',
-      timestamp: '3 days ago'
-    }
-  ];
-
-  const filteredActivities = recentActivities.filter(activity =>
-    activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    activity.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    activity.status.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const toggleGroup = (group: string) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [group]: !prev[group]
-    }));
-  };
-
-  const MiniChart = ({ type, color }: { type: string; color: string }) => {
-    switch (type) {
-      case 'sparkline':
-        return (
-          <div className="flex items-end gap-0.5 h-6 w-12">
-            {[3, 5, 4, 6, 8, 7, 9].map((height, i) => (
-              <div
-                key={i}
-                className="flex-1 rounded-sm opacity-60"
-                style={{ 
-                  backgroundColor: color.replace('text-', '').replace('-400', ''),
-                  height: `${height * 3}px` 
-                }}
-              />
-            ))}
-          </div>
-        );
-      case 'progress':
-        return (
-          <div className="w-12 h-2 bg-gray-700 rounded-full overflow-hidden">
-            <div 
-              className="h-full rounded-full transition-all duration-500"
-              style={{ 
-                backgroundColor: color.replace('text-', '').replace('-400', ''),
-                width: '75%' 
-              }}
-            />
-          </div>
-        );
-      case 'pie':
-        return (
-          <div className="relative w-6 h-6">
-            <PieChart className="w-6 h-6 opacity-60" style={{ color: color.replace('text-', '').replace('-400', '') }} />
-          </div>
-        );
-      case 'bar':
-        return (
-          <div className="flex items-end gap-0.5 h-6 w-8">
-            {[4, 6, 5, 7].map((height, i) => (
-              <div
-                key={i}
-                className="flex-1 rounded-sm opacity-60"
-                style={{ 
-                  backgroundColor: color.replace('text-', '').replace('-400', ''),
-                  height: `${height * 2}px` 
-                }}
-              />
-            ))}
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
 
   if (loading) {
     return (
@@ -393,81 +196,45 @@ const OperativeDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0E1A] text-[#E1E1E8]">
-      {/* Unified Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-[#0B0E1A] to-[#1a1f2e] transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 border-r border-white/10`}>
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-6 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#FFCC00] rounded-lg flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-[#0B0E1A]" />
-              </div>
-              <span className="text-xl font-bold text-white">AJ Ryan</span>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            <div className="bg-[#FFCC00]/10 border border-[#FFCC00]/20 rounded-lg p-3">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 bg-[#FFCC00] rounded flex items-center justify-center">
-                  <Building2 className="h-4 w-4 text-[#0B0E1A]" />
-                </div>
-                <span className="text-[#FFCC00] font-medium">Dashboard</span>
-              </div>
-            </div>
-            
-            <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
-              <User className="h-5 w-5 text-[#4DA6FF]" />
-              <span className="text-[#E1E1E8]">My Portal</span>
-            </button>
-            
-            <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-[#4DA6FF]" />
-                <span className="text-[#E1E1E8]">AI Assistant</span>
-                <span className="text-xs bg-[#4DA6FF]/20 text-[#4DA6FF] px-2 py-1 rounded-full">Ask me anything, mate!</span>
-              </div>
-            </button>
-          </nav>
-
-          {/* Bottom */}
-          <div className="p-4 border-t border-white/10 space-y-3">
-            <Badge className="bg-[#4DA6FF]/20 text-[#4DA6FF] border-[#4DA6FF]/30 w-full justify-center">
-              🛠️ {user?.role || 'Operative'} - Your superpowers activated!
-            </Badge>
-            <button className="w-full flex items-center gap-2 p-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-              <span>Sign Out</span>
-              <span className="text-xs opacity-60">Off you go—stay safe!</span>
-            </button>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#0B0E1A] text-[#E1E1E8] flex">
+      {/* Modern Sidebar */}
+      <ModernSidebar 
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        isMobile={false}
+      />
+      
+      {/* Mobile Sidebar */}
+      <ModernSidebar 
+        collapsed={false}
+        onToggle={() => setMobileNavOpen(!mobileNavOpen)}
+        isMobile={true}
+        isOpen={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+      />
 
       {/* Mobile Header */}
-      <div className="lg:hidden sticky top-0 z-40 bg-[#1E2435]/95 backdrop-blur-sm border-b border-white/10 p-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-[#1E2435]/95 backdrop-blur-sm border-b border-white/10 p-4">
         <div className="flex items-center justify-between">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileNavOpen(!mobileNavOpen)}
+            className="text-white hover:bg-white/10"
           >
-            {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+            {mobileNavOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#FFCC00] rounded-lg flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-[#0B0E1A]" />
-            </div>
-            <span className="text-lg font-bold text-white">AJ Ryan</span>
+            <span className="text-lg font-bold text-white">A&J Ryan</span>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="lg:ml-64 min-h-screen bg-[#141A2B]">
-        <div className="p-6 lg:p-8 space-y-8">
+      <div className="flex-1 min-h-screen bg-[#141A2B] lg:ml-0">
+        <div className="p-6 lg:p-8 space-y-8 mt-16 lg:mt-0">
           {/* Personal Header Card */}
-          <Card className="bg-[#1E2435] border-white/10 shadow-xl sticky top-0 z-30">
+          <Card className="bg-[#1E2435] border-white/10 shadow-xl">
             <CardContent className="p-6">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
@@ -514,240 +281,26 @@ const OperativeDashboard = () => {
           {/* Quick Stats with Visual Data */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat, index) => (
-              <Card key={index} className="bg-[#1C2234] border-white/10 hover:scale-105 transition-all duration-300 hover:shadow-lg group">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className={`w-10 h-10 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
-                      <span className="text-lg">{stat.icon}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MiniChart type={stat.visual} color={stat.color} />
-                      <TrendingUp className="h-4 w-4 text-[#4DA6FF] opacity-60 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-[#C7C9D9] mb-1">{stat.label}</p>
-                    <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                    <p className="text-xs text-[#A1A6B3] mt-1">{stat.trend}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <StatsCard
+                key={index}
+                label={stat.label}
+                value={stat.value}
+                color={stat.color}
+                bgColor={stat.bgColor}
+                icon={stat.icon}
+                trend={stat.trend}
+                visual={stat.visual}
+              />
             ))}
           </div>
 
-          {/* Quick Actions with Search */}
-          <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold text-white">Quick Actions – Let's Crush It, {userData?.firstname || 'Mate'}!</h2>
-                <span className="text-2xl">⚡</span>
-              </div>
-              <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#A1A6B3]" />
-                <Input
-                  placeholder="Find action..."
-                  value={actionSearchTerm}
-                  onChange={(e) => setActionSearchTerm(e.target.value)}
-                  className="pl-10 bg-[#2A3350] border-white/20 text-[#E1E1E8] placeholder:text-[#A1A6B3]"
-                />
-              </div>
-            </div>
+          {/* Quick Actions Section */}
+          <QuickActionsSection userName={userData?.firstname || 'mate'} />
 
-            {/* Safety & Sharp */}
-            <div className="space-y-4">
-              <button
-                onClick={() => toggleGroup('safety')}
-                className="flex items-center gap-2 text-lg font-semibold text-[#4DA6FF] hover:text-[#FFCC00] transition-colors"
-              >
-                <Shield className="h-5 w-5" />
-                Stay Safe & Skilled
-                {expandedGroups.safety ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </button>
-              {expandedGroups.safety && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {safetyActions.filter(action =>
-                    action.title.toLowerCase().includes(actionSearchTerm.toLowerCase()) ||
-                    action.description.toLowerCase().includes(actionSearchTerm.toLowerCase())
-                  ).map((action, index) => {
-                    const Icon = action.icon;
-                    return (
-                      <Card 
-                        key={index} 
-                        className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
-                        onClick={action.action}
-                      >
-                        <CardContent className="p-5">
-                          <div className="text-center space-y-4">
-                            <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                              <Icon className="w-6 h-6 text-[#0B0E1A]" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
-                              <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
-                              <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium group-hover:animate-pulse">
-                                Open
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Handle the Hustle */}
-            <div className="space-y-4">
-              <button
-                onClick={() => toggleGroup('paperwork')}
-                className="flex items-center gap-2 text-lg font-semibold text-[#FFCC00] hover:text-[#4DA6FF] transition-colors"
-              >
-                <FileText className="h-5 w-5" />
-                Handle the Hustle
-                {expandedGroups.paperwork ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </button>
-              {expandedGroups.paperwork && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {paperworkActions.filter(action =>
-                    action.title.toLowerCase().includes(actionSearchTerm.toLowerCase()) ||
-                    action.description.toLowerCase().includes(actionSearchTerm.toLowerCase())
-                  ).map((action, index) => {
-                    const Icon = action.icon;
-                    return (
-                      <Card 
-                        key={index} 
-                        className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
-                        onClick={action.action}
-                      >
-                        <CardContent className="p-5">
-                          <div className="text-center space-y-4">
-                            <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                              <Icon className="w-6 h-6 text-[#0B0E1A]" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
-                              <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
-                              <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium group-hover:animate-pulse">
-                                Open
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Your Zone */}
-            <div className="space-y-4">
-              <button
-                onClick={() => toggleGroup('personal')}
-                className="flex items-center gap-2 text-lg font-semibold text-[#00E676] hover:text-[#FFCC00] transition-colors"
-              >
-                <User className="h-5 w-5" />
-                Your Zone
-                {expandedGroups.personal ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </button>
-              {expandedGroups.personal && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {personalActions.filter(action =>
-                    action.title.toLowerCase().includes(actionSearchTerm.toLowerCase()) ||
-                    action.description.toLowerCase().includes(actionSearchTerm.toLowerCase())
-                  ).map((action, index) => {
-                    const Icon = action.icon;
-                    return (
-                      <Card 
-                        key={index} 
-                        className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
-                        onClick={action.action}
-                      >
-                        <CardContent className="p-5">
-                          <div className="text-center space-y-4">
-                            <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                              <Icon className="w-6 h-6 text-[#0B0E1A]" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
-                              <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
-                              <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium group-hover:animate-pulse">
-                                Open
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Recent Activity with Search */}
-          <Card className="bg-[#1E2435] border-white/10">
-            <CardHeader>
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
-                  <span className="text-xl">📅</span>
-                  Recent Activity – What's the Buzz, {userData?.firstname || 'Mate'}?
-                </CardTitle>
-                <div className="relative max-w-sm">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#A1A6B3]" />
-                  <Input
-                    placeholder="Search activity..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-[#2A3350] border-white/20 text-[#E1E1E8] placeholder:text-[#A1A6B3]"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {filteredActivities.length === 0 ? (
-                <div className="text-center py-8">
-                  <Coffee className="h-12 w-12 mx-auto text-[#A1A6B3] mb-4" />
-                  <p className="text-[#A1A6B3]">
-                    {searchTerm ? 'No matching activity found' : 'All quiet—fancy checking notices for a laugh? ☕'}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {filteredActivities.map((activity) => (
-                    <div key={activity.id} className="bg-[#2A3350] rounded-lg p-4 hover:bg-[#2A3350]/80 transition-colors hover:scale-[1.02] duration-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-white">{activity.title}</h4>
-                            <span className="text-sm text-[#A1A6B3]">{activity.timestamp}</span>
-                          </div>
-                          <p className="text-sm text-[#A1A6B3] mt-1">{activity.description}</p>
-                        </div>
-                        <Badge className={`ml-4 ${activity.statusColor}`}>
-                          {activity.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Recent Activity Feed */}
+          <ActivityFeed userName={userData?.firstname || 'mate'} />
         </div>
       </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 };
