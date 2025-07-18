@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { RefreshCw, Zap } from 'lucide-react';
 
+type UserRole = 'Operative' | 'PM' | 'Supervisor' | 'Admin' | 'Director';
+
 export const RoleTestingPanel = () => {
   const { userProfile, refreshSession } = useAuth();
   const [testEmail, setTestEmail] = useState('markcroud@icloud.com');
-  const [testRole, setTestRole] = useState('PM');
+  const [testRole, setTestRole] = useState<UserRole>('PM');
   const [isUpdating, setIsUpdating] = useState(false);
 
   const updateUserRole = async () => {
@@ -77,7 +79,7 @@ export const RoleTestingPanel = () => {
 
         <div className="space-y-2">
           <Label htmlFor="test-role">New Role</Label>
-          <Select value={testRole} onValueChange={setTestRole}>
+          <Select value={testRole} onValueChange={(value) => setTestRole(value as UserRole)}>
             <SelectTrigger>
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
