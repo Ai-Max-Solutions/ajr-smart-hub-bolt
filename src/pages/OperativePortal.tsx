@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Menu, X, Sparkles } from 'lucide-react';
+import { User, Sparkles } from 'lucide-react';
 
 // Import new components
 import { ModernSidebar } from '@/components/operative/ModernSidebar';
@@ -213,26 +212,9 @@ const OperativeDashboard = () => {
         onClose={() => setMobileNavOpen(false)}
       />
 
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-[#1E2435]/95 backdrop-blur-sm border-b border-white/10 p-4">
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileNavOpen(!mobileNavOpen)}
-            className="text-white hover:bg-white/10"
-          >
-            {mobileNavOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </Button>
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold text-white">A&J Ryan</span>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 min-h-screen bg-[#141A2B] lg:ml-0">
-        <div className="p-6 lg:p-8 space-y-8 mt-16 lg:mt-0">
+        <div className="p-6 lg:p-8 space-y-8">
           {/* Personal Header Card */}
           <Card className="bg-[#1E2435] border-white/10 shadow-xl">
             <CardContent className="p-6">
