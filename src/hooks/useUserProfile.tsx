@@ -18,6 +18,7 @@ interface UserProfile {
   internalnotes: string | null;
   last_sign_in: string | null;
   airtable_created_time: string;
+  avatar_url: string | null;
 }
 
 export const useUserProfile = () => {
@@ -68,7 +69,8 @@ export const useUserProfile = () => {
           onboarding_completed: userData.onboarding_completed || false,
           internalnotes: userData.internalnotes,
           last_sign_in: userData.last_sign_in,
-          airtable_created_time: userData.airtable_created_time
+          airtable_created_time: userData.airtable_created_time,
+          avatar_url: userData.avatar_url
         });
       }
     } catch (err: any) {

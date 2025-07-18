@@ -351,7 +351,7 @@ export const MyProfileDashboard: React.FC = () => {
             currentAvatarUrl={currentAvatarUrl}
             userName={profile.fullname || `${profile.firstname} ${profile.lastname}`.trim()}
             userRole={profile.role}
-            userSkills={workTypes?.map(wt => wt.work_type)}
+            userSkills={workTypes}
             cscsLevel={cscsCard?.card_color}
             onAvatarUpdate={handleAvatarUpdate}
           />
