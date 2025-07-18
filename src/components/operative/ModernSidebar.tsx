@@ -176,7 +176,11 @@ export const ModernSidebar = ({
               <Building2 className="h-5 w-5 text-[#0B0E1A]" />
             </div>
             {!collapsed && (
-              <span className="text-xl font-bold text-white">A&J Ryan</span>
+              <img 
+                src="/lovable-uploads/adec81d1-6e45-4cc2-95ff-4da59cf0bcc1.png" 
+                alt="A&J Ryan Mechanical Services" 
+                className="h-8 w-auto"
+              />
             )}
           </div>
           {!isMobile && onToggle && (
