@@ -81,30 +81,27 @@ export const HireRequestModal = ({ isOpen, onClose }: HireRequestModalProps) => 
         throw new Error('User profile not found');
       }
 
-      // Simulate hire request submission for now
-      const mockHireRequest = {
-        id: Math.random().toString(36).substring(7),
-        user_id: profile.id,
-        pickup_address: formData.pickupAddress,
-        delivery_address: formData.deliveryAddress,
-        hire_date: formData.hireDate,
-        equipment_type: formData.equipmentType,
-        status: 'pending'
-      };
-      
-      // TODO: Replace with actual database insert once types are updated
-      console.log('Mock hire request:', mockHireRequest);
+      // Call our edge function to handle the hire request
+      const { data, error } = await supabase.functions.invoke('hire-request-webhook', {
+        body: {
+          user_id: profile.id,
+          pickup_address: formData.pickupAddress,
+          delivery_address: formData.deliveryAddress,
+          hire_date: formData.hireDate,
+          hire_time: formData.hireTime || null,
+          equipment_type: formData.equipmentType,
+          notes: formData.notes || null
+        }
+      });
+
+      if (error) throw error;
 
       // TODO: Trigger n8n workflow for AI voice call
-      // This would call the n8n webhook endpoint to:
-      // 1. Generate AI voice script
-      // 2. Make automated call to hire company
-      // 3. Log to Airtable
-      // 4. Update status
+      // This is now handled by the edge function automatically
 
       toast({
         title: "Hire Request Submitted! 🚛",
-        description: "AI is calling the hire company now - that's watertight planning!",
+        description: data?.message || "AI is calling the hire company now - that's watertight planning!",
       });
 
       // Reset form and close

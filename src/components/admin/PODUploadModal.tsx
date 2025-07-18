@@ -90,7 +90,7 @@ export const PODUploadModal = ({ isOpen, onClose }: PODUploadModalProps) => {
         throw new Error('User profile not found');
       }
 
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage first
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       const filePath = `pods/${profile.id}/${fileName}`;
@@ -101,23 +101,26 @@ export const PODUploadModal = ({ isOpen, onClose }: PODUploadModalProps) => {
 
       if (uploadError) throw uploadError;
 
+      // Call our edge function to process the POD
+      const { data, error } = await supabase.functions.invoke('pod-processing-webhook', {
+        body: {
+          user_id: profile.id,
+          file_path: filePath,
+          file_name: selectedFile.name,
+          file_type: selectedFile.type,
+          project_id: null // Add project selection to form if needed
+        }
+      });
+
+      if (error) throw error;
+
       // Complete upload progress
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      // TODO: Trigger n8n workflow for OCR processing
-      // This would call the n8n webhook endpoint to:
-      // 1. Process the uploaded file with OCR
-      // 2. Extract relevant data (date, consignment, notes)
-      // 3. Log to Airtable
-      // 4. Update app with processed data
-
-      // Simulate OCR processing delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       toast({
         title: "POD Upload Successful! 📄",
-        description: "OCR processing complete - all data extracted perfectly!",
+        description: data?.message || "OCR processing complete - all data extracted perfectly!",
       });
 
       // Reset and close
