@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,7 +11,7 @@ import {
   Loader2, 
   Camera, 
   User,
-  Download
+  RefreshCw
 } from 'lucide-react';
 
 interface ProfilePictureUploaderProps {
@@ -69,6 +68,7 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [aiMood, setAiMood] = useState<string>('');
   const [aiPersonality, setAiPersonality] = useState<string>('');
+  const [lastError, setLastError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -99,6 +99,7 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
     }
 
     setIsUploading(true);
+    setLastError('');
 
     try {
       // Resize image to 500px
@@ -142,9 +143,11 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
       });
     } catch (error) {
       console.error('Error uploading avatar:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      setLastError(errorMessage);
       toast({
         title: "Upload Failed",
-        description: "Failed to upload your profile picture. Please try again.",
+        description: `Failed to upload your profile picture: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -162,11 +165,12 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
     setIsGenerating(true);
     setAiMood('');
     setAiPersonality('');
+    setLastError('');
 
     try {
       console.log('Starting AI avatar generation for:', { userName, userRole, userId: user.id });
       
-      const { data, error } = await supabase.functions.invoke('ai-profile-generator', {
+      const response = await supabase.functions.invoke('ai-profile-generator', {
         body: {
           userName: userName || '',
           userRole: userRole || 'Site Worker',
@@ -174,30 +178,43 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
         },
       });
 
-      console.log('Edge function response:', { data, error });
+      console.log('Edge function response:', { data: response.data, error: response.error });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(`Edge function failed: ${error.message || 'Unknown error'}`);
+      // Enhanced error parsing - check for edge function errors first
+      if (response.error) {
+        console.error('Edge function error:', response.error);
+        throw new Error(`AI generation service error: ${response.error.message || 'Unknown error'}`);
       }
 
-      if (!data) {
-        throw new Error('No data returned from AI generator');
+      // Check if we have data
+      if (!response.data) {
+        throw new Error('No response from AI generation service');
       }
 
-      if (!data.avatarUrl) {
-        console.error('No avatar URL in response:', data);
-        throw new Error('AI generator did not return an avatar URL');
+      // Parse the response data - check for application-level errors even on 200 status
+      const data = response.data;
+      
+      // Check for error in the response payload (even if HTTP status was 200)
+      if (data.error) {
+        console.error('Application error in response:', data.error);
+        throw new Error(data.error);
       }
 
-      console.log('Generated avatar URL:', data.avatarUrl);
+      // Validate that we have an image URL
+      if (!data.imageUrl && !data.avatarUrl) {
+        console.error('No image URL in response:', data);
+        throw new Error('AI generator completed but returned no image URL');
+      }
+
+      const avatarUrl = data.imageUrl || data.avatarUrl;
+      console.log('Generated avatar URL:', avatarUrl);
 
       // Set the AI mood and personality for display
       setAiMood(data.aiMood || 'Creative');
       setAiPersonality(data.aiPersonality || 'AI generated your professional headshot!');
 
       // Avatar is already uploaded and database is updated by the edge function
-      onAvatarUpdate(data.avatarUrl);
+      onAvatarUpdate(avatarUrl);
       
       toast({
         title: "AI Avatar Generated! 🎨",
@@ -206,14 +223,31 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
     } catch (error) {
       console.error('Error generating AI avatar:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setLastError(errorMessage);
+      
+      // Provide specific error messages based on error content
+      let userFriendlyMessage = errorMessage;
+      if (errorMessage.includes('not configured')) {
+        userFriendlyMessage = 'AI service is temporarily unavailable. Please try uploading a photo instead.';
+      } else if (errorMessage.includes('User ID is required')) {
+        userFriendlyMessage = 'Please refresh the page and try again.';
+      } else if (errorMessage.includes('AI generation service error')) {
+        userFriendlyMessage = 'AI generation failed. Please try again in a moment.';
+      }
+      
       toast({
         title: "Generation Failed",
-        description: `AI generation failed: ${errorMessage}. Please try again.`,
+        description: userFriendlyMessage,
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleRetryAI = async () => {
+    setLastError('');
+    await handleGenerateAI();
   };
 
   const startCamera = async () => {
@@ -375,6 +409,25 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
               <p className="text-sm text-muted-foreground italic">
                 "{aiPersonality}"
               </p>
+            </div>
+          )}
+
+          {/* Error Display with Retry */}
+          {lastError && (
+            <div className="text-center p-4 bg-destructive/10 rounded-lg border-2 border-destructive/20 w-full">
+              <p className="text-sm text-destructive mb-3">{lastError}</p>
+              {lastError.includes('AI') && (
+                <Button
+                  onClick={handleRetryAI}
+                  disabled={isGenerating}
+                  size="sm"
+                  variant="outline"
+                  className="border-destructive/50 hover:bg-destructive/10"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry AI Generation
+                </Button>
+              )}
             </div>
           )}
 

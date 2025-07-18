@@ -3,8 +3,6 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -77,28 +75,62 @@ serve(async (req) => {
   }
 
   try {
-    const { userName, userRole, customStyle, userId, selfieBase64, gender, ageRange, ethnicity } = await req.json();
-    console.log('Received request:', { userName, userRole, customStyle, userId, hasSelfieMata: !!selfieBase64 });
-    
+    // Get and validate OpenAI API key first
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
-      console.error('OpenAI API key not found in environment variables');
+      console.error('OpenAI API key not configured in environment variables');
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ error: 'AI service not configured. Please contact support.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
+    // Parse and validate request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error('Invalid JSON in request body:', parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request format. Please provide valid JSON.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const { userName, userRole, customStyle, userId, selfieBase64, gender, ageRange, ethnicity } = requestBody;
+    
+    console.log('Received request:', { 
+      userName, 
+      userRole, 
+      customStyle: !!customStyle, 
+      userId, 
+      hasSelfie: !!selfieBase64,
+      gender,
+      ageRange,
+      ethnicity
+    });
+
+    // Validate required fields
     if (!userId) {
       console.error('User ID is required');
       return new Response(
-        JSON.stringify({ error: 'User ID is required' }),
+        JSON.stringify({ error: 'User ID is required for avatar generation.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Supabase configuration missing');
+      return new Response(
+        JSON.stringify({ error: 'Database service not configured. Please contact support.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get enhanced user data for personalization
@@ -110,6 +142,10 @@ serve(async (req) => {
 
     if (userError) {
       console.error('Error fetching user data:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Unable to fetch user profile. Please try again.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
     // Get CSCS card information
@@ -119,10 +155,10 @@ serve(async (req) => {
       .eq('user_id', userData?.id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (cscsError) {
-      console.log('No CSCS data found or error:', cscsError.message);
+    if (cscsError && cscsError.code !== 'PGRST116') {
+      console.log('CSCS data fetch error (non-critical):', cscsError.message);
     }
 
     // Get user work types
@@ -132,10 +168,14 @@ serve(async (req) => {
       .eq('user_id', userData?.id);
 
     if (workTypesError) {
-      console.log('No work types found or error:', workTypesError.message);
+      console.log('Work types fetch error (non-critical):', workTypesError.message);
     }
 
-    console.log('Enhanced user data:', { userData, cscsData, workTypes });
+    console.log('Enhanced user data loaded:', { 
+      userData: !!userData, 
+      cscsData: !!cscsData, 
+      workTypesCount: workTypes?.length || 0 
+    });
 
     // Pick a random AI mood
     const selectedMood = AI_MOODS[Math.floor(Math.random() * AI_MOODS.length)];
@@ -203,11 +243,13 @@ serve(async (req) => {
           const faceDescription = visionData.choices[0]?.message?.content;
           if (faceDescription) {
             enhancedPrompt += `, matching facial features: ${faceDescription}`;
-            console.log('Vision analysis completed:', faceDescription);
+            console.log('Vision analysis completed successfully');
           }
+        } else {
+          console.log('Vision analysis failed, proceeding without enhancement');
         }
       } catch (visionError) {
-        console.error('Vision analysis failed, proceeding without:', visionError);
+        console.error('Vision analysis error (non-critical):', visionError);
       }
     }
     
@@ -219,12 +261,13 @@ serve(async (req) => {
       primaryWorkType,
       cscsColor,
       cscsType: cscsData?.card_type,
-      workTypes: workTypesList
+      workTypes: workTypesList,
+      mood: selectedMood.name
     });
 
-    console.log(`AI Mood: ${selectedMood.name} - ${selectedMood.personality}`);
-    console.log(`Generating image with prompt: ${finalPrompt}`);
+    console.log(`Generating image with AI mood: ${selectedMood.name}`);
 
+    // Generate image with OpenAI
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -237,26 +280,26 @@ serve(async (req) => {
         n: 1,
         size: '1024x1024',
         quality: 'hd',
-        response_format: 'b64_json'  // Get base64 for better handling
+        response_format: 'b64_json'
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({ error: 'Unknown OpenAI error' }));
       console.error('OpenAI API error:', errorData);
       return new Response(
-        JSON.stringify({ error: 'Failed to generate image', details: errorData }),
+        JSON.stringify({ error: 'AI image generation failed. Please try again or contact support.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
     const data = await response.json();
     
-    // Check if we have the expected response structure for base64
+    // Validate OpenAI response structure
     if (!data.data || !data.data[0] || !data.data[0].b64_json) {
       console.error('Unexpected OpenAI response structure:', data);
       return new Response(
-        JSON.stringify({ error: 'Invalid response from image generation service' }),
+        JSON.stringify({ error: 'Invalid response from AI service. Please try again.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
@@ -265,13 +308,21 @@ serve(async (req) => {
     console.log('OpenAI generated base64 image, length:', base64Data.length);
 
     // Convert base64 to buffer for upload
-    const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-    console.log('Image buffer size:', imageBuffer.length);
+    let imageBuffer;
+    try {
+      imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    } catch (decodeError) {
+      console.error('Base64 decode error:', decodeError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to process generated image. Please try again.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
 
     if (imageBuffer.length === 0) {
       console.error('Generated image buffer is empty');
       return new Response(
-        JSON.stringify({ error: 'Generated image is empty' }),
+        JSON.stringify({ error: 'Generated image is empty. Please try again.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
@@ -291,7 +342,7 @@ serve(async (req) => {
     if (uploadError) {
       console.error('Storage upload error:', uploadError);
       return new Response(
-        JSON.stringify({ error: `Storage upload failed: ${uploadError.message}` }),
+        JSON.stringify({ error: 'Failed to save generated image. Please try again.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
@@ -314,16 +365,17 @@ serve(async (req) => {
     if (updateError) {
       console.error('Database update error:', updateError);
       return new Response(
-        JSON.stringify({ error: `Database update failed: ${updateError.message}` }),
+        JSON.stringify({ error: 'Failed to update profile. Please try again.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
     console.log('Avatar updated successfully');
     
+    // Return standardized success response
     return new Response(
       JSON.stringify({ 
-        imageUrl: publicUrl,  // Standardized response key
+        imageUrl: publicUrl,
         avatarUrl: publicUrl, // Keep for backwards compatibility
         aiMood: selectedMood.name,
         aiPersonality: selectedMood.personality,
@@ -331,10 +383,14 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
+
   } catch (error) {
-    console.error('Error in ai-profile-generator function:', error);
+    console.error('Unexpected error in ai-profile-generator function:', error);
     return new Response(
-      JSON.stringify({ error: 'An unexpected error occurred', details: error.message }),
+      JSON.stringify({ 
+        error: 'An unexpected error occurred during avatar generation. Please try again or contact support.',
+        details: error.message 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
