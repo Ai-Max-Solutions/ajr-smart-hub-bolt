@@ -85,6 +85,7 @@ export type Database = {
           updated_at: string
           user_id: string
           verification_notes: string | null
+          verified: boolean | null
         }
         Insert: {
           back_image_url?: string | null
@@ -102,6 +103,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           verification_notes?: string | null
+          verified?: boolean | null
         }
         Update: {
           back_image_url?: string | null
@@ -119,6 +121,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           verification_notes?: string | null
+          verified?: boolean | null
         }
         Relationships: [
           {
@@ -709,7 +712,9 @@ export type Database = {
       }
       users: {
         Row: {
+          ai_avatar_opt_out: boolean | null
           airtable_created_time: string | null
+          avatar_url: string | null
           created_at: string
           currentproject: string | null
           email: string
@@ -719,17 +724,22 @@ export type Database = {
           id: string
           internalnotes: string | null
           is_blocked: boolean
+          last_onboarding_update: string | null
           last_sign_in: string | null
           lastname: string | null
           name: string
           onboarding_completed: boolean | null
+          onboarding_step: number | null
           phone: string | null
+          profile_image_url: string | null
           role: Database["public"]["Enums"]["user_role_enum"]
           supabase_auth_id: string | null
           updated_at: string
         }
         Insert: {
+          ai_avatar_opt_out?: boolean | null
           airtable_created_time?: string | null
+          avatar_url?: string | null
           created_at?: string
           currentproject?: string | null
           email: string
@@ -739,17 +749,22 @@ export type Database = {
           id?: string
           internalnotes?: string | null
           is_blocked?: boolean
+          last_onboarding_update?: string | null
           last_sign_in?: string | null
           lastname?: string | null
           name: string
           onboarding_completed?: boolean | null
+          onboarding_step?: number | null
           phone?: string | null
+          profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role_enum"]
           supabase_auth_id?: string | null
           updated_at?: string
         }
         Update: {
+          ai_avatar_opt_out?: boolean | null
           airtable_created_time?: string | null
+          avatar_url?: string | null
           created_at?: string
           currentproject?: string | null
           email?: string
@@ -759,11 +774,14 @@ export type Database = {
           id?: string
           internalnotes?: string | null
           is_blocked?: boolean
+          last_onboarding_update?: string | null
           last_sign_in?: string | null
           lastname?: string | null
           name?: string
           onboarding_completed?: boolean | null
+          onboarding_step?: number | null
           phone?: string | null
+          profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role_enum"]
           supabase_auth_id?: string | null
           updated_at?: string

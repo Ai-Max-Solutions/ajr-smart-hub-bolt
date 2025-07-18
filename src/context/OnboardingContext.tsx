@@ -42,12 +42,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return;
     }
 
-    // Debounce: prevent multiple checks within 1 second
-    const now = Date.now();
-    if (now - lastCheckTime < 1000) {
-      return;
-    }
-    setLastCheckTime(now);
+    // Remove debounce to allow immediate checks when needed
+    setLastCheckTime(Date.now());
 
     setIsLoading(true);
     setError(null);
@@ -69,7 +65,28 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
 
       if (!userData) {
-        console.log('[OnboardingContext] No user found in database');
+        console.log('[OnboardingContext] No user found in database, creating profile');
+        // Create user profile if it doesn't exist
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert({
+            supabase_auth_id: user.id,
+            email: user.email || '',
+            name: user.user_metadata?.full_name || '',
+            firstname: user.user_metadata?.first_name || '',
+            lastname: user.user_metadata?.last_name || '',
+            role: 'Operative'
+          })
+          .select()
+          .single();
+        
+        if (createError) {
+          console.error('[OnboardingContext] Error creating user profile:', createError);
+          setError('Failed to create user profile');
+          return;
+        }
+        
+        // Set all flags to false for new user - force personal details step
         setFlags({
           personalComplete: false,
           cscsComplete: false,
@@ -106,7 +123,11 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ]);
 
       // Compute completion flags
-      const personalComplete = !!(
+      // Force personal details step for users created within 24 hours
+      const userAge = Date.now() - new Date(userData.created_at).getTime();
+      const isNewUser = userAge < 24 * 60 * 60 * 1000; // 24 hours
+      
+      const personalComplete = !isNewUser && !!(
         userData.firstname && 
         userData.lastname && 
         userData.phone &&

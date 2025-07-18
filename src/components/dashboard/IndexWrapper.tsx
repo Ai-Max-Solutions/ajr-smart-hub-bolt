@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnboarding } from '@/context/OnboardingContext';
 import Index from '@/pages/Index';
-import { Loader2 } from 'lucide-react';
+import { FullScreenLoader } from '@/components/ui/full-screen-loader';
 
 export const IndexWrapper = () => {
   const { user } = useAuth();
@@ -19,28 +19,20 @@ export const IndexWrapper = () => {
   useEffect(() => {
     if (isLoading || isNavigating || !user) return;
 
-    // If any onboarding step is incomplete, redirect to first incomplete step
+    // Only redirect if user is definitively incomplete - add 500ms delay to prevent flash
     if (!flags.allComplete && missingSteps.length > 0) {
-      console.log('[IndexWrapper] Redirecting to onboarding:', firstIncompleteStep);
+      console.log('[IndexWrapper] User incomplete, redirecting to onboarding after delay:', firstIncompleteStep);
       setIsNavigating(true);
-      navigate(`/onboarding/${firstIncompleteStep}`, { replace: true });
       
-      // Reset navigation state after a short delay
       setTimeout(() => {
-        setIsNavigating(false);
-      }, 100);
+        navigate(`/onboarding/${firstIncompleteStep}`, { replace: true });
+        setTimeout(() => setIsNavigating(false), 100);
+      }, 500);
     }
   }, [flags.allComplete, missingSteps, firstIncompleteStep, isLoading, isNavigating, user, navigate]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-          <p className="text-muted-foreground">Checking your profile...</p>
-        </div>
-      </div>
-    );
+  if (isLoading || isNavigating) {
+    return <FullScreenLoader message={isNavigating ? "Redirecting to onboarding..." : "Checking your profile..."} />;
   }
 
   return <Index />;

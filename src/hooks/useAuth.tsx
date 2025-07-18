@@ -56,6 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('[Auth] Auth state changed:', event, session?.user?.id);
+        
+        // Ignore TOKEN_REFRESHED events to prevent auth flapping
+        if (event === 'TOKEN_REFRESHED') {
+          return;
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -159,19 +165,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error } = await supabase.auth.signOut();
       
-      // Handle harmless 403 "Session not found" errors
-      if (error && !error.message?.includes('Session not found')) {
+      // Handle harmless 403 "Session not found" errors as success
+      if (error && error.message?.includes('session_not_found')) {
+        console.log('[Auth] Session already expired, treating as successful logout');
+      } else if (error) {
         throw error;
       }
       
       // Clean up local storage
       localStorage.removeItem('sb-access-token');
       localStorage.removeItem('sb-refresh-token');
+      localStorage.removeItem('onboardingData');
       
       setUser(null);
       setSession(null);
       setUserProfile(null);
-      toast.success('Signed out successfully');
+      toast.success('Logged out—see ya!');
     } catch (error: any) {
       toast.error('Error signing out: ' + error.message);
     }

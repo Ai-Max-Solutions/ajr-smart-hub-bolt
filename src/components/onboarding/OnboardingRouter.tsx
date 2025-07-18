@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useOnboarding } from '@/context/OnboardingContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
+import { FullScreenLoader } from '@/components/ui/full-screen-loader';
 
 interface OnboardingRouterProps {
   children: React.ReactNode;
@@ -19,12 +20,12 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
     if (isNavigating) return;
     console.log(`[OnboardingRouter] ${reason}:`, path);
     setIsNavigating(true);
-    navigate(path, { replace: true });
     
-    // Reset navigation state after a short delay
+    // Add 500ms delay to prevent flash, then navigate
     setTimeout(() => {
-      setIsNavigating(false);
-    }, 100);
+      navigate(path, { replace: true });
+      setTimeout(() => setIsNavigating(false), 100);
+    }, 500);
   }, [navigate, isNavigating]);
 
   // Handle completion redirect
@@ -77,14 +78,11 @@ export const OnboardingRouter = ({ children }: OnboardingRouterProps) => {
   }, [user, isLoading, flags.allComplete, location.pathname, firstIncompleteStep, handleNavigation, isNavigating]);
 
   if (!user || isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-          <p className="text-muted-foreground">Checking onboarding status...</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoader message="Checking onboarding status..." />;
+  }
+
+  if (isNavigating) {
+    return <FullScreenLoader message="Redirecting..." />;
   }
 
   return <>{children}</>;
