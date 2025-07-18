@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +12,6 @@ import {
   Loader2, 
   Camera, 
   User,
-  Shuffle,
   Download
 } from 'lucide-react';
 
@@ -23,6 +23,37 @@ interface ProfilePictureUploaderProps {
   cscsLevel?: string;
   onAvatarUpdate: (url: string) => void;
 }
+
+// Client-side image resizing utility
+const resizeImage = (file: File, maxSize: number = 500): Promise<Blob> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    const img = new Image();
+    
+    img.onload = () => {
+      const { width, height } = img;
+      const aspectRatio = width / height;
+      
+      let newWidth, newHeight;
+      if (width > height) {
+        newWidth = Math.min(maxSize, width);
+        newHeight = newWidth / aspectRatio;
+      } else {
+        newHeight = Math.min(maxSize, height);
+        newWidth = newHeight * aspectRatio;
+      }
+      
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      
+      ctx.drawImage(img, 0, 0, newWidth, newHeight);
+      canvas.toBlob(resolve!, 'image/png', 0.9);
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
+};
 
 export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
   currentAvatarUrl,
@@ -57,11 +88,11 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
       return;
     }
 
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (2MB limit)
+    if (file.size > 2 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Please select an image smaller than 5MB.",
+        description: "Please select an image smaller than 2MB.",
         variant: "destructive",
       });
       return;
@@ -70,14 +101,17 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
     setIsUploading(true);
 
     try {
+      // Resize image to 500px
+      const resizedBlob = await resizeImage(file);
+      
       // Create file path with user ID
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop() || 'png';
       const fileName = `${user.id}/avatar.${fileExt}`;
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, {
+        .upload(fileName, resizedBlob, {
           cacheControl: '3600',
           upsert: true
         });
@@ -91,9 +125,15 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
         .from('avatars')
         .getPublicUrl(fileName);
 
-      // Mock user update since avatar_url column doesn't exist
-      console.log('Would update user avatar URL:', publicUrl);
+      // Update user's avatar URL in database
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ avatar_url: publicUrl })
+        .eq('supabase_auth_id', user.id);
 
+      if (updateError) {
+        throw updateError;
+      }
 
       onAvatarUpdate(publicUrl);
       toast({
@@ -233,11 +273,14 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
       stopCamera();
       
       try {
+        // Resize the captured image
+        const resizedBlob = await resizeImage(new File([blob], 'selfie.jpg', { type: 'image/jpeg' }));
+        
         const fileName = `${user.id}/camera-avatar-${Date.now()}.jpg`;
         
         const { data, error } = await supabase.storage
           .from('avatars')
-          .upload(fileName, blob, {
+          .upload(fileName, resizedBlob, {
             cacheControl: '3600',
             upsert: true
           });
@@ -248,8 +291,13 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
           .from('avatars')
           .getPublicUrl(fileName);
 
-        // Mock user update since avatar_url column doesn't exist
-        console.log('Would update user avatar URL:', publicUrl);
+        // Update user's avatar URL in database
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ avatar_url: publicUrl })
+          .eq('supabase_auth_id', user.id);
+
+        if (updateError) throw updateError;
 
         onAvatarUpdate(publicUrl);
         toast({
@@ -436,7 +484,7 @@ export const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
 
           {/* Technical Details */}
           <div className="text-xs text-muted-foreground text-center">
-            <p>Supports PNG, JPG, GIF, WebP • Max 5MB</p>
+            <p>Supports PNG, JPG, GIF, WebP • Max 2MB • Auto-resized to 500px</p>
           </div>
         </div>
       </CardContent>

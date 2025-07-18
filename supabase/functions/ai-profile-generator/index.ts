@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -102,8 +103,8 @@ serve(async (req) => {
 
     // Get enhanced user data for personalization
     const { data: userData, error: userError } = await supabase
-      .from('Users')
-      .select('id, firstname, lastname, role, primaryskill, skills')
+      .from('users')
+      .select('id, firstname, lastname, role, phone')
       .eq('supabase_auth_id', userId)
       .single();
 
@@ -114,7 +115,7 @@ serve(async (req) => {
     // Get CSCS card information
     const { data: cscsData, error: cscsError } = await supabase
       .from('cscs_cards')
-      .select('cscs_card_type, card_color, qualifications')
+      .select('card_type, card_color, qualifications')
       .eq('user_id', userData?.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -124,16 +125,26 @@ serve(async (req) => {
       console.log('No CSCS data found or error:', cscsError.message);
     }
 
-    console.log('Enhanced user data:', { userData, cscsData });
+    // Get user work types
+    const { data: workTypes, error: workTypesError } = await supabase
+      .from('user_work_types')
+      .select('work_type')
+      .eq('user_id', userData?.id);
+
+    if (workTypesError) {
+      console.log('No work types found or error:', workTypesError.message);
+    }
+
+    console.log('Enhanced user data:', { userData, cscsData, workTypes });
 
     // Pick a random AI mood
     const selectedMood = AI_MOODS[Math.floor(Math.random() * AI_MOODS.length)];
     
     // Determine job type visuals
     const effectiveRole = userData?.role || userRole || 'Operative';
-    const primarySkill = userData?.primaryskill || '';
-    const jobTypeKey = primarySkill || effectiveRole;
-    const jobVisuals = JOB_TYPE_VISUALS[jobTypeKey] || JOB_TYPE_VISUALS['Default'];
+    const workTypesList = workTypes?.map(wt => wt.work_type) || [];
+    const primaryWorkType = workTypesList[0] || effectiveRole;
+    const jobVisuals = JOB_TYPE_VISUALS[primaryWorkType] || JOB_TYPE_VISUALS['Default'];
     
     // Determine CSCS visuals
     const cscsColor = cscsData?.card_color || 'Default';
@@ -154,9 +165,9 @@ serve(async (req) => {
     // Add AJ Ryan branding
     enhancedPrompt += `, professional AJ Ryan Mechanical Services team member`;
     
-    // Add qualifications context if available
-    if (cscsData?.qualifications?.primary_qualification) {
-      enhancedPrompt += `, ${cscsData.qualifications.primary_qualification} qualified`;
+    // Add work types context if available
+    if (workTypesList.length > 0) {
+      enhancedPrompt += `, specialized in ${workTypesList.join(', ')}`;
     }
     
     // Use custom style or enhanced AI mood
@@ -164,11 +175,10 @@ serve(async (req) => {
     
     console.log('Enhanced prompt context:', {
       effectiveRole,
-      primarySkill,
-      jobTypeKey,
+      primaryWorkType,
       cscsColor,
-      cscsType: cscsData?.cscs_card_type,
-      qualifications: cscsData?.qualifications
+      cscsType: cscsData?.card_type,
+      workTypes: workTypesList
     });
 
     console.log(`AI Mood: ${selectedMood.name} - ${selectedMood.personality}`);
@@ -265,7 +275,7 @@ serve(async (req) => {
 
     // Update user's avatar URL in database
     const { error: updateError } = await supabase
-      .from('Users')
+      .from('users')
       .update({ avatar_url: publicUrl })
       .eq('supabase_auth_id', userId);
 

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { ProfilePictureUploader } from '@/components/ui/profile-picture-uploader';
 import { 
   User, 
   Camera, 
@@ -56,6 +57,7 @@ export const MyProfileDashboard: React.FC = () => {
   const { profile, loading, updateProfile } = useUserProfile();
   const [isEditing, setIsEditing] = useState(false);
   const [greeting, setGreeting] = useState('');
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string>('');
   const queryClient = useQueryClient();
 
   // Set dynamic greeting
@@ -65,6 +67,13 @@ export const MyProfileDashboard: React.FC = () => {
     else if (hour < 17) setGreeting('Good afternoon');
     else setGreeting('Good evening');
   }, []);
+
+  // Update avatar URL when profile changes
+  useEffect(() => {
+    if (profile?.avatar_url) {
+      setCurrentAvatarUrl(profile.avatar_url);
+    }
+  }, [profile?.avatar_url]);
 
   // Fetch CSCS card data
   const { data: cscsCard } = useQuery({
@@ -139,11 +148,12 @@ export const MyProfileDashboard: React.FC = () => {
       emergencyContact?.name,
       emergencyContact?.phone,
       cscsCard?.card_number,
-      workTypes?.length > 0
+      workTypes?.length > 0,
+      currentAvatarUrl // Include avatar in completeness calculation
     ];
     const completed = fields.filter(Boolean).length;
     return Math.round((completed / fields.length) * 100);
-  }, [profile, emergencyContact, cscsCard, workTypes]);
+  }, [profile, emergencyContact, cscsCard, workTypes, currentAvatarUrl]);
 
   // Generate quick stats
   const quickStats: QuickStat[] = [
@@ -212,6 +222,12 @@ export const MyProfileDashboard: React.FC = () => {
     remaining: { label: 'Remaining', color: 'hsl(var(--muted))' }
   };
 
+  const handleAvatarUpdate = (newAvatarUrl: string) => {
+    setCurrentAvatarUrl(newAvatarUrl);
+    // Refresh the profile data to get the latest avatar URL
+    queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -239,18 +255,11 @@ export const MyProfileDashboard: React.FC = () => {
           <div className="flex items-center gap-4">
             <div className="relative">
               <Avatar className="h-16 w-16 border-4 border-accent/20">
-                <AvatarImage src="" />
+                <AvatarImage src={currentAvatarUrl} />
                 <AvatarFallback className="bg-accent text-accent-foreground text-lg">
                   {profile.firstname?.[0] || ''}{profile.lastname?.[0] || ''}
                 </AvatarFallback>
               </Avatar>
-              <Button
-                size="sm"
-                variant="outline"
-                className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full p-0"
-              >
-                <Camera className="h-4 w-4" />
-              </Button>
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">
@@ -334,9 +343,19 @@ export const MyProfileDashboard: React.FC = () => {
       {/* Main Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left Column - Profile Info */}
+        {/* Left Column - Profile Info + Avatar Uploader */}
         <div className="space-y-6">
           
+          {/* Profile Picture Uploader Card */}
+          <ProfilePictureUploader
+            currentAvatarUrl={currentAvatarUrl}
+            userName={profile.fullname || `${profile.firstname} ${profile.lastname}`.trim()}
+            userRole={profile.role}
+            userSkills={workTypes?.map(wt => wt.work_type)}
+            cscsLevel={cscsCard?.card_color}
+            onAvatarUpdate={handleAvatarUpdate}
+          />
+
           {/* Basic Information Card */}
           <Card>
             <CardHeader>
