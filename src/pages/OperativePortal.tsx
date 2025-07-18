@@ -27,8 +27,10 @@ import {
   X,
   Sparkles,
   Coffee,
-  Moon,
-  Sun
+  ChevronDown,
+  ChevronRight,
+  BarChart3,
+  PieChart
 } from 'lucide-react';
 import MyPayslips from '@/components/operative/MyPayslips';
 import MyQualifications from '@/components/compliance/MyQualifications';
@@ -50,8 +52,14 @@ const OperativeDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [actionSearchTerm, setActionSearchTerm] = useState('');
   const [greeting, setGreeting] = useState('');
   const [greetingEmoji, setGreetingEmoji] = useState('👋');
+  const [expandedGroups, setExpandedGroups] = useState({
+    safety: true,
+    paperwork: true,
+    personal: true
+  });
 
   // ✅ Role guard: Operative/Supervisor portal access
   useEffect(() => {
@@ -73,7 +81,7 @@ const OperativeDashboard = () => {
     }
   }, [user, navigate, toast]);
 
-  // Set dynamic greeting with emoji
+  // Set dynamic greeting with emoji and personality
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) {
@@ -81,7 +89,7 @@ const OperativeDashboard = () => {
       setGreetingEmoji('☕');
     } else if (hour < 17) {
       setGreeting('Good afternoon');
-      setGreetingEmoji('☀️');
+      setGreetingEmoji('🌞');
     } else {
       setGreeting('Good evening');
       setGreetingEmoji('🌙');
@@ -100,7 +108,7 @@ const OperativeDashboard = () => {
       try {
         const { data, error } = await supabase
           .from('users')
-          .select('name, phone')
+          .select('name, phone, avatar_url, firstname, lastname')
           .eq('supabase_auth_id', session.user.id)
           .single();
 
@@ -118,7 +126,7 @@ const OperativeDashboard = () => {
                 name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
                 role: 'Operative'
               })
-              .select('name, phone')
+              .select('name, phone, avatar_url, firstname, lastname')
               .single();
             
             if (insertError) {
@@ -129,16 +137,18 @@ const OperativeDashboard = () => {
               });
             } else {
               setUserData({
-                firstname: insertData?.name?.split(' ')[0] || 'User',
-                lastname: insertData?.name?.split(' ').slice(1).join(' ') || ''
+                firstname: insertData?.firstname || insertData?.name?.split(' ')[0] || 'User',
+                lastname: insertData?.lastname || insertData?.name?.split(' ').slice(1).join(' ') || '',
+                avatar_url: insertData?.avatar_url
               });
             }
           }
         } else {
           console.log('Setting userData:', data);
           setUserData({
-            firstname: data?.name?.split(' ')[0] || 'User',
-            lastname: data?.name?.split(' ').slice(1).join(' ') || ''
+            firstname: data?.firstname || data?.name?.split(' ')[0] || 'User',
+            lastname: data?.lastname || data?.name?.split(' ').slice(1).join(' ') || '',
+            avatar_url: data?.avatar_url
           });
         }
       } catch (err) {
@@ -158,7 +168,7 @@ const OperativeDashboard = () => {
   const safetyActions = [
     {
       title: 'Site Notices',
-      description: 'Stay sharp—don\'t get caught out!',
+      description: 'Stay sharp—don\'t get blindsided!',
       icon: Bell,
       action: () => navigate('/operative/notices'),
       highlight: true,
@@ -174,14 +184,14 @@ const OperativeDashboard = () => {
     },
     {
       title: 'My Qualifications',
-      description: 'Keep your tickets fresh!',
+      description: 'Keep your tickets fresh—don\'t let the boss notice!',
       icon: Shield,
       action: () => navigate('/operative/qualifications'),
       color: 'bg-green-500/10 border-green-500/20'
     },
     {
       title: 'My Training',
-      description: 'Level up your skills!',
+      description: 'Level up your skills—be the site legend!',
       icon: BookOpen,
       action: () => navigate('/operative/training'),
       color: 'bg-purple-500/10 border-purple-500/20'
@@ -229,14 +239,21 @@ const OperativeDashboard = () => {
     }
   ];
 
+  const allActions = [...safetyActions, ...paperworkActions, ...personalActions];
+  const filteredActions = allActions.filter(action =>
+    action.title.toLowerCase().includes(actionSearchTerm.toLowerCase()) ||
+    action.description.toLowerCase().includes(actionSearchTerm.toLowerCase())
+  );
+
   const stats = [
     { 
-      label: 'This Week Status', 
+      label: 'Week Status', 
       value: 'Approved', 
       color: 'text-green-400', 
       bgColor: 'bg-green-500/10',
       icon: '✅',
-      trend: '+2 hrs vs last week'
+      trend: '+2 hrs vs last week',
+      visual: 'bar'
     },
     { 
       label: 'YTD Earnings', 
@@ -244,7 +261,8 @@ const OperativeDashboard = () => {
       color: 'text-yellow-400', 
       bgColor: 'bg-yellow-500/10',
       icon: '💰',
-      trend: 'Ka-ching—up 5%!'
+      trend: 'Up 5%—ka-ching, ' + (userData?.firstname || 'mate') + '!',
+      visual: 'sparkline'
     },
     { 
       label: 'Current Project', 
@@ -252,7 +270,8 @@ const OperativeDashboard = () => {
       color: 'text-blue-400', 
       bgColor: 'bg-blue-500/10',
       icon: '🏗️',
-      trend: '3 quals expiring soon'
+      trend: '75% complete—nearly there!',
+      visual: 'progress'
     },
     { 
       label: 'Qualification Status', 
@@ -260,7 +279,8 @@ const OperativeDashboard = () => {
       color: 'text-orange-400', 
       bgColor: 'bg-orange-500/10',
       icon: '🎓',
-      trend: 'Renew by March 15th'
+      trend: 'One expiring—sort it before the boss notices!',
+      visual: 'pie'
     }
   ];
 
@@ -268,7 +288,7 @@ const OperativeDashboard = () => {
     {
       id: '1',
       title: 'Week ending 21 July 2025',
-      description: 'Timesheet approved by Jane—nice one!',
+      description: 'Timesheet approved by Jane—nice one, team!',
       status: 'Paid',
       statusColor: 'bg-green-500/20 text-green-400 border-green-500/30',
       timestamp: '2 hours ago'
@@ -297,6 +317,68 @@ const OperativeDashboard = () => {
     activity.status.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const toggleGroup = (group: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [group]: !prev[group]
+    }));
+  };
+
+  const MiniChart = ({ type, color }: { type: string; color: string }) => {
+    switch (type) {
+      case 'sparkline':
+        return (
+          <div className="flex items-end gap-0.5 h-6 w-12">
+            {[3, 5, 4, 6, 8, 7, 9].map((height, i) => (
+              <div
+                key={i}
+                className="flex-1 rounded-sm opacity-60"
+                style={{ 
+                  backgroundColor: color.replace('text-', '').replace('-400', ''),
+                  height: `${height * 3}px` 
+                }}
+              />
+            ))}
+          </div>
+        );
+      case 'progress':
+        return (
+          <div className="w-12 h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div 
+              className="h-full rounded-full transition-all duration-500"
+              style={{ 
+                backgroundColor: color.replace('text-', '').replace('-400', ''),
+                width: '75%' 
+              }}
+            />
+          </div>
+        );
+      case 'pie':
+        return (
+          <div className="relative w-6 h-6">
+            <PieChart className="w-6 h-6 opacity-60" style={{ color: color.replace('text-', '').replace('-400', '') }} />
+          </div>
+        );
+      case 'bar':
+        return (
+          <div className="flex items-end gap-0.5 h-6 w-8">
+            {[4, 6, 5, 7].map((height, i) => (
+              <div
+                key={i}
+                className="flex-1 rounded-sm opacity-60"
+                style={{ 
+                  backgroundColor: color.replace('text-', '').replace('-400', ''),
+                  height: `${height * 2}px` 
+                }}
+              />
+            ))}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0B0E1A] flex items-center justify-center">
@@ -312,7 +394,7 @@ const OperativeDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#0B0E1A] text-[#E1E1E8]">
-      {/* Sidebar */}
+      {/* Unified Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-[#0B0E1A] to-[#1a1f2e] transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 border-r border-white/10`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
@@ -345,19 +427,19 @@ const OperativeDashboard = () => {
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-[#4DA6FF]" />
                 <span className="text-[#E1E1E8]">AI Assistant</span>
-                <span className="text-xs bg-[#4DA6FF]/20 text-[#4DA6FF] px-2 py-1 rounded-full">Ask me anything!</span>
+                <span className="text-xs bg-[#4DA6FF]/20 text-[#4DA6FF] px-2 py-1 rounded-full">Ask me anything, mate!</span>
               </div>
             </button>
           </nav>
 
           {/* Bottom */}
           <div className="p-4 border-t border-white/10 space-y-3">
-            <Badge className="bg-[#4DA6FF]/20 text-[#4DA6FF] border-[#4DA6FF]/30">
-              🛠️ {user?.role || 'Operative'}
+            <Badge className="bg-[#4DA6FF]/20 text-[#4DA6FF] border-[#4DA6FF]/30 w-full justify-center">
+              🛠️ {user?.role || 'Operative'} - Your superpowers activated!
             </Badge>
             <button className="w-full flex items-center gap-2 p-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
               <span>Sign Out</span>
-              <span className="text-xs opacity-60">See ya—stay safe!</span>
+              <span className="text-xs opacity-60">Off you go—stay safe!</span>
             </button>
           </div>
         </div>
@@ -385,13 +467,13 @@ const OperativeDashboard = () => {
       <div className="lg:ml-64 min-h-screen bg-[#141A2B]">
         <div className="p-6 lg:p-8 space-y-8">
           {/* Personal Header Card */}
-          <Card className="bg-[#1E2435] border-white/10 shadow-xl">
+          <Card className="bg-[#1E2435] border-white/10 shadow-xl sticky top-0 z-30">
             <CardContent className="p-6">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#FFCC00] to-[#4DA6FF] p-1">
-                      <div className="w-full h-full rounded-full bg-[#1E2435] flex items-center justify-center">
+                      <div className="w-full h-full rounded-full bg-[#1E2435] flex items-center justify-center overflow-hidden">
                         {userData?.avatar_url ? (
                           <img 
                             src={userData.avatar_url} 
@@ -409,10 +491,10 @@ const OperativeDashboard = () => {
                   </div>
                   <div>
                     <h1 className="text-2xl lg:text-3xl font-bold text-white">
-                      {greeting}, {userData?.firstname || 'Mate'}!
+                      {greeting}, {userData?.firstname || 'mate'}!
                     </h1>
                     <p className="text-[#C7C9D9] mt-1">
-                      Ready to conquer Woodberry Down? Let's smash it! 💪
+                      Woodberry awaits—let's make it legendary! 💪
                     </p>
                   </div>
                 </div>
@@ -422,23 +504,26 @@ const OperativeDashboard = () => {
                     <span className="text-[#4DA6FF] font-medium">Authenticated ✓</span>
                   </div>
                   <div className="hidden lg:block text-sm text-[#C7C9D9] bg-[#4DA6FF]/10 px-3 py-2 rounded-lg">
-                    💡 Fancy a qual boost? Check training!
+                    💡 Fancy a qual refresh? Training's one click away!
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Quick Stats */}
+          {/* Quick Stats with Visual Data */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat, index) => (
-              <Card key={index} className="bg-[#1C2234] border-white/10 hover:scale-105 transition-all duration-300 hover:shadow-lg">
+              <Card key={index} className="bg-[#1C2234] border-white/10 hover:scale-105 transition-all duration-300 hover:shadow-lg group">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className={`w-10 h-10 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
                       <span className="text-lg">{stat.icon}</span>
                     </div>
-                    <TrendingUp className="h-4 w-4 text-[#4DA6FF] opacity-60" />
+                    <div className="flex items-center gap-2">
+                      <MiniChart type={stat.visual} color={stat.color} />
+                      <TrendingUp className="h-4 w-4 text-[#4DA6FF] opacity-60 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   </div>
                   <div>
                     <p className="text-sm text-[#C7C9D9] mb-1">{stat.label}</p>
@@ -450,129 +535,167 @@ const OperativeDashboard = () => {
             ))}
           </div>
 
-          {/* Quick Actions */}
+          {/* Quick Actions with Search */}
           <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-white">Quick Actions – Let's Crush the Day!</h2>
-              <span className="text-2xl">⚡</span>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-white">Quick Actions – Let's Crush It, {userData?.firstname || 'Mate'}!</h2>
+                <span className="text-2xl">⚡</span>
+              </div>
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#A1A6B3]" />
+                <Input
+                  placeholder="Find action..."
+                  value={actionSearchTerm}
+                  onChange={(e) => setActionSearchTerm(e.target.value)}
+                  className="pl-10 bg-[#2A3350] border-white/20 text-[#E1E1E8] placeholder:text-[#A1A6B3]"
+                />
+              </div>
             </div>
 
             {/* Safety & Sharp */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-[#FFCC00] flex items-center gap-2">
+              <button
+                onClick={() => toggleGroup('safety')}
+                className="flex items-center gap-2 text-lg font-semibold text-[#4DA6FF] hover:text-[#FFCC00] transition-colors"
+              >
                 <Shield className="h-5 w-5" />
-                Stay Safe & Sharp
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {safetyActions.map((action, index) => {
-                  const Icon = action.icon;
-                  return (
-                    <Card 
-                      key={index} 
-                      className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
-                      onClick={action.action}
-                    >
-                      <CardContent className="p-5">
-                        <div className="text-center space-y-4">
-                          <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                            <Icon className="w-6 h-6 text-[#0B0E1A]" />
+                Stay Safe & Skilled
+                {expandedGroups.safety ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+              {expandedGroups.safety && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {safetyActions.filter(action =>
+                    action.title.toLowerCase().includes(actionSearchTerm.toLowerCase()) ||
+                    action.description.toLowerCase().includes(actionSearchTerm.toLowerCase())
+                  ).map((action, index) => {
+                    const Icon = action.icon;
+                    return (
+                      <Card 
+                        key={index} 
+                        className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
+                        onClick={action.action}
+                      >
+                        <CardContent className="p-5">
+                          <div className="text-center space-y-4">
+                            <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                              <Icon className="w-6 h-6 text-[#0B0E1A]" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
+                              <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
+                              <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium group-hover:animate-pulse">
+                                Open
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </Button>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
-                            <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
-                            <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium">
-                              Open
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Handle the Paperwork */}
+            {/* Handle the Hustle */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-[#4DA6FF] flex items-center gap-2">
+              <button
+                onClick={() => toggleGroup('paperwork')}
+                className="flex items-center gap-2 text-lg font-semibold text-[#FFCC00] hover:text-[#4DA6FF] transition-colors"
+              >
                 <FileText className="h-5 w-5" />
-                Handle the Paperwork
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {paperworkActions.map((action, index) => {
-                  const Icon = action.icon;
-                  return (
-                    <Card 
-                      key={index} 
-                      className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
-                      onClick={action.action}
-                    >
-                      <CardContent className="p-5">
-                        <div className="text-center space-y-4">
-                          <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                            <Icon className="w-6 h-6 text-[#0B0E1A]" />
+                Handle the Hustle
+                {expandedGroups.paperwork ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+              {expandedGroups.paperwork && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {paperworkActions.filter(action =>
+                    action.title.toLowerCase().includes(actionSearchTerm.toLowerCase()) ||
+                    action.description.toLowerCase().includes(actionSearchTerm.toLowerCase())
+                  ).map((action, index) => {
+                    const Icon = action.icon;
+                    return (
+                      <Card 
+                        key={index} 
+                        className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
+                        onClick={action.action}
+                      >
+                        <CardContent className="p-5">
+                          <div className="text-center space-y-4">
+                            <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                              <Icon className="w-6 h-6 text-[#0B0E1A]" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
+                              <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
+                              <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium group-hover:animate-pulse">
+                                Open
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </Button>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
-                            <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
-                            <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium">
-                              Open
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Update Your Deets */}
+            {/* Your Zone */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-[#E1E1E8] flex items-center gap-2">
+              <button
+                onClick={() => toggleGroup('personal')}
+                className="flex items-center gap-2 text-lg font-semibold text-[#00E676] hover:text-[#FFCC00] transition-colors"
+              >
                 <User className="h-5 w-5" />
-                Update Your Deets
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {personalActions.map((action, index) => {
-                  const Icon = action.icon;
-                  return (
-                    <Card 
-                      key={index} 
-                      className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
-                      onClick={action.action}
-                    >
-                      <CardContent className="p-5">
-                        <div className="text-center space-y-4">
-                          <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                            <Icon className="w-6 h-6 text-[#0B0E1A]" />
+                Your Zone
+                {expandedGroups.personal ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+              {expandedGroups.personal && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {personalActions.filter(action =>
+                    action.title.toLowerCase().includes(actionSearchTerm.toLowerCase()) ||
+                    action.description.toLowerCase().includes(actionSearchTerm.toLowerCase())
+                  ).map((action, index) => {
+                    const Icon = action.icon;
+                    return (
+                      <Card 
+                        key={index} 
+                        className={`bg-[#1E2435] border-white/10 hover:scale-105 transition-all duration-200 cursor-pointer group ${action.color}`}
+                        onClick={action.action}
+                      >
+                        <CardContent className="p-5">
+                          <div className="text-center space-y-4">
+                            <div className="w-12 h-12 bg-[#FFCC00] rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                              <Icon className="w-6 h-6 text-[#0B0E1A]" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
+                              <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
+                              <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium group-hover:animate-pulse">
+                                Open
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </Button>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
-                            <p className="text-sm text-[#C7C9D9] mb-4">{action.description}</p>
-                            <Button className="w-full bg-[#FFCC00] text-[#0B0E1A] hover:bg-[#FFCC00]/90 font-medium">
-                              Open
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Recent Activity */}
+          {/* Recent Activity with Search */}
           <Card className="bg-[#1E2435] border-white/10">
             <CardHeader>
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
                   <span className="text-xl">📅</span>
-                  Recent Activity – What's the Craic?
+                  Recent Activity – What's the Buzz, {userData?.firstname || 'Mate'}?
                 </CardTitle>
                 <div className="relative max-w-sm">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#A1A6B3]" />
@@ -590,13 +713,13 @@ const OperativeDashboard = () => {
                 <div className="text-center py-8">
                   <Coffee className="h-12 w-12 mx-auto text-[#A1A6B3] mb-4" />
                   <p className="text-[#A1A6B3]">
-                    {searchTerm ? 'No matching activity found' : 'All quiet on the western front—time for a brew? ☕'}
+                    {searchTerm ? 'No matching activity found' : 'All quiet—fancy checking notices for a laugh? ☕'}
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {filteredActivities.map((activity) => (
-                    <div key={activity.id} className="bg-[#2A3350] rounded-lg p-4 hover:bg-[#2A3350]/80 transition-colors">
+                    <div key={activity.id} className="bg-[#2A3350] rounded-lg p-4 hover:bg-[#2A3350]/80 transition-colors hover:scale-[1.02] duration-200">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
