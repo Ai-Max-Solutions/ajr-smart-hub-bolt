@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { User, Mail, Phone, Calendar, Building, AlertCircle, RefreshCw } from 'lucide-react';
-import { RoleTestingPanel } from '@/components/admin/RoleTestingPanel';
 
 export const MyProfileDashboard = () => {
   const { profile, loading, error } = useUserProfile();
@@ -49,7 +48,7 @@ export const MyProfileDashboard = () => {
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="max-w-2xl">
         {/* Main Profile Card */}
         <Card>
           <CardHeader>
@@ -109,9 +108,6 @@ export const MyProfileDashboard = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Role Testing Panel - Show for all users for testing */}
-        <RoleTestingPanel />
       </div>
     </div>
   );
