@@ -24,7 +24,8 @@ import {
   ChevronDown,
   ChevronRight,
   Settings,
-  Users
+  Users,
+  Building
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -68,6 +69,13 @@ export const ModernSidebar = ({
       path: '/operative/notices',
       icon: Bell,
       active: location.pathname === '/operative/notices'
+    },
+    {
+      title: 'Projects',
+      path: '/projects',
+      icon: Building,
+      active: location.pathname.startsWith('/projects'),
+      tooltip: 'Manage sites – no leaks!'
     }
   ];
 
@@ -224,6 +232,7 @@ export const ModernSidebar = ({
                   ? "bg-[#FFCC00]/10 border border-[#FFCC00]/20 text-[#FFCC00]" 
                   : "hover:bg-white/5 text-[#E1E1E8]"
               )}
+              title={collapsed && item.tooltip ? item.tooltip : undefined}
             >
               <Icon className="h-5 w-5 shrink-0" />
               {!collapsed && <span>{item.title}</span>}

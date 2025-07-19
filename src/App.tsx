@@ -90,7 +90,7 @@ function App() {
               <Route 
                 path="/projects/*" 
                 element={
-                  <RouteProtection requiredRole={['pm', 'admin', 'supervisor']}>
+                  <RouteProtection requiredRole={['pm', 'admin', 'supervisor', 'operative', 'director']}>
                     <AppLayout>
                       <ProjectsManagement />
                     </AppLayout>

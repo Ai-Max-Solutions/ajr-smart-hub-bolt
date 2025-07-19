@@ -15,7 +15,8 @@ import {
   LogOut, 
   Sun, 
   Moon, 
-  Wrench 
+  Wrench,
+  Building
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -37,6 +38,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       icon: Gauge,
       path: '/admin',
       wittyHint: 'Main control room—all gauges here!'
+    },
+    {
+      title: 'Projects',
+      icon: Building,
+      path: '/projects',
+      wittyHint: 'Build & Flow – Foundation central!'
     },
     {
       title: 'User Management',
