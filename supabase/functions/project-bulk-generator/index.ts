@@ -17,28 +17,47 @@ serve(async (req) => {
   }
 
   try {
-    const { projectId, blocks } = await req.json();
+    const { projectData, applyTemplate } = await req.json();
     
-    console.log('Bulk generation request:', { projectId, blocksCount: blocks.length });
+    console.log('Bulk generation request:', { projectData, applyTemplate });
 
+    // First create the project
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .insert({
+        name: projectData.name,
+        code: projectData.name.substring(0, 5).toUpperCase(),
+        client: projectData.client,
+        start_date: projectData.startDate,
+        end_date: projectData.endDate || null
+      })
+      .select()
+      .single();
+
+    if (projectError) {
+      throw new Error(`Project creation failed: ${projectError.message}`);
+    }
+
+    console.log('Project created:', project.id);
 
     let totalGenerated = 0;
     const results = [];
 
     // Process each block
-    for (const blockData of blocks) {
-      console.log(`Processing block: ${blockData.code}`);
+    for (const blockConfig of projectData.blocks) {
+      console.log(`Processing block: ${blockConfig.code}`);
       
       // Insert block
       const { data: block, error: blockError } = await supabase
         .from('project_blocks')
         .insert({
-          project_id: projectId,
-          code: blockData.code,
-          name: blockData.name,
-          description: blockData.description,
-          sequence_order: blockData.sequenceOrder || 1
+          project_id: project.id,
+          code: blockConfig.code,
+          name: blockConfig.name,
+          description: `Block ${blockConfig.name}`,
+          sequence_order: 1
         })
         .select()
         .single();
@@ -47,17 +66,59 @@ serve(async (req) => {
         throw new Error(`Block creation failed: ${blockError.message}`);
       }
 
-      // Process levels for this block
+      // Generate levels for this block
       const levelInserts = [];
-      for (const levelData of blockData.levels) {
+      let levelNumber = 0;
+      
+      // Add basement if needed
+      if (blockConfig.includeBasement) {
         levelInserts.push({
           block_id: block.id,
-          project_id: projectId,
-          code: levelData.code,
-          name: levelData.name,
-          level_number: levelData.levelNumber,
-          level_type: levelData.levelType || 'Standard',
-          sequence_order: levelData.sequenceOrder || 1
+          project_id: project.id,
+          code: 'B',
+          name: 'Basement',
+          level_number: -1,
+          level_type: 'Special',
+          sequence_order: 1
+        });
+      }
+      
+      // Add ground floor if needed
+      if (blockConfig.includeGroundFloor) {
+        levelInserts.push({
+          block_id: block.id,
+          project_id: project.id,
+          code: 'GF',
+          name: 'Ground Floor',
+          level_number: 0,
+          level_type: 'Standard',
+          sequence_order: blockConfig.includeBasement ? 2 : 1
+        });
+      }
+      
+      // Add mezzanine if needed (between ground and first floor)
+      if (blockConfig.includeMezzanine) {
+        levelInserts.push({
+          block_id: block.id,
+          project_id: project.id,
+          code: 'M',
+          name: 'Mezzanine',
+          level_number: 0.5,
+          level_type: 'Special',
+          sequence_order: levelInserts.length + 1
+        });
+      }
+      
+      // Add numbered levels
+      for (let i = 1; i <= blockConfig.levels; i++) {
+        levelInserts.push({
+          block_id: block.id,
+          project_id: project.id,
+          code: i.toString().padStart(2, '0'),
+          name: `Level ${i}`,
+          level_number: i,
+          level_type: 'Standard',
+          sequence_order: levelInserts.length + 1
         });
       }
 
@@ -70,22 +131,23 @@ serve(async (req) => {
         throw new Error(`Levels creation failed: ${levelsError.message}`);
       }
 
-      // Process plots for each level
-      for (let i = 0; i < levels.length; i++) {
-        const level = levels[i];
-        const levelData = blockData.levels[i];
-        
+      // Generate plots for each level
+      let plotsCreated = 0;
+      for (const level of levels) {
         const plotInserts = [];
-        for (const plotData of levelData.plots) {
+        
+        // Generate units for this level
+        for (let unitNum = 1; unitNum <= blockConfig.unitsPerLevel; unitNum++) {
+          const unitCode = unitNum.toString().padStart(2, '0');
           plotInserts.push({
-            project_id: projectId,
+            project_id: project.id,
             block_id: block.id,
             level_id: level.id,
-            name: plotData.name,
-            code: plotData.code,
-            unit_type: plotData.unitType || 'Residential',
+            name: `Unit ${level.code}-${unitCode}`,
+            code: unitCode,
+            unit_type: 'Residential',
             status: 'Not Started',
-            sequence_order: plotData.sequenceOrder || 1
+            sequence_order: unitNum
           });
         }
 
@@ -99,45 +161,49 @@ serve(async (req) => {
             throw new Error(`Plots creation failed: ${plotsError.message}`);
           }
 
-          // Auto-assign standard tasks to each plot
-          const { data: standardTasks } = await supabase
-            .from('task_catalog')
-            .select('*')
-            .eq('is_standard', true)
-            .order('sequence_order');
+          plotsCreated += plots.length;
 
-          if (standardTasks && standardTasks.length > 0) {
-            const taskInserts = [];
-            for (const plot of plots) {
-              for (const task of standardTasks) {
-                taskInserts.push({
-                  plot_id: plot.id,
-                  task_catalog_id: task.id,
-                  project_id: projectId,
-                  status: 'Not Started',
-                  requires_test: task.requires_test
-                });
+          // Auto-assign standard tasks if template is requested
+          if (applyTemplate) {
+            const { data: standardTasks } = await supabase
+              .from('task_catalog')
+              .select('*')
+              .eq('is_standard', true)
+              .order('sequence_order');
+
+            if (standardTasks && standardTasks.length > 0) {
+              const taskInserts = [];
+              for (const plot of plots) {
+                for (const task of standardTasks) {
+                  taskInserts.push({
+                    plot_id: plot.id,
+                    task_catalog_id: task.id,
+                    project_id: project.id,
+                    status: 'Not Started',
+                    requires_test: task.requires_test
+                  });
+                }
+              }
+
+              const { error: tasksError } = await supabase
+                .from('plot_tasks')
+                .insert(taskInserts);
+
+              if (tasksError) {
+                console.error('Task assignment failed:', tasksError);
+                // Don't fail the whole operation for task assignment issues
               }
             }
-
-            const { error: tasksError } = await supabase
-              .from('plot_tasks')
-              .insert(taskInserts);
-
-            if (tasksError) {
-              console.error('Task assignment failed:', tasksError);
-              // Don't fail the whole operation for task assignment issues
-            }
           }
-
-          totalGenerated += plots.length;
         }
       }
 
+      totalGenerated += plotsCreated;
+
       results.push({
-        blockCode: blockData.code,
-        levelsCreated: levels.length,
-        plotsCreated: blockData.levels.reduce((sum, level) => sum + level.plots.length, 0)
+        blockCode: blockConfig.code,
+        levelsCreated: levelInserts.length,
+        plotsCreated: plotsCreated
       });
     }
 
@@ -145,9 +211,10 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       success: true,
-      totalGenerated,
+      projectId: project.id,
+      totalUnits: totalGenerated,
       results,
-      message: `🚧 Project setup flowing smoothly! Generated ${totalGenerated} units across ${blocks.length} blocks. No leaks detected! 🔧`
+      message: `🚧 Project "${project.name}" flowing smoothly! Generated ${totalGenerated} units across ${projectData.blocks.length} blocks. No leaks detected! 🔧`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
