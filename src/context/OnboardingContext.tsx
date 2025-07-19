@@ -25,8 +25,7 @@ interface OnboardingContextType {
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
 export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const auth = useAuth();
-  const { user } = auth;
+  const { user } = useAuth();
   const [flags, setFlags] = useState<OnboardingFlags>({
     personalComplete: false,
     cscsComplete: false,

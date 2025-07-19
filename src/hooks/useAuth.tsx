@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,8 +14,6 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: any }>;
   userProfile: any;
   refreshProfile: () => Promise<void>;
-  refreshSession: () => Promise<{ success: boolean; error?: any }>;
-  forceProfileRefresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,49 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       const profile = await fetchUserProfile(user.id);
       setUserProfile(profile);
-    }
-  };
-
-  // NEW: Force profile refresh with cache clearing
-  const forceProfileRefresh = async () => {
-    console.log('[Auth] Force refreshing user profile...');
-    if (user) {
-      // Clear current profile to force fresh fetch
-      setUserProfile(null);
-      const profile = await fetchUserProfile(user.id);
-      setUserProfile(profile);
-      console.log('[Auth] Profile force refreshed:', profile);
-    }
-  };
-
-  // NEW: Session refresh method
-  const refreshSession = async (): Promise<{ success: boolean; error?: any }> => {
-    try {
-      console.log('[Auth] Refreshing session...');
-      const { data, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.error('[Auth] Session refresh failed:', error);
-        return { success: false, error };
-      }
-
-      if (data.session) {
-        console.log('[Auth] Session refreshed successfully');
-        setSession(data.session);
-        setUser(data.session.user);
-        
-        // Force profile refresh after session refresh
-        setTimeout(() => {
-          forceProfileRefresh();
-        }, 100);
-        
-        return { success: true };
-      }
-
-      return { success: false, error: 'No session returned' };
-    } catch (error) {
-      console.error('[Auth] Session refresh error:', error);
-      return { success: false, error };
     }
   };
 
@@ -239,9 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     resetPassword,
     userProfile,
-    refreshProfile,
-    refreshSession,
-    forceProfileRefresh
+    refreshProfile
   };
 
   return (
