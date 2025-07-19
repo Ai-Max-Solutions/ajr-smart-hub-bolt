@@ -49,7 +49,7 @@ const blockSchema = z.object({
   includeGroundFloor: z.boolean().default(true),
   includeBasement: z.boolean().default(false),
   includeMezzanine: z.boolean().default(false),
-  mezzanineAfterLevel: z.number().optional(),
+  customLevelCodes: z.array(z.string()).optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -84,6 +84,7 @@ export const ProjectSetupWizard: React.FC = () => {
   const [aiSuggestion, setAiSuggestion] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [customLevelInput, setCustomLevelInput] = useState('');
 
   // Form for project details
   const projectForm = useForm<ProjectFormData>({
@@ -194,6 +195,25 @@ export const ProjectSetupWizard: React.FC = () => {
     }
   };
 
+  const suggestLevelCode = (input: string) => {
+    const suggestions = {
+      'ground': 'GF',
+      'basement': 'B1',
+      'mezzanine': 'M',
+      'parking': 'P1',
+      'roof': 'RF',
+      'penthouse': 'PH'
+    };
+    
+    const lower = input.toLowerCase();
+    for (const [key, code] of Object.entries(suggestions)) {
+      if (lower.includes(key)) {
+        return `Ground floor? Use '${code}'—avoids backflow! 🔧`;
+      }
+    }
+    return null;
+  };
+
   const onProjectSubmit = async (data: ProjectFormData) => {
     setProjectData(data);
     
@@ -252,129 +272,64 @@ export const ProjectSetupWizard: React.FC = () => {
 
     setIsGenerating(true);
     try {
-      // 1. Create project
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .insert({
+      console.log('Starting project generation with data:', { projectData, blocks });
+
+      // Prepare data in the format expected by bulk generator
+      const projectPayload = {
+        projectData: {
           name: projectData.name,
           client: projectData.client,
-          code: projectData.name.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 10),
-          start_date: format(projectData.startDate, 'yyyy-MM-dd'),
-          end_date: format(projectData.endDate, 'yyyy-MM-dd'),
-        })
-        .select()
-        .single();
+          startDate: format(projectData.startDate, 'yyyy-MM-dd'),
+          endDate: format(projectData.endDate, 'yyyy-MM-dd'),
+          blocks: blocks.map(block => ({
+            code: block.code,
+            name: block.name,
+            levels: block.levels,
+            unitsPerLevel: block.unitsPerLevel,
+            includeGroundFloor: block.includeGroundFloor,
+            includeBasement: block.includeBasement,
+            includeMezzanine: block.includeMezzanine,
+          }))
+        },
+        applyTemplate: true // Apply standard tasks
+      };
 
-      if (projectError) throw projectError;
+      console.log('Sending payload to bulk generator:', projectPayload);
 
-      // 2. Generate blocks, levels, and plots
-      const blocksToGenerate = blocks.map((block, blockIndex) => {
-        const levels = [];
-        let levelNumber = block.includeBasement ? -1 : 0;
-        
-        // Add basement if included
-        if (block.includeBasement) {
-          levels.push({
-            code: 'B',
-            name: 'Basement',
-            levelNumber: -1,
-            levelType: 'Basement',
-            sequenceOrder: 1,
-            plots: Array.from({ length: block.unitsPerLevel }, (_, i) => ({
-              code: String(i + 1).padStart(2, '0'),
-              name: `Unit ${String(i + 1).padStart(2, '0')}`,
-              unitType: 'Residential',
-              sequenceOrder: i + 1
-            }))
-          });
-          levelNumber++;
-        }
-
-        // Add ground floor if included
-        if (block.includeGroundFloor) {
-          levels.push({
-            code: 'GF',
-            name: 'Ground Floor',
-            levelNumber: 0,
-            levelType: 'Ground',
-            sequenceOrder: levels.length + 1,
-            plots: Array.from({ length: block.unitsPerLevel }, (_, i) => ({
-              code: String(i + 1).padStart(2, '0'),
-              name: `Unit ${String(i + 1).padStart(2, '0')}`,
-              unitType: 'Commercial',
-              sequenceOrder: i + 1
-            }))
-          });
-          levelNumber++;
-        }
-
-        // Add standard levels
-        const standardLevels = block.includeGroundFloor ? block.levels - 1 : block.levels;
-        for (let i = 1; i <= standardLevels; i++) {
-          // Add mezzanine if specified
-          if (block.includeMezzanine && block.mezzanineAfterLevel === i) {
-            levels.push({
-              code: 'M',
-              name: 'Mezzanine',
-              levelNumber: levelNumber,
-              levelType: 'Mezzanine',
-              sequenceOrder: levels.length + 1,
-              plots: Array.from({ length: Math.floor(block.unitsPerLevel / 2) }, (_, j) => ({
-                code: String(j + 1).padStart(2, '0'),
-                name: `Unit ${String(j + 1).padStart(2, '0')}`,
-                unitType: 'Residential',
-                sequenceOrder: j + 1
-              }))
-            });
-            levelNumber++;
-          }
-
-          levels.push({
-            code: String(i).padStart(2, '0'),
-            name: `Level ${i}`,
-            levelNumber: levelNumber,
-            levelType: i === standardLevels ? 'Penthouse' : 'Standard',
-            sequenceOrder: levels.length + 1,
-            plots: Array.from({ length: block.unitsPerLevel }, (_, j) => ({
-              code: String(j + 1).padStart(2, '0'),
-              name: `Unit ${String(j + 1).padStart(2, '0')}`,
-              unitType: 'Residential',
-              sequenceOrder: j + 1
-            }))
-          });
-          levelNumber++;
-        }
-
-        return {
-          code: block.code,
-          name: block.name,
-          description: `${block.name} - ${levels.length} levels, ${levels.reduce((sum, level) => sum + level.plots.length, 0)} units`,
-          sequenceOrder: blockIndex + 1,
-          levels
-        };
-      });
-
-      // 3. Bulk generate using edge function
       const { data: generationResult, error: generationError } = await supabase.functions.invoke('project-bulk-generator', {
-        body: {
-          projectId: project.id,
-          blocks: blocksToGenerate
-        }
+        body: projectPayload
       });
 
-      if (generationError) throw generationError;
+      if (generationError) {
+        console.error('Generation error:', generationError);
+        throw generationError;
+      }
 
-      toast({
-        title: "Project Created Successfully! 🎉",
-        description: generationResult.message || `Generated ${generationResult.totalGenerated} units`,
-      });
+      console.log('Generation result:', generationResult);
 
-      navigate(`/projects/${project.id}`);
+      if (generationResult.success) {
+        // Show AI summary with project breakdown
+        const { totalUnits, results } = generationResult;
+        const totalBlocks = results.length;
+        const totalLevels = results.reduce((sum: number, result: any) => sum + result.levelsCreated, 0);
+        
+        toast({
+          title: "🎉 Project Generated Successfully!",
+          description: `${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots—flowing nicely! No leaks detected! 🔧💧`,
+          duration: 6000,
+        });
+
+        console.log(`Project summary: ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots created`);
+
+        navigate(`/projects/${generationResult.projectId}`);
+      } else {
+        throw new Error(generationResult.error || 'Generation failed');
+      }
     } catch (error) {
       console.error('Project generation error:', error);
       toast({
-        title: "Generation Failed",
-        description: "Failed to create project. Please try again.",
+        title: "🚨 Generation Pipeline Blocked!",
+        description: "Failed to create project. Check the flow and try again! 🔧",
         variant: "destructive",
       });
     } finally {
@@ -383,11 +338,12 @@ export const ProjectSetupWizard: React.FC = () => {
   };
 
   const totalUnits = blocks.reduce((sum, block) => {
-    const levelsCount = block.levels + 
-      (block.includeGroundFloor ? 0 : 0) + 
+    const specialLevels = 
+      (block.includeGroundFloor ? 1 : 0) + 
       (block.includeBasement ? 1 : 0) + 
       (block.includeMezzanine ? 1 : 0);
-    return sum + (levelsCount * block.unitsPerLevel);
+    const totalLevels = block.levels + specialLevels;
+    return sum + (totalLevels * block.unitsPerLevel);
   }, 0);
 
   return (
@@ -726,7 +682,7 @@ export const ProjectSetupWizard: React.FC = () => {
                         name="levels"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Number of Levels</FormLabel>
+                            <FormLabel>Number of Standard Levels</FormLabel>
                             <FormControl>
                               <Input 
                                 type="number" 
@@ -776,7 +732,7 @@ export const ProjectSetupWizard: React.FC = () => {
                                 className="rounded"
                               />
                             </FormControl>
-                            <FormLabel className="text-sm">Include Ground Floor</FormLabel>
+                            <FormLabel className="text-sm">Include Ground Floor (GF)</FormLabel>
                           </FormItem>
                         )}
                       />
@@ -794,7 +750,7 @@ export const ProjectSetupWizard: React.FC = () => {
                                 className="rounded"
                               />
                             </FormControl>
-                            <FormLabel className="text-sm">Include Basement</FormLabel>
+                            <FormLabel className="text-sm">Include Basement (B)</FormLabel>
                           </FormItem>
                         )}
                       />
@@ -812,10 +768,35 @@ export const ProjectSetupWizard: React.FC = () => {
                                 className="rounded"
                               />
                             </FormControl>
-                            <FormLabel className="text-sm">Include Mezzanine</FormLabel>
+                            <FormLabel className="text-sm">Include Mezzanine (M)</FormLabel>
                           </FormItem>
                         )}
                       />
+                    </div>
+
+                    {/* Custom Level Codes Input */}
+                    <div className="mt-4">
+                      <FormLabel className="text-sm font-medium">Custom Level Codes (Optional)</FormLabel>
+                      <div className="mt-2">
+                        <Input
+                          placeholder="e.g. GF, 01, 02, 03, M, PH (comma-separated)"
+                          value={customLevelInput}
+                          onChange={(e) => {
+                            setCustomLevelInput(e.target.value);
+                            const suggestion = suggestLevelCode(e.target.value);
+                            if (suggestion) {
+                              toast({
+                                title: "AI Level Suggestion",
+                                description: suggestion,
+                                duration: 3000,
+                              });
+                            }
+                          }}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Override default numbering with custom codes like GF, B1, M, etc.
+                        </p>
+                      </div>
                     </div>
 
                     <Button type="submit" className="w-full">
@@ -989,20 +970,29 @@ export const ProjectSetupWizard: React.FC = () => {
             <div>
               <h4 className="font-medium mb-3">Block Configuration</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {blocks.map((block, index) => (
-                  <div key={index} className="p-3 border rounded-lg">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Badge>{block.code}</Badge>
-                      <span className="font-medium text-sm">{block.name}</span>
+                {blocks.map((block, index) => {
+                  const specialLevels = 
+                    (block.includeGroundFloor ? 1 : 0) + 
+                    (block.includeBasement ? 1 : 0) + 
+                    (block.includeMezzanine ? 1 : 0);
+                  const totalLevels = block.levels + specialLevels;
+                  const totalUnitsInBlock = totalLevels * block.unitsPerLevel;
+                  
+                  return (
+                    <div key={index} className="p-3 border rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Badge>{block.code}</Badge>
+                        <span className="font-medium text-sm">{block.name}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>{totalLevels} levels × {block.unitsPerLevel} units = {totalUnitsInBlock} units</p>
+                        {block.includeGroundFloor && <p>✓ Ground Floor (GF)</p>}
+                        {block.includeBasement && <p>✓ Basement (B)</p>}
+                        {block.includeMezzanine && <p>✓ Mezzanine (M)</p>}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <p>{block.levels} levels × {block.unitsPerLevel} units = {block.levels * block.unitsPerLevel} units</p>
-                      {block.includeGroundFloor && <p>✓ Ground Floor</p>}
-                      {block.includeBasement && <p>✓ Basement</p>}
-                      {block.includeMezzanine && <p>✓ Mezzanine</p>}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

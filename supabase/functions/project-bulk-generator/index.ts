@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
@@ -19,16 +20,20 @@ serve(async (req) => {
   try {
     const { projectData, applyTemplate } = await req.json();
     
-    console.log('Bulk generation request:', { projectData, applyTemplate });
+    console.log('🚧 Starting bulk project generation:', { 
+      projectName: projectData.name, 
+      blocksCount: projectData.blocks?.length || 0,
+      applyTemplate 
+    });
 
-    // First create the project
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
+    // Create the main project
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .insert({
         name: projectData.name,
-        code: projectData.name.substring(0, 5).toUpperCase(),
+        code: projectData.name.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 10),
         client: projectData.client,
         start_date: projectData.startDate,
         end_date: projectData.endDate || null
@@ -37,40 +42,44 @@ serve(async (req) => {
       .single();
 
     if (projectError) {
+      console.error('💥 Project creation failed:', projectError);
       throw new Error(`Project creation failed: ${projectError.message}`);
     }
 
-    console.log('Project created:', project.id);
+    console.log('✅ Project created:', project.id, project.name);
 
-    let totalGenerated = 0;
-    const results = [];
+    let totalUnitsGenerated = 0;
+    const generationResults = [];
 
     // Process each block
     for (const blockConfig of projectData.blocks) {
-      console.log(`Processing block: ${blockConfig.code}`);
+      console.log(`🏗️ Processing block: ${blockConfig.code} (${blockConfig.name})`);
       
-      // Insert block
+      // Create the block
       const { data: block, error: blockError } = await supabase
         .from('project_blocks')
         .insert({
           project_id: project.id,
           code: blockConfig.code,
           name: blockConfig.name,
-          description: `Block ${blockConfig.name}`,
+          description: `${blockConfig.name} - ${blockConfig.levels} levels with special floors`,
           sequence_order: 1
         })
         .select()
         .single();
 
       if (blockError) {
+        console.error('💥 Block creation failed:', blockError);
         throw new Error(`Block creation failed: ${blockError.message}`);
       }
 
+      console.log(`✅ Block created: ${block.id} (${block.code})`);
+
       // Generate levels for this block
       const levelInserts = [];
-      let levelNumber = 0;
+      let sequenceOrder = 1;
       
-      // Add basement if needed
+      // Add basement if included
       if (blockConfig.includeBasement) {
         levelInserts.push({
           block_id: block.id,
@@ -78,12 +87,13 @@ serve(async (req) => {
           code: 'B',
           name: 'Basement',
           level_number: -1,
-          level_type: 'Special',
-          sequence_order: 1
+          level_type: 'Basement',
+          sequence_order: sequenceOrder++
         });
+        console.log('🏚️ Added basement level');
       }
       
-      // Add ground floor if needed
+      // Add ground floor if included
       if (blockConfig.includeGroundFloor) {
         levelInserts.push({
           block_id: block.id,
@@ -91,12 +101,13 @@ serve(async (req) => {
           code: 'GF',
           name: 'Ground Floor',
           level_number: 0,
-          level_type: 'Standard',
-          sequence_order: blockConfig.includeBasement ? 2 : 1
+          level_type: 'Ground',
+          sequence_order: sequenceOrder++
         });
+        console.log('🏢 Added ground floor level');
       }
       
-      // Add mezzanine if needed (between ground and first floor)
+      // Add mezzanine if included (after ground floor)
       if (blockConfig.includeMezzanine) {
         levelInserts.push({
           block_id: block.id,
@@ -104,40 +115,53 @@ serve(async (req) => {
           code: 'M',
           name: 'Mezzanine',
           level_number: 0.5,
-          level_type: 'Special',
-          sequence_order: levelInserts.length + 1
+          level_type: 'Mezzanine',
+          sequence_order: sequenceOrder++
         });
+        console.log('🌉 Added mezzanine level');
       }
       
-      // Add numbered levels
+      // Add standard numbered levels (01, 02, 03, etc.)
       for (let i = 1; i <= blockConfig.levels; i++) {
+        const levelCode = i.toString().padStart(2, '0');
         levelInserts.push({
           block_id: block.id,
           project_id: project.id,
-          code: i.toString().padStart(2, '0'),
-          name: `Level ${i}`,
+          code: levelCode,
+          name: `Level ${levelCode}`,
           level_number: i,
-          level_type: 'Standard',
-          sequence_order: levelInserts.length + 1
+          level_type: i === blockConfig.levels ? 'Penthouse' : 'Standard',
+          sequence_order: sequenceOrder++
         });
       }
 
+      console.log(`📐 Preparing ${levelInserts.length} levels for block ${blockConfig.code}`);
+
+      // Insert all levels for this block
       const { data: levels, error: levelsError } = await supabase
         .from('project_levels')
         .insert(levelInserts)
         .select();
 
       if (levelsError) {
+        console.error('💥 Levels creation failed:', levelsError);
         throw new Error(`Levels creation failed: ${levelsError.message}`);
       }
 
+      console.log(`✅ Created ${levels.length} levels for block ${blockConfig.code}`);
+
       // Generate plots for each level
-      let plotsCreated = 0;
+      let blockPlotsCreated = 0;
       for (const level of levels) {
         const plotInserts = [];
         
+        // Determine units per level (mezzanine might have fewer units)
+        const unitsForThisLevel = level.level_type === 'Mezzanine' 
+          ? Math.floor(blockConfig.unitsPerLevel / 2) 
+          : blockConfig.unitsPerLevel;
+        
         // Generate units for this level
-        for (let unitNum = 1; unitNum <= blockConfig.unitsPerLevel; unitNum++) {
+        for (let unitNum = 1; unitNum <= unitsForThisLevel; unitNum++) {
           const unitCode = unitNum.toString().padStart(2, '0');
           plotInserts.push({
             project_id: project.id,
@@ -145,7 +169,7 @@ serve(async (req) => {
             level_id: level.id,
             name: `Unit ${level.code}-${unitCode}`,
             code: unitCode,
-            unit_type: 'Residential',
+            unit_type: level.level_type === 'Ground' ? 'Commercial' : 'Residential',
             status: 'Not Started',
             sequence_order: unitNum
           });
@@ -158,10 +182,12 @@ serve(async (req) => {
             .select();
 
           if (plotsError) {
+            console.error('💥 Plots creation failed:', plotsError);
             throw new Error(`Plots creation failed: ${plotsError.message}`);
           }
 
-          plotsCreated += plots.length;
+          blockPlotsCreated += plots.length;
+          console.log(`🏠 Created ${plots.length} plots for level ${level.code} (${level.name})`);
 
           // Auto-assign standard tasks if template is requested
           if (applyTemplate) {
@@ -190,39 +216,52 @@ serve(async (req) => {
                 .insert(taskInserts);
 
               if (tasksError) {
-                console.error('Task assignment failed:', tasksError);
+                console.error('⚠️ Task assignment failed (non-critical):', tasksError);
                 // Don't fail the whole operation for task assignment issues
+              } else {
+                console.log(`📋 Assigned ${taskInserts.length} tasks for ${plots.length} plots`);
               }
             }
           }
         }
       }
 
-      totalGenerated += plotsCreated;
+      totalUnitsGenerated += blockPlotsCreated;
 
-      results.push({
+      generationResults.push({
         blockCode: blockConfig.code,
+        blockName: blockConfig.name,
         levelsCreated: levelInserts.length,
-        plotsCreated: plotsCreated
+        plotsCreated: blockPlotsCreated
       });
+
+      console.log(`✅ Block ${blockConfig.code} complete: ${levelInserts.length} levels, ${blockPlotsCreated} plots`);
     }
 
-    console.log(`Bulk generation completed: ${totalGenerated} total units created`);
+    const successMessage = `🚧 Project "${project.name}" flowing smoothly! Generated ${totalUnitsGenerated} units across ${projectData.blocks.length} blocks. No leaks detected! 🔧💧`;
+    
+    console.log('🎉 Bulk generation completed:', {
+      projectId: project.id,
+      totalBlocks: projectData.blocks.length,
+      totalUnits: totalUnitsGenerated,
+      results: generationResults
+    });
 
     return new Response(JSON.stringify({ 
       success: true,
       projectId: project.id,
-      totalUnits: totalGenerated,
-      results,
-      message: `🚧 Project "${project.name}" flowing smoothly! Generated ${totalGenerated} units across ${projectData.blocks.length} blocks. No leaks detected! 🔧`
+      totalUnits: totalUnitsGenerated,
+      results: generationResults,
+      message: successMessage
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in project-bulk-generator function:', error);
+    console.error('💥 Error in project-bulk-generator function:', error);
     return new Response(JSON.stringify({ 
       success: false,
-      error: error.message 
+      error: error.message,
+      message: '🚨 Pipeline blocked! Check the flow and try again.'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
