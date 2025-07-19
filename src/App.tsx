@@ -39,9 +39,9 @@ function App() {
         <OnboardingProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
             <TooltipProvider>
-              <Toaster />
-              <Sonner />
               <BrowserRouter>
+                <Toaster />
+                <Sonner />
             <Routes>
               {/* Public routes without navigation */}
               <Route path="/auth" element={<Auth />} />
