@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RouteProtection } from "@/components/auth/RouteProtection";
+import { RoleSessionManager } from "@/components/auth/RoleSessionManager";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { IndexWrapper } from "@/components/dashboard/IndexWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -42,6 +44,7 @@ function App() {
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <RoleSessionManager />
             <Routes>
               {/* Public routes without navigation */}
               <Route path="/auth" element={<Auth />} />
