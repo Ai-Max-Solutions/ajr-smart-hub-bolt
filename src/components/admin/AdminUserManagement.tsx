@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Enums } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { AdminRoleRefresh } from "./AdminRoleRefresh";
 
 interface User {
   id: string;
@@ -96,6 +96,14 @@ const AdminUserManagement = () => {
       ));
       
       toast.success(`Role updated - user now has the right tools for the job! 🔧`);
+      
+      // Show additional message about session refresh
+      setTimeout(() => {
+        toast.info(`Tell the user to refresh their role or sign out/in to access their new dashboard.`, {
+          duration: 8000
+        });
+      }, 2000);
+      
     } catch (error) {
       console.error('Error updating role:', error);
       toast.error('Failed to change role - pipe might be blocked!');
@@ -343,6 +351,13 @@ const AdminUserManagement = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <AdminRoleRefresh 
+                            userId={user.id}
+                            userName={user.name}
+                            onRefreshComplete={() => {
+                              console.log(`Refresh completed for ${user.name}`);
+                            }}
+                          />
                           <Button variant="ghost" size="sm">
                             <Edit className="w-4 h-4" />
                           </Button>
