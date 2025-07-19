@@ -102,6 +102,15 @@ export const ProjectDashboard: React.FC = () => {
             Overview of all projects and their current status
           </p>
         </div>
+        <div className="flex space-x-2">
+          <Button 
+            onClick={() => window.location.href = '/projects/setup-wizard'}
+            className="btn-primary"
+          >
+            <Building2 className="w-4 h-4 mr-2" />
+            Setup New Project
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

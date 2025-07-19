@@ -7,6 +7,8 @@ import { ProjectDashboard } from '@/components/projects/ProjectDashboard';
 import { ProjectDetails } from '@/components/projects/ProjectDetails';
 import CreateProject from '@/components/projects/CreateProject';
 import ProjectHeader from '@/components/projects/ProjectHeader';
+import { ProjectSetupWizard } from '@/components/projects/enhanced/ProjectSetupWizard';
+import { ProjectDetailsEnhanced } from '@/components/projects/enhanced/ProjectDetailsEnhanced';
 
 const ProjectsManagement = () => {
   const { user } = useAuth();
@@ -41,7 +43,8 @@ const ProjectsManagement = () => {
           <Route path="/" element={<Navigate to="/projects/dashboard" replace />} />
           <Route path="/dashboard" element={<ProjectDashboard />} />
           <Route path="/create" element={<CreateProject />} />
-          <Route path="/:projectId" element={<ProjectDetails />} />
+          <Route path="/setup-wizard" element={<ProjectSetupWizard />} />
+          <Route path="/:projectId" element={<ProjectDetailsEnhanced />} />
         </Routes>
       </div>
     </div>

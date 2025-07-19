@@ -290,32 +290,153 @@ export type Database = {
           },
         ]
       }
-      plots: {
+      plot_tasks: {
         Row: {
+          actual_hours: number | null
+          assigned_to: string | null
+          completed_date: string | null
           created_at: string
           id: string
-          level: number | null
-          name: string
+          notes: string | null
+          plot_id: string
           project_id: string
+          requires_test: boolean | null
+          scheduled_date: string | null
+          status: string | null
+          task_catalog_id: string
+          test_completed: boolean | null
+          test_data: Json | null
           updated_at: string
         }
         Insert: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          completed_date?: string | null
           created_at?: string
           id?: string
-          level?: number | null
-          name: string
+          notes?: string | null
+          plot_id: string
           project_id: string
+          requires_test?: boolean | null
+          scheduled_date?: string | null
+          status?: string | null
+          task_catalog_id: string
+          test_completed?: boolean | null
+          test_data?: Json | null
           updated_at?: string
         }
         Update: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          completed_date?: string | null
           created_at?: string
           id?: string
-          level?: number | null
-          name?: string
+          notes?: string | null
+          plot_id?: string
           project_id?: string
+          requires_test?: boolean | null
+          scheduled_date?: string | null
+          status?: string | null
+          task_catalog_id?: string
+          test_completed?: boolean | null
+          test_data?: Json | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "plot_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plot_tasks_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "plots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plot_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plot_tasks_task_catalog_id_fkey"
+            columns: ["task_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "task_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plots: {
+        Row: {
+          block_id: string | null
+          code: string | null
+          composite_code: string | null
+          created_at: string
+          description: string | null
+          id: string
+          level: number | null
+          level_id: string | null
+          name: string
+          project_id: string
+          sequence_order: number | null
+          status: string | null
+          unit_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          block_id?: string | null
+          code?: string | null
+          composite_code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          level?: number | null
+          level_id?: string | null
+          name: string
+          project_id: string
+          sequence_order?: number | null
+          status?: string | null
+          unit_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          block_id?: string | null
+          code?: string | null
+          composite_code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          level?: number | null
+          level_id?: string | null
+          name?: string
+          project_id?: string
+          sequence_order?: number | null
+          status?: string | null
+          unit_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plots_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "project_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plots_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "project_levels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "plots_project_id_fkey"
             columns: ["project_id"]
@@ -339,6 +460,104 @@ export type Database = {
           original_level?: string | null
         }
         Relationships: []
+      }
+      project_blocks: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          project_id: string
+          sequence_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          project_id: string
+          sequence_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          sequence_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_blocks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_levels: {
+        Row: {
+          block_id: string
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          level_number: number
+          level_type: string | null
+          name: string
+          project_id: string
+          sequence_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          block_id: string
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          level_number: number
+          level_type?: string | null
+          name: string
+          project_id: string
+          sequence_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          block_id?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          level_number?: number
+          level_type?: string | null
+          name?: string
+          project_id?: string
+          sequence_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_levels_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "project_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_levels_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_rams_requirements: {
         Row: {
@@ -384,6 +603,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      project_templates: {
+        Row: {
+          building_type: string
+          created_at: string
+          default_blocks: number | null
+          default_levels: number | null
+          default_units_per_level: number | null
+          description: string | null
+          id: string
+          includes_basement: boolean | null
+          includes_ground_floor: boolean | null
+          includes_mezzanine: boolean | null
+          name: string
+          template_data: Json | null
+          updated_at: string
+        }
+        Insert: {
+          building_type: string
+          created_at?: string
+          default_blocks?: number | null
+          default_levels?: number | null
+          default_units_per_level?: number | null
+          description?: string | null
+          id?: string
+          includes_basement?: boolean | null
+          includes_ground_floor?: boolean | null
+          includes_mezzanine?: boolean | null
+          name: string
+          template_data?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          building_type?: string
+          created_at?: string
+          default_blocks?: number | null
+          default_levels?: number | null
+          default_units_per_level?: number | null
+          description?: string | null
+          id?: string
+          includes_basement?: boolean | null
+          includes_ground_floor?: boolean | null
+          includes_mezzanine?: boolean | null
+          name?: string
+          template_data?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       projects: {
         Row: {
@@ -494,6 +761,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      task_catalog: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          is_standard: boolean | null
+          name: string
+          requires_test: boolean | null
+          sequence_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          is_standard?: boolean | null
+          name: string
+          requires_test?: boolean | null
+          sequence_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          is_standard?: boolean | null
+          name?: string
+          requires_test?: boolean | null
+          sequence_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       timesheet_entries: {
         Row: {
