@@ -6,11 +6,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { ProfilePictureUploader } from '@/components/ui/profile-picture-uploader';
 import { User, Mail, Phone, Calendar, Building, AlertCircle, RefreshCw } from 'lucide-react';
 
 export const MyProfileDashboard = () => {
-  const { profile, loading, error } = useUserProfile();
+  const { profile, loading, error, refetch } = useUserProfile();
   const { userProfile, refreshSession } = useAuth();
+
+  const handleAvatarUpdate = async (url: string) => {
+    // Update the profile with new avatar URL
+    await refetch();
+  };
+
+  const getUserInitials = () => {
+    const name = profile?.fullname || `${profile?.firstname} ${profile?.lastname}`.trim();
+    if (name) {
+      return name.split(' ')
+        .map(part => part.charAt(0))
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return 'U';
+  };
 
   if (loading) {
     return (
@@ -41,14 +60,26 @@ export const MyProfileDashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">My Profile</h1>
+        <div className="flex items-center gap-4">
+          <Avatar className="w-12 h-12">
+            <AvatarImage 
+              src={profile?.avatar_url || ''} 
+              alt="Profile picture"
+              className="object-cover"
+            />
+            <AvatarFallback className="bg-accent/20 text-accent">
+              {getUserInitials()}
+            </AvatarFallback>
+          </Avatar>
+          <h1 className="text-3xl font-bold">My Profile</h1>
+        </div>
         <Button onClick={refreshSession} variant="outline" size="sm">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh Session
         </Button>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Main Profile Card */}
         <Card>
           <CardHeader>
@@ -106,6 +137,43 @@ export const MyProfileDashboard = () => {
                 </div>
               </>
             )}
+
+            {profile?.work_types && profile.work_types.length > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <h4 className="font-medium">Work Types</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.work_types.map((workType, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {workType}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Profile Picture Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Profile Picture
+            </CardTitle>
+            <CardDescription>Upload or generate your professional avatar</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ProfilePictureUploader
+              currentAvatarUrl={profile?.avatar_url || ''}
+              userName={profile?.fullname || `${profile?.firstname} ${profile?.lastname}`.trim()}
+              userRole={profile?.role}
+              userSkills={profile?.work_types}
+              cscsLevel={profile?.cscs_card?.card_color}
+              onAvatarUpdate={handleAvatarUpdate}
+            />
           </CardContent>
         </Card>
       </div>

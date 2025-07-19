@@ -19,6 +19,12 @@ interface UserProfile {
   last_sign_in: string | null;
   airtable_created_time: string;
   avatar_url: string | null;
+  work_types?: string[];
+  cscs_card?: {
+    card_type: string;
+    card_color: string;
+    qualifications: any;
+  } | null;
 }
 
 export const useUserProfile = () => {
@@ -55,6 +61,21 @@ export const useUserProfile = () => {
       }
 
       if (userData) {
+        // Fetch user work types
+        const { data: workTypesData } = await supabase
+          .from('user_work_types')
+          .select('work_type')
+          .eq('user_id', userData.id);
+
+        // Fetch CSCS card info
+        const { data: cscsData } = await supabase
+          .from('cscs_cards')
+          .select('card_type, card_color, qualifications')
+          .eq('user_id', userData.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         setProfile({
           id: userData.id,
           auth_email: user.email || '',
@@ -70,7 +91,9 @@ export const useUserProfile = () => {
           internalnotes: userData.internalnotes,
           last_sign_in: userData.last_sign_in,
           airtable_created_time: userData.airtable_created_time,
-          avatar_url: userData.avatar_url
+          avatar_url: userData.avatar_url,
+          work_types: workTypesData?.map(wt => wt.work_type) || [],
+          cscs_card: cscsData || null
         });
       }
     } catch (err: any) {
@@ -97,6 +120,7 @@ export const useUserProfile = () => {
       if (updates.currentproject !== undefined) dbUpdates.currentproject = updates.currentproject;
       if (updates.onboarding_completed !== undefined) dbUpdates.onboarding_completed = updates.onboarding_completed;
       if (updates.internalnotes !== undefined) dbUpdates.internalnotes = updates.internalnotes;
+      if (updates.avatar_url !== undefined) dbUpdates.avatar_url = updates.avatar_url;
       if (updates.role && ['Operative', 'Supervisor', 'Admin', 'PM', 'Director'].includes(updates.role)) {
         dbUpdates.role = updates.role;
       }
