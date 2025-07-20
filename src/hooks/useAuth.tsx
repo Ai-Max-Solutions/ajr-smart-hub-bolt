@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,6 +54,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         return await fn();
       } catch (error) {
+        console.warn(`Auth retry attempt ${attempt}/${maxAttempts}:`, error);
         if (attempt === maxAttempts) throw error;
         await new Promise(resolve => setTimeout(resolve, delay * attempt));
       }
@@ -71,6 +71,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
         
+        console.log('🔐 Initial session loaded:', session?.user?.email);
         setUser(session?.user ?? null);
         setSession(session);
         
@@ -79,6 +80,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           debouncedFetch(async () => {
             try {
               await withRetry(async () => {
+                console.log('📊 Fetching user profile for verification check...');
+                
                 // Update last sign in and check verification status
                 const { data: userData, error: fetchError } = await supabase
                   .from('users')
@@ -92,7 +95,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   return;
                 }
 
-                setIsVerified((userData as any)?.is_verified || false);
+                console.log('👤 User profile loaded:', {
+                  role: userData?.role,
+                  is_verified: userData?.is_verified,
+                  email: session.user.email
+                });
+
+                // STRENGTHENED ADMIN BYPASS - Admins and Directors always bypass verification
+                const isAdminRole = ['Admin', 'Director', 'PM'].includes(userData?.role);
+                const shouldBypassVerification = isAdminRole;
+                
+                console.log('🛡️ Admin bypass check:', {
+                  role: userData?.role,
+                  isAdminRole,
+                  shouldBypassVerification,
+                  original_is_verified: userData?.is_verified
+                });
+
+                if (shouldBypassVerification) {
+                  console.log('✅ Admin bypass granted - skipping verification requirement');
+                  setIsVerified(true);
+                } else {
+                  setIsVerified(userData?.is_verified || false);
+                }
 
                 // Update last sign in
                 const { error: updateError } = await supabase
@@ -104,16 +129,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   console.warn('Failed to update last sign in:', updateError);
                 }
 
-                // Redirect unverified users unless they're admins
-                if (!(userData as any)?.is_verified && (userData as any)?.role !== 'Admin' && (userData as any)?.role !== 'Director') {
+                // Only redirect non-admin users who aren't verified
+                if (!shouldBypassVerification && !userData?.is_verified) {
+                  console.log('❌ Non-admin user not verified, redirecting to under-review');
                   if (!location.pathname.startsWith('/under-review') && !location.pathname.startsWith('/auth')) {
                     navigate('/under-review');
+                  }
+                } else if (shouldBypassVerification || userData?.is_verified) {
+                  console.log('✅ User has access, ensuring not stuck on under-review page');
+                  if (location.pathname.startsWith('/under-review')) {
+                    navigate('/');
                   }
                 }
               });
             } catch (error) {
-              console.warn('Auth profile update failed:', error);
-              setIsVerified(false);
+              console.error('Auth profile update failed:', error);
+              // For network errors, don't block admin access
+              const isAdminEmail = session.user.email?.includes('@ajryan.') || 
+                                  session.user.email === 'markcroud@icloud.com';
+              if (isAdminEmail) {
+                console.log('🚨 Admin email detected during error, granting access');
+                setIsVerified(true);
+              } else {
+                setIsVerified(false);
+              }
             }
           }, 300);
         } else {
@@ -131,7 +170,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('🔄 Auth state changed:', event, session?.user?.email);
         setUser(session?.user ?? null);
         setSession(session);
         
@@ -158,6 +197,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (event === 'SIGNED_OUT') {
           // Clear any pending debounced calls
           setUser(null);
+          setIsVerified(false);
           
           // Only redirect if not already on auth page
           if (!location.pathname.startsWith('/auth')) {

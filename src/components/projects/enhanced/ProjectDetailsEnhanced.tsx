@@ -23,10 +23,12 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  Settings
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 // Import tab components
 import { ProjectDetailsTab } from './tabs/ProjectDetailsTab';
@@ -86,14 +88,82 @@ interface ProgressData {
 export const ProjectDetailsEnhanced: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('details');
   const [searchQuery, setSearchQuery] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
 
-  // Real-time subscription setup
+  console.log('🎯 ProjectDetailsEnhanced loading with ID:', id);
+
+  // Enhanced project fetch with retry logic
+  const fetchProjectWithRetry = async (projectId: string, attempt = 1): Promise<Project> => {
+    const maxAttempts = 3;
+    const backoffDelays = [500, 1000, 2000]; // Exponential backoff
+    
+    console.log(`📡 Fetching project (attempt ${attempt}/${maxAttempts}):`, projectId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
+
+      if (error) {
+        console.error(`❌ Project fetch error (attempt ${attempt}):`, error);
+        
+        // Check for RLS policy violation
+        if (error.code === '42501') {
+          console.error('🚫 RLS Policy violation - user may not have access to this project');
+          toast('Account access issue detected. Please contact admin if this persists.', {
+            description: 'RLS policy may be blocking access to this project.'
+          });
+          throw new Error('Access denied to project');
+        }
+        
+        throw error;
+      }
+
+      if (!data) {
+        console.warn(`⚠️ No project data returned (attempt ${attempt})`);
+        
+        if (attempt < maxAttempts) {
+          console.log(`⏳ Retrying in ${backoffDelays[attempt - 1]}ms...`);
+          await new Promise(resolve => setTimeout(resolve, backoffDelays[attempt - 1]));
+          return fetchProjectWithRetry(projectId, attempt + 1);
+        } else {
+          throw new Error('Project not found after retries');
+        }
+      }
+
+      console.log('✅ Project fetched successfully:', data);
+      
+      // Show success toast if this was a retry
+      if (attempt > 1) {
+        toast('Project loaded successfully!', {
+          description: 'Data synced after retry.'
+        });
+      }
+      
+      return data;
+    } catch (error) {
+      if (attempt < maxAttempts) {
+        console.warn(`⚠️ Attempt ${attempt} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, backoffDelays[attempt - 1]));
+        return fetchProjectWithRetry(projectId, attempt + 1);
+      } else {
+        console.error(`❌ All ${maxAttempts} attempts failed for project:`, projectId);
+        throw error;
+      }
+    }
+  };
+
+  // Real-time subscription setup with immediate post-creation detection
   useEffect(() => {
     if (!id) return;
+
+    console.log('🔔 Setting up realtime subscriptions for project:', id);
 
     const channel = supabase.channel(`project:${id}`)
       .on('postgres_changes', 
@@ -105,11 +175,21 @@ export const ProjectDetailsEnhanced: React.FC = () => {
         }, 
         (payload) => {
           console.log('📡 Project change detected:', payload);
+          
+          // If this is an INSERT event, it might be immediate post-creation
+          if (payload.eventType === 'INSERT') {
+            console.log('🆕 New project detected via realtime - refreshing queries');
+            toast('Project synced successfully!', {
+              description: 'Your new project is now available.'
+            });
+          }
+          
           queryClient.invalidateQueries({ queryKey: ['project', id] });
-          if (payload.eventType !== 'UPDATE' || payload.old.updated_at !== payload.new?.updated_at) {
-            toast({
+          
+          if (payload.eventType !== 'UPDATE' || payload.old?.updated_at !== payload.new?.updated_at) {
+            uiToast({
               title: "Project Updated",
-              description: "Project details have been updated by another user.",
+              description: "Project details have been updated.",
             });
           }
         }
@@ -153,27 +233,98 @@ export const ProjectDetailsEnhanced: React.FC = () => {
       .subscribe();
 
     return () => {
+      console.log('🔕 Cleaning up realtime subscriptions');
       supabase.removeChannel(channel);
     };
-  }, [id, queryClient, toast]);
+  }, [id, queryClient, uiToast]);
 
-  // Fetch project data
-  const { data: project, isLoading: projectLoading } = useQuery({
+  // Fetch project data with enhanced retry logic
+  const { data: project, isLoading: projectLoading, error: projectError, refetch: refetchProject } = useQuery({
     queryKey: ['project', id],
     queryFn: async (): Promise<Project> => {
       if (!id) throw new Error('Project ID is required');
-      
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data;
+      return fetchProjectWithRetry(id);
     },
     enabled: !!id,
+    retry: false, // We handle retries manually
+    staleTime: 5000, // Consider data fresh for 5 seconds
   });
+
+  // Show loading state with retry information
+  if (projectLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 space-y-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground">Loading project details...</p>
+          {retryCount > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Retry attempt {retryCount}/3
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Enhanced error handling
+  if (projectError || !project) {
+    const isNotFound = !project;
+    const isAccessDenied = projectError?.message?.includes('Access denied');
+    
+    return (
+      <Card>
+        <CardContent className="p-8 text-center space-y-4">
+          <div className="flex justify-center">
+            {isAccessDenied ? (
+              <AlertCircle className="h-12 w-12 text-destructive" />
+            ) : (
+              <Building2 className="h-12 w-12 text-muted-foreground" />
+            )}
+          </div>
+          
+          <div>
+            <h3 className="font-semibold mb-2">
+              {isAccessDenied ? 'Access Denied' : 'Project Not Found'}
+            </h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              {isAccessDenied 
+                ? 'You may not have permission to view this project.'
+                : 'This project might still be syncing or may not exist.'
+              }
+            </p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Button 
+              variant="outline" 
+              onClick={() => refetchProject()}
+              disabled={projectLoading}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/projects/dashboard')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </div>
+          
+          {isNotFound && (
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+              <p className="text-xs text-muted-foreground">
+                If you just created this project, it might still be syncing. 
+                Try refreshing in a few moments.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Fetch plots/units
   const { data: plots = [], isLoading: plotsLoading } = useQuery({
@@ -238,32 +389,6 @@ export const ProjectDetailsEnhanced: React.FC = () => {
     },
     enabled: !!id,
   });
-
-  if (projectLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!project) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">Project not found</p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => navigate('/projects/dashboard')}
-          >
-            Back to Dashboard
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   const filteredPlots = plots.filter(plot =>
     plot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
