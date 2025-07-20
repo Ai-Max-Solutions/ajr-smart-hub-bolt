@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseError } from './useSupabaseError';
 
 interface UserProfile {
   id: string;
@@ -26,6 +27,7 @@ export const useUserProfile = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { withRetry, handleError } = useSupabaseError();
 
   useEffect(() => {
     if (user) {
@@ -43,16 +45,23 @@ export const useUserProfile = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch from users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('supabase_auth_id', user.id)
-        .single();
+      const userData = await withRetry(
+        async () => {
+          const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('supabase_auth_id', user.id)
+            .single();
 
-      if (userError) {
-        throw userError;
-      }
+          if (error) throw error;
+          return data;
+        },
+        { 
+          operation: 'fetchUserProfile',
+          table: 'users',
+          userId: user.id
+        }
+      );
 
       if (userData) {
         setProfile({
@@ -74,7 +83,11 @@ export const useUserProfile = () => {
         });
       }
     } catch (err: any) {
-      console.error('Error fetching user profile:', err);
+      handleError(err, { 
+        operation: 'fetchUserProfile',
+        table: 'users',
+        userId: user.id
+      });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -101,17 +114,30 @@ export const useUserProfile = () => {
         dbUpdates.role = updates.role;
       }
 
-      const { error } = await supabase
-        .from('users')
-        .update(dbUpdates)
-        .eq('supabase_auth_id', user.id);
+      await withRetry(
+        async () => {
+          const { error } = await supabase
+            .from('users')
+            .update(dbUpdates)
+            .eq('supabase_auth_id', user.id);
 
-      if (error) throw error;
+          if (error) throw error;
+        },
+        { 
+          operation: 'updateUserProfile',
+          table: 'users',
+          userId: user.id
+        }
+      );
 
       // Refresh profile data
       await fetchProfile();
     } catch (err: any) {
-      console.error('Error updating profile:', err);
+      handleError(err, { 
+        operation: 'updateUserProfile',
+        table: 'users',
+        userId: user.id
+      });
       setError(err.message);
       throw err;
     } finally {

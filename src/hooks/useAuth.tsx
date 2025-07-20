@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSupabaseError } from './useSupabaseError';
 
 interface AuthContextType {
   user: User | null;
@@ -23,23 +24,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const { withRetry, handleError } = useSupabaseError();
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('supabase_auth_id', userId)
-        .single();
+      return await withRetry(
+        async () => {
+          const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('supabase_auth_id', userId)
+            .single();
 
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        return null;
-      }
-
-      return data;
+          if (error) throw error;
+          return data;
+        },
+        { 
+          operation: 'fetchUserProfile',
+          table: 'users',
+          userId 
+        }
+      );
     } catch (error) {
-      console.error('Error in fetchUserProfile:', error);
+      handleError(error as Error, { 
+        operation: 'fetchUserProfile',
+        table: 'users',
+        userId 
+      });
       return null;
     }
   };
@@ -78,8 +89,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check for existing session with retry logic
+    withRetry(
+      async () => {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        return session;
+      },
+      { operation: 'getSession' }
+    ).then((session) => {
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -87,6 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchUserProfile(session.user.id).then(setUserProfile);
       }
       
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
 
@@ -97,80 +117,95 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: userData
-        }
-      });
+      const result = await withRetry(
+        async () => {
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: redirectUrl,
+              data: userData
+            }
+          });
 
-      if (error) {
-        toast.error(error.message);
-        return { error };
-      }
+          if (error) throw error;
+          return data;
+        },
+        { operation: 'signUp' }
+      );
 
       toast.success('Account created! Please check your email to verify your account.');
       return { error: null };
     } catch (error: any) {
-      toast.error('An unexpected error occurred');
+      handleError(error, { operation: 'signUp' });
       return { error };
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      await withRetry(
+        async () => {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
 
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error('Invalid email or password');
-        } else {
-          toast.error(error.message);
-        }
-        return { error };
-      }
+          if (error) throw error;
+          return data;
+        },
+        { operation: 'signIn' }
+      );
 
       return { error: null };
     } catch (error: any) {
-      toast.error('An unexpected error occurred');
+      if (error.message?.includes('Invalid login credentials')) {
+        toast.error('🔐 Wrong keys for this lock - check your email and password!');
+      } else {
+        handleError(error, { operation: 'signIn' });
+      }
       return { error };
     }
   };
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
+      await withRetry(
+        async () => {
+          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/auth/reset-password`,
+          });
 
-      if (error) {
-        toast.error(error.message);
-        return { error };
-      }
+          if (error) throw error;
+        },
+        { operation: 'resetPassword' }
+      );
 
       toast.success('Password reset email sent!');
       return { error: null };
     } catch (error: any) {
-      toast.error('An unexpected error occurred');
+      handleError(error, { operation: 'resetPassword' });
       return { error };
     }
   };
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      
-      // Handle harmless 403 "Session not found" errors as success
-      if (error && error.message?.includes('session_not_found')) {
-        console.log('[Auth] Session already expired, treating as successful logout');
-      } else if (error) {
-        throw error;
-      }
+      await withRetry(
+        async () => {
+          const { error } = await supabase.auth.signOut();
+          
+          // Handle harmless 403 "Session not found" errors as success
+          if (error && error.message?.includes('session_not_found')) {
+            console.log('[Auth] Session already expired, treating as successful logout');
+            return;
+          } else if (error) {
+            throw error;
+          }
+        },
+        { operation: 'signOut' },
+        1 // Only retry once for sign out
+      );
       
       // Clean up local storage
       localStorage.removeItem('sb-access-token');
@@ -182,7 +217,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserProfile(null);
       toast.success('Logged out—see ya!');
     } catch (error: any) {
-      toast.error('Error signing out: ' + error.message);
+      // For sign out, even if it fails, clear local state
+      setUser(null);
+      setSession(null);
+      setUserProfile(null);
+      handleError(error, { operation: 'signOut' });
     }
   };
 
