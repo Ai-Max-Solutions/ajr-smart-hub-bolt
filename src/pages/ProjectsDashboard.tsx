@@ -56,6 +56,7 @@ interface ProjectStats {
 }
 
 interface ProjectSetupData {
+  code?: string;
   name: string;
   description: string;
   client: string;
@@ -386,7 +387,16 @@ export function ProjectsDashboard() {
                     {/* Basic Info */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold">Basic Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="code">Project Code *</Label>
+                          <Input
+                            id="code"
+                            value={setupData.code || ''}
+                            onChange={(e) => setSetupData(prev => ({ ...prev, code: e.target.value }))}
+                            placeholder="e.g., 382, 379"
+                          />
+                        </div>
                         <div>
                           <Label htmlFor="name">Project Name</Label>
                           <Input
