@@ -64,7 +64,7 @@ export const SmartUnitCard: React.FC<SmartUnitCardProps> = ({ plot }) => {
             main_category,
             sub_task
           ),
-          users (
+          users!unit_work_assignments_assigned_user_id_fkey (
             name
           )
         `)
