@@ -25,7 +25,9 @@ import {
   Clock,
   AlertCircle,
   Settings,
-  RefreshCw
+  RefreshCw,
+  Briefcase,
+  UserCheck
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -406,6 +408,10 @@ export const ProjectDetailsEnhanced: React.FC = () => {
     plot.composite_code?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleWorkAssignmentNavigation = () => {
+    navigate(`/projects/${projectId}/units`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -425,6 +431,13 @@ export const ProjectDetailsEnhanced: React.FC = () => {
           <p className="text-muted-foreground">{project.client}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            onClick={handleWorkAssignmentNavigation}
+            className="gap-2"
+          >
+            <UserCheck className="h-4 w-4" />
+            Assign Work
+          </Button>
           <Badge variant="outline">{project.code}</Badge>
           {progressData && (
             <div className="flex items-center gap-2">
@@ -439,7 +452,7 @@ export const ProjectDetailsEnhanced: React.FC = () => {
 
       {/* Main Content with Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="details" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Details
@@ -455,6 +468,10 @@ export const ProjectDetailsEnhanced: React.FC = () => {
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Team
+          </TabsTrigger>
+          <TabsTrigger value="workassignment" className="flex items-center gap-2">
+            <Briefcase className="h-4 w-4" />
+            Work Assignment
           </TabsTrigger>
         </TabsList>
 
@@ -490,6 +507,26 @@ export const ProjectDetailsEnhanced: React.FC = () => {
             teamMembers={teamMembers as any}
             isLoading={teamLoading}
           />
+        </TabsContent>
+
+        <TabsContent value="workassignment">
+          <Card>
+            <CardContent className="p-8 text-center space-y-4">
+              <div className="flex justify-center">
+                <Briefcase className="h-16 w-16 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Work Assignment Interface</h3>
+                <p className="text-muted-foreground mb-4">
+                  Access the comprehensive work assignment interface to assign tasks to your team members.
+                </p>
+              </div>
+              <Button onClick={handleWorkAssignmentNavigation} size="lg" className="gap-2">
+                <UserCheck className="h-5 w-5" />
+                Go to Work Assignment
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

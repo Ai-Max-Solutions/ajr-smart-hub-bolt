@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Building2, Home, Edit2, Check, X } from 'lucide-react';
+import { Calendar, Building2, Home, Edit2, Check, X, UserCheck, Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate, useParams } from 'react-router-dom';
 
 interface Project {
   id: string;
@@ -41,6 +42,8 @@ export const ProjectDetailsTab: React.FC<ProjectDetailsTabProps> = ({
   handedOverCount
 }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { projectId } = useParams();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -230,6 +233,33 @@ export const ProjectDetailsTab: React.FC<ProjectDetailsTabProps> = ({
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Quick Work Assignment Access */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Briefcase className="h-5 w-5" />
+            Work Assignment
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+            <div>
+              <h4 className="font-medium">Assign Work to Units</h4>
+              <p className="text-sm text-muted-foreground">
+                Efficiently assign tasks and manage workload across {totalPlots} units
+              </p>
+            </div>
+            <Button
+              onClick={() => navigate(`/projects/${projectId}/units`)}
+              className="gap-2"
+            >
+              <UserCheck className="h-4 w-4" />
+              Open Work Assignment
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

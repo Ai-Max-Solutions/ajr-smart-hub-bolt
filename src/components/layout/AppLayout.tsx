@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import { useLocation, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Wifi, WifiOff, Sun, Moon, Menu, Home, Building2, Settings, Shield, Brain } from "lucide-react";
+import { Wifi, WifiOff, Sun, Moon, Menu, Home, Building2, Settings, Shield, Brain, UserCheck } from "lucide-react";
 import { AJIcon } from "@/components/ui/aj-icon";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 
@@ -32,6 +31,7 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
   const navigationItems = [
     { label: 'Dashboard', href: '/', icon: Home },
     { label: 'Projects', href: '/projects', icon: Building2 },
+    { label: 'Work Assignment', href: '/work-assignment', icon: UserCheck },
     { label: 'Admin', href: '/admin', icon: Settings },
     { label: 'Compliance', href: '/compliance', icon: Shield },
     { label: 'AI Assistant', href: '/ai', icon: Brain },
@@ -40,6 +40,9 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
   const isActive = (href: string) => {
     if (href === '/') {
       return location.pathname === '/';
+    }
+    if (href === '/work-assignment') {
+      return location.pathname.includes('/units');
     }
     return location.pathname.startsWith(href);
   };
