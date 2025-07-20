@@ -276,12 +276,26 @@ export const ProjectSetupWizard: React.FC = () => {
 
         if (generationError) {
           console.error(`Generation error (attempt ${attempt}):`, generationError);
-          throw generationError;
+          
+          // Extract proper error message from function response
+          let errorMessage = 'Function error occurred';
+          
+          if (generationError.context?.json) {
+            const errorData = generationError.context.json;
+            errorMessage = errorData.message || errorData.error || 'Unknown function error';
+          } else if (generationError.message) {
+            errorMessage = generationError.message;
+          }
+          
+          // Create structured error for better handling
+          const structuredError = new Error(errorMessage);
+          structuredError.name = 'FunctionError';
+          throw structuredError;
         }
 
         console.log(`Generation result (attempt ${attempt}):`, generationResult);
 
-        if (generationResult.success) {
+        if (generationResult?.success) {
           // Show PM Popup instead of AI summary
           const { totalUnits, results, samplePlots } = generationResult;
           const totalBlocks = results.length;
@@ -299,7 +313,9 @@ export const ProjectSetupWizard: React.FC = () => {
           navigate(`/projects/${generationResult.projectId}`);
           return generationResult;
         } else {
-          throw new Error(generationResult.error || 'Generation failed');
+          // Handle failed generation result
+          const errorMessage = generationResult?.message || generationResult?.error || 'Generation failed';
+          throw new Error(errorMessage);
         }
       } catch (error: any) {
         console.error(`Project generation error (attempt ${attempt}):`, error);
