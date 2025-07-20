@@ -29,6 +29,7 @@ import ContractorDashboard from "./pages/ContractorDashboard";
 import NotFound from "./pages/NotFound";
 import InductionDemo from "./pages/InductionDemo";
 import MobileDashboard from "./pages/MobileDashboard";
+import WorkAssignment from "./pages/WorkAssignment";
 import { JobTrackerDashboard } from "./components/job-tracker/JobTrackerDashboard";
 import { SecurityHeader } from "@/components/ui/security-header";
 
@@ -174,6 +175,17 @@ function App() {
                   <RouteProtection fallbackPath="/auth">
                     <AppLayout>
                       <MobileDashboard />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/work-assignment" 
+                element={
+                  <RouteProtection requiredRole={['pm', 'admin', 'supervisor', 'operative', 'director']}>
+                    <AppLayout>
+                      <WorkAssignment />
                     </AppLayout>
                   </RouteProtection>
                 } 
