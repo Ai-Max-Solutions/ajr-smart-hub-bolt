@@ -212,7 +212,14 @@ export function ProjectsDashboard() {
       const data = await withRetry(
         async () => {
           const { data, error } = await supabase.functions.invoke('project-ai-assistant', {
-            body: { prompt, projectData: setupData }
+            body: { 
+              action: 'suggest_template',
+              data: {
+                projectName: setupData.name,
+                description: setupData.description,
+                blocks: setupData.blocks
+              }
+            }
           });
 
           if (error) throw error;
@@ -221,11 +228,15 @@ export function ProjectsDashboard() {
         { operation: 'aiAssistance' }
       );
 
-      setAiAssistance(data.response);
+      if (data.success && data.message) {
+        setAiAssistance(data.message);
 
-      // Apply AI suggestions if provided
-      if (data.suggestions) {
-        setSetupData(prev => ({ ...prev, ...data.suggestions }));
+        // Apply AI suggestions if provided
+        if (data.suggestions) {
+          setSetupData(prev => ({ ...prev, ...data.suggestions }));
+        }
+      } else {
+        throw new Error(data.error || 'AI assistance failed');
       }
     } catch (error) {
       handleError(error as Error, { operation: 'aiAssistance' });
@@ -263,20 +274,30 @@ export function ProjectsDashboard() {
         { operation: 'createProject' }
       );
 
-      toast({
-        title: "Project Created! 🚰",
-        description: `${data.totalUnits} units generated – flow secured, no leaks detected!`,
-        duration: 5000
-      });
+      if (data.success) {
+        toast({
+          title: "Project Created! 🚰",
+          description: `${data.totalUnits} units generated for "${setupData.name}" (${data.projectCode}) – flow secured, no leaks detected!`,
+          duration: 5000
+        });
 
-      setShowSetupModal(false);
-      fetchProjects();
-      fetchStats();
+        setShowSetupModal(false);
+        fetchProjects();
+        fetchStats();
+      } else {
+        throw new Error(data.error || 'Project creation failed');
+      }
     } catch (error) {
       handleError(error as Error, { operation: 'createProject' });
+      
+      let errorMessage = "🔧 Project hit a snag – check the blueprints and try again!";
+      if (error.message.includes('duplicate') || error.message.includes('collision')) {
+        errorMessage = "🔧 Project name conflict detected – try a different name or the system will generate a unique code!";
+      }
+      
       toast({
         title: "Creation Failed",
-        description: "🔧 Project hit a snag – check the blueprints and try again!",
+        description: errorMessage,
         variant: "destructive"
       });
     }

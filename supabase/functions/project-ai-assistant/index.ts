@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -15,18 +16,23 @@ serve(async (req) => {
   }
 
   try {
-    const { action, data } = await req.json();
+    const requestBody = await req.json();
+    const { action, data } = requestBody;
 
-    console.log('AI Assistant request:', { action, data });
+    console.log('AI Assistant request:', { action, data, fullBody: requestBody });
+
+    // Handle missing action by providing a default
+    const actualAction = action || 'suggest_template';
+    const actualData = data || requestBody;
 
     let systemPrompt = '';
     let userPrompt = '';
 
-    switch (action) {
+    switch (actualAction) {
       case 'suggest_template':
         systemPrompt = `You are a construction project expert. Based on the project name and description, suggest the most appropriate building template and provide helpful setup suggestions. Be witty but professional, with occasional plumbing humor. Always be encouraging and practical.`;
-        userPrompt = `Project: "${data.projectName}"
-Description: "${data.description || 'No description provided'}"
+        userPrompt = `Project: "${actualData.projectName || 'Unnamed Project'}"
+Description: "${actualData.description || 'No description provided'}"
 
 Analyze this project and suggest:
 1. Most appropriate building type (Residential High-Rise, Mixed-Use Development, Commercial Office Block, Student Accommodation)
@@ -42,14 +48,14 @@ Keep response concise and actionable.`;
       case 'validate_setup':
         systemPrompt = `You are a construction project expert validating project setup. Check for common issues, inconsistencies, or missed opportunities. Be encouraging but point out potential problems with construction humor.`;
         userPrompt = `Project Setup Validation:
-- Project: "${data.projectName}"
-- Blocks: ${data.blocks?.length || 0} blocks
-- Total Levels: ${data.totalLevels || 0}
-- Total Units: ${data.totalUnits || 0}
-- Template: ${data.template || 'Custom'}
+- Project: "${actualData.projectName || 'Unnamed Project'}"
+- Blocks: ${actualData.blocks?.length || 0} blocks
+- Total Levels: ${actualData.totalLevels || 0}
+- Total Units: ${actualData.totalUnits || 0}
+- Template: ${actualData.template || 'Custom'}
 
 Block Details:
-${data.blocks?.map(block => `  ${block.code}: ${block.levels} levels, ${block.unitsPerLevel} units/level`).join('\n') || 'No blocks defined'}
+${actualData.blocks?.map(block => `  ${block.code}: ${block.levels} levels, ${block.unitsPerLevel} units/level`).join('\n') || 'No blocks defined'}
 
 Validate this setup and provide:
 1. Any warnings or red flags
@@ -63,12 +69,12 @@ Be encouraging but honest about potential issues.`;
       case 'anomaly_check':
         systemPrompt = `You are a construction project monitoring expert. Analyze timesheet and task data for anomalies, delays, or concerning patterns. Use plumbing humor but be professional about serious issues.`;
         userPrompt = `Anomaly Check:
-- Task: "${data.taskName}"
-- Hours Logged: ${data.hours}
-- Normal Range: ${data.expectedHours || 'Unknown'}
-- Unit: ${data.unitCode}
-- Worker: ${data.workerName || 'Unknown'}
-- Previous Similar Tasks: ${data.historicalData || 'No data'}
+- Task: "${actualData.taskName || 'Unknown Task'}"
+- Hours Logged: ${actualData.hours || 0}
+- Normal Range: ${actualData.expectedHours || 'Unknown'}
+- Unit: ${actualData.unitCode || 'Unknown'}
+- Worker: ${actualData.workerName || 'Unknown'}
+- Previous Similar Tasks: ${actualData.historicalData || 'No data'}
 
 Analyze and provide:
 1. Whether this is normal, concerning, or exceptional
@@ -82,11 +88,11 @@ Be supportive of workers while flagging genuine concerns.`;
       case 'progress_summary':
         systemPrompt = `You are a construction project reporting expert. Create encouraging but realistic progress summaries with construction humor.`;
         userPrompt = `Progress Summary Request:
-- Project: "${data.projectName}"
-- Completion: ${data.completionPercentage || 0}%
-- Units Complete: ${data.unitsComplete || 0}/${data.totalUnits || 0}
-- Behind Schedule: ${data.behindSchedule || 0} units
-- Key Issues: ${data.issues?.join(', ') || 'None reported'}
+- Project: "${actualData.projectName || 'Unnamed Project'}"
+- Completion: ${actualData.completionPercentage || 0}%
+- Units Complete: ${actualData.unitsComplete || 0}/${actualData.totalUnits || 0}
+- Behind Schedule: ${actualData.behindSchedule || 0} units
+- Key Issues: ${actualData.issues?.join(', ') || 'None reported'}
 
 Create a brief, encouraging progress summary with:
 1. Overall status assessment
@@ -98,7 +104,14 @@ Keep it positive but realistic!`;
         break;
 
       default:
-        throw new Error(`Unknown action: ${action}`);
+        systemPrompt = `You are a helpful construction project assistant. Provide practical advice with occasional plumbing humor.`;
+        userPrompt = `The user is asking about: ${JSON.stringify(actualData)}
+        
+        Please provide helpful construction-related advice or suggestions.`;
+    }
+
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -118,12 +131,12 @@ Keep it positive but realistic!`;
       }),
     });
 
-    const aiResponse = await response.json();
-    
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${aiResponse.error?.message || 'Unknown error'}`);
+      const errorData = await response.json();
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
     }
 
+    const aiResponse = await response.json();
     const assistantMessage = aiResponse.choices[0].message.content;
 
     console.log('AI Assistant response:', assistantMessage);
@@ -131,7 +144,7 @@ Keep it positive but realistic!`;
     return new Response(JSON.stringify({ 
       success: true,
       message: assistantMessage,
-      action 
+      action: actualAction
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -139,7 +152,8 @@ Keep it positive but realistic!`;
     console.error('Error in project-ai-assistant function:', error);
     return new Response(JSON.stringify({ 
       success: false,
-      error: error.message 
+      error: error.message,
+      message: '🤖 AI Assistant hit a snag! Please try again or check your connection.'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

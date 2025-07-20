@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
@@ -10,6 +9,35 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Helper function to generate unique project code
+async function generateUniqueProjectCode(supabase: any, baseName: string): Promise<string> {
+  const baseCode = baseName.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 8);
+  let code = baseCode;
+  let suffix = 1;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('code', code)
+      .single();
+    
+    if (error && error.code === 'PGRST116') {
+      // No record found, code is unique
+      return code;
+    }
+    
+    if (data) {
+      // Code exists, try with suffix
+      suffix++;
+      code = `${baseCode}${suffix}`;
+    } else if (error) {
+      // Some other error occurred
+      throw error;
+    }
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -28,12 +56,16 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
+    // Generate unique project code
+    const uniqueCode = await generateUniqueProjectCode(supabase, projectData.name);
+    console.log('✅ Generated unique project code:', uniqueCode);
+    
     // Create the main project
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .insert({
         name: projectData.name,
-        code: projectData.name.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 10),
+        code: uniqueCode,
         client: projectData.client,
         start_date: projectData.startDate,
         end_date: projectData.endDate || null
@@ -46,7 +78,7 @@ serve(async (req) => {
       throw new Error(`Project creation failed: ${projectError.message}`);
     }
 
-    console.log('✅ Project created:', project.id, project.name);
+    console.log('✅ Project created:', project.id, project.name, 'with code:', project.code);
 
     let totalUnitsGenerated = 0;
     const generationResults = [];
@@ -238,10 +270,11 @@ serve(async (req) => {
       console.log(`✅ Block ${blockConfig.code} complete: ${levelInserts.length} levels, ${blockPlotsCreated} plots`);
     }
 
-    const successMessage = `🚧 Project "${project.name}" flowing smoothly! Generated ${totalUnitsGenerated} units across ${projectData.blocks.length} blocks. No leaks detected! 🔧💧`;
+    const successMessage = `🚧 Project "${project.name}" (${project.code}) flowing smoothly! Generated ${totalUnitsGenerated} units across ${projectData.blocks.length} blocks. No leaks detected! 🔧💧`;
     
     console.log('🎉 Bulk generation completed:', {
       projectId: project.id,
+      projectCode: project.code,
       totalBlocks: projectData.blocks.length,
       totalUnits: totalUnitsGenerated,
       results: generationResults
@@ -250,6 +283,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true,
       projectId: project.id,
+      projectCode: project.code,
       totalUnits: totalUnitsGenerated,
       results: generationResults,
       message: successMessage
@@ -258,10 +292,19 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('💥 Error in project-bulk-generator function:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = '🚨 Pipeline blocked! Check the flow and try again.';
+    if (error.message.includes('duplicate key')) {
+      errorMessage = '🔧 Project code collision detected! The system tried to generate a unique code but failed. Please try again or contact support.';
+    } else if (error.message.includes('violates')) {
+      errorMessage = '📋 Data validation failed! Please check your project details and try again.';
+    }
+
     return new Response(JSON.stringify({ 
       success: false,
       error: error.message,
-      message: '🚨 Pipeline blocked! Check the flow and try again.'
+      message: errorMessage
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
