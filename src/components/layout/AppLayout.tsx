@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import { useLocation, NavLink } from "react-router-dom";
@@ -60,8 +61,12 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <NavLink to="/" className="flex items-center space-x-2">
-              <AJIcon icon={Building2} variant="navy" size="sm" />
-              <span className="font-bold text-xl hidden sm:inline-block">AJ Ryan</span>
+              <img 
+                src="/lovable-uploads/0b275deb-8a7d-4a00-85a3-ae746d59b6f1.png" 
+                alt="AJ Ryan Logo" 
+                className="h-8 w-auto rounded-sm"
+              />
+              <span className="font-bold text-xl hidden sm:inline-block">SmartWork Hub</span>
             </NavLink>
           </div>
 
@@ -72,7 +77,7 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "transition-colors hover:text-foreground/80 flex items-center space-x-2 px-3 py-2 rounded-md",
+                  "transition-colors hover:text-foreground/80 flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-aj-yellow/10",
                   isActive(item.href) 
                     ? "text-foreground bg-accent" 
                     : "text-foreground/60"
@@ -94,7 +99,7 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              className="w-9 px-0"
+              className="w-9 px-0 hover:bg-aj-yellow/10"
             >
               <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />

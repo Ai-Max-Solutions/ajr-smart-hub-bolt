@@ -255,6 +255,28 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
+/* Brand Yellow Hover Utilities */
+.hover-yellow {
+  @apply hover:bg-aj-yellow/10 hover:border-aj-yellow/30 transition-all duration-200;
+}
+
+.hover-yellow-button {
+  @apply hover:bg-aj-yellow hover:text-aj-navy-deep transition-colors duration-200;
+}
+
+.hover-yellow-icon {
+  @apply group-hover:text-aj-yellow transition-colors duration-200;
+}
+
+/* Quick Access Button Enhancements */
+.quick-access-btn {
+  @apply hover:bg-aj-yellow/10 hover:border-aj-yellow/30 hover:shadow-md transition-all duration-200 group;
+}
+
+.quick-access-btn .icon {
+  @apply group-hover:text-aj-yellow transition-colors duration-200;
+}
+
 /* Focus styles */
 .focus-ring {
   @apply focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background;

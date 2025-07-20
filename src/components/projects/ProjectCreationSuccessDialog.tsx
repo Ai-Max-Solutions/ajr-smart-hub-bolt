@@ -11,6 +11,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ProjectCreationSuccessDialogProps {
   open: boolean;
@@ -28,6 +30,11 @@ export const ProjectCreationSuccessDialog: React.FC<ProjectCreationSuccessDialog
   onClose,
   project,
 }) => {
+  const { profile } = useUserProfile();
+  const { user } = useAuth();
+  
+  const firstName = profile?.firstname || user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'Builder';
+
   if (!project) return null;
 
   return (
@@ -45,9 +52,12 @@ export const ProjectCreationSuccessDialog: React.FC<ProjectCreationSuccessDialog
           </DialogTitle>
           
           <DialogDescription className="text-center space-y-2">
-            <p className="text-base">
-              Smashed it, Mark—efficiency gold! Time for Maxwell's footie. 
-              What'd the PM say to the bug? 'ID'd it!' 🚧💪
+            <p className="text-base font-medium text-green-700">
+              Brilliant work, {firstName}! Project is ready to roll—efficiency at its finest! 🚧💪
+            </p>
+            
+            <p className="text-sm text-muted-foreground">
+              Time to build something amazing! Every great structure starts with solid planning.
             </p>
             
             <div className="flex items-center justify-center gap-2 mt-4">
@@ -64,7 +74,7 @@ export const ProjectCreationSuccessDialog: React.FC<ProjectCreationSuccessDialog
         <DialogFooter className="sm:justify-center">
           <Button 
             onClick={onClose}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto bg-aj-yellow hover:bg-aj-yellow/90 text-aj-navy-deep font-semibold"
           >
             View Project Details
           </Button>

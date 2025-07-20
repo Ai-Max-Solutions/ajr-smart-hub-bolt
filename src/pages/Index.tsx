@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -5,16 +6,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { Building, Users, FileText, Shield, Calendar, TrendingUp, LogIn, LayoutDashboard, Activity, Clock, Zap, Plus, Upload, Search, Settings, MessageSquare, BarChart3, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { getPersonalizedGreeting, getWelcomeMessage } from "@/utils/greetings";
+import { getConstructionGreeting, getMotivationalMessage } from "@/utils/greetings";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BlockingModal } from "@/components/dashboard/BlockingModal";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const Index = () => {
   const { user, session } = useAuth();
+  const { profile } = useUserProfile();
   const [activityOpen, setActivityOpen] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -113,13 +116,16 @@ const Index = () => {
   ];
 
   const quickActions = [
-    { label: "Create New Project", icon: Plus, href: "/projects?action=create" },
-    { label: "Upload Documents", icon: Upload, href: "/projects?tab=documents" },
-    { label: "Search Projects", icon: Search, href: "/projects?search=true" },
-    { label: "Analytics Dashboard", icon: BarChart3, href: "/analytics" },
-    { label: "Team Chat", icon: MessageSquare, href: "/collaboration" },
-    { label: "Settings", icon: Settings, href: "/admin" }
+    { label: "Create New Project", icon: Plus, href: "/projects?action=create", tooltip: "Start a new project—build your empire!" },
+    { label: "Upload Documents", icon: Upload, href: "/projects?tab=documents", tooltip: "Upload docs—keep everything organized!" },
+    { label: "Search Projects", icon: Search, href: "/projects?search=true", tooltip: "Find projects fast—efficiency wins!" },
+    { label: "Analytics Dashboard", icon: BarChart3, href: "/analytics", tooltip: "Check the numbers—data drives success!" },
+    { label: "Team Chat", icon: MessageSquare, href: "/collaboration", tooltip: "Connect with your crew—teamwork makes the dream work!" },
+    { label: "Settings", icon: Settings, href: "/admin", tooltip: "Fine-tune your setup—perfection in the details!" }
   ];
+
+  // Get user's first name for personalization
+  const firstName = profile?.firstname || user?.user_metadata?.first_name || user?.email?.split('@')[0];
 
   // If user is not authenticated, show landing page with login option
   if (!session || !user) {
@@ -144,7 +150,7 @@ const Index = () => {
               </p>
               
               <div className="mt-10">
-                <Button asChild size="touch" variant="accent" className="font-poppins font-semibold shadow-elevated">
+                <Button asChild size="touch" variant="accent" className="font-poppins font-semibold shadow-elevated hover:bg-aj-yellow hover:text-aj-navy-deep transition-colors">
                   <a href="/auth">
                     <LogIn className="w-5 h-5 mr-3" />
                     Sign In to Continue
@@ -155,7 +161,7 @@ const Index = () => {
 
             {/* AJ Ryan Feature Overview */}
             <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-2">
+              <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-2 hover:border-aj-yellow/30">
                 <CardHeader>
                   <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
                     <Shield className="h-7 w-7 text-accent" />
@@ -169,7 +175,7 @@ const Index = () => {
                 </CardContent>
               </Card>
               
-              <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-2">
+              <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-2 hover:border-aj-yellow/30">
                 <CardHeader>
                   <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
                     <Users className="h-7 w-7 text-accent" />
@@ -183,7 +189,7 @@ const Index = () => {
                 </CardContent>
               </Card>
               
-              <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-2">
+              <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-2 hover:border-aj-yellow/30">
                 <CardHeader>
                   <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
                     <TrendingUp className="h-7 w-7 text-accent" />
@@ -215,7 +221,7 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light">
       <PageHeader
         title="Dashboard"
-        description="Welcome back to AJ Ryan SmartWork Hub"
+        description={getConstructionGreeting(firstName)}
         icon={LayoutDashboard}
         badge="Home"
         breadcrumbs={[
@@ -226,7 +232,7 @@ const Index = () => {
             {/* Activity Sheet */}
             <Sheet open={activityOpen} onOpenChange={setActivityOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="touch" className="font-poppins">
+                <Button variant="outline" size="touch" className="font-poppins hover:bg-aj-yellow/10 hover:border-aj-yellow/30">
                   <Activity className="w-5 h-5 mr-2" />
                   Activity
                 </Button>
@@ -262,7 +268,7 @@ const Index = () => {
                 <div className="mt-6 pt-4 border-t">
                   <Button 
                     variant="outline" 
-                    className="w-full font-poppins"
+                    className="w-full font-poppins hover:bg-aj-yellow/10"
                     onClick={() => setActivityOpen(false)}
                   >
                     View All Activity
@@ -274,7 +280,7 @@ const Index = () => {
             {/* Quick Actions Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="accent" size="touch" className="font-poppins">
+                <Button variant="accent" size="touch" className="font-poppins bg-aj-yellow text-aj-navy-deep hover:bg-aj-yellow/90">
                   <Zap className="w-5 h-5 mr-2" />
                   Quick Actions
                 </Button>
@@ -288,7 +294,8 @@ const Index = () => {
                       <DropdownMenuItem key={action.label} asChild>
                         <a 
                           href={action.href}
-                          className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-accent/10 transition-colors cursor-pointer"
+                          className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-aj-yellow/10 transition-colors cursor-pointer"
+                          title={action.tooltip}
                         >
                           <IconComponent className="w-4 h-4 text-accent" />
                           <span className="font-poppins text-sm">{action.label}</span>
@@ -304,7 +311,8 @@ const Index = () => {
                       <DropdownMenuItem key={action.label} asChild>
                         <a 
                           href={action.href}
-                          className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-accent/10 transition-colors cursor-pointer"
+                          className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-aj-yellow/10 transition-colors cursor-pointer"
+                          title={action.tooltip}
                         >
                           <IconComponent className="w-4 h-4 text-accent" />
                           <span className="font-poppins text-sm">{action.label}</span>
@@ -326,10 +334,10 @@ const Index = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl md:text-2xl font-poppins font-bold text-white">
-                  Good evening, {user.user_metadata?.first_name || user.email?.split('@')[0] || 'User'}
+                  {getConstructionGreeting(firstName)}
                 </h2>
                 <p className="text-white/80 font-poppins mt-1 text-sm md:text-base">
-                  Here's what's happening with your projects today
+                  {getMotivationalMessage(firstName)}
                 </p>
               </div>
               <Badge variant="secondary" className="font-poppins">
@@ -342,7 +350,7 @@ const Index = () => {
 
         {/* Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 hover:border-aj-yellow/30">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
@@ -359,7 +367,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 hover:border-aj-yellow/30">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
@@ -376,7 +384,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 hover:border-aj-yellow/30">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
@@ -393,7 +401,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 hover:border-aj-yellow/30">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
@@ -416,32 +424,32 @@ const Index = () => {
           <CardHeader>
             <CardTitle className="font-poppins">Quick Access</CardTitle>
             <CardDescription className="font-poppins">
-              Jump to your most used features and tools
+              Jump to your most used features and tools—time is money!
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-20 flex-col font-poppins" asChild>
-                <a href="/projects">
-                  <Building className="h-6 w-6 mb-2 text-accent" />
+              <Button variant="outline" className="h-20 flex-col font-poppins hover:bg-aj-yellow/10 hover:border-aj-yellow/30 transition-all duration-200 group" asChild>
+                <a href="/projects" title="Manage your construction projects">
+                  <Building className="h-6 w-6 mb-2 text-accent group-hover:text-aj-yellow transition-colors" />
                   Projects
                 </a>
               </Button>
-              <Button variant="outline" className="h-20 flex-col font-poppins" asChild>
-                <a href="/operative">
-                  <Users className="h-6 w-6 mb-2 text-accent" />
+              <Button variant="outline" className="h-20 flex-col font-poppins hover:bg-aj-yellow/10 hover:border-aj-yellow/30 transition-all duration-200 group" asChild>
+                <a href="/operative" title="Access your personal portal">
+                  <Users className="h-6 w-6 mb-2 text-accent group-hover:text-aj-yellow transition-colors" />
                   My Portal
                 </a>
               </Button>
-              <Button variant="outline" className="h-20 flex-col font-poppins" asChild>
-                <a href="/ai-assistant">
-                  <Zap className="h-6 w-6 mb-2 text-accent" />
+              <Button variant="outline" className="h-20 flex-col font-poppins hover:bg-aj-yellow/10 hover:border-aj-yellow/30 transition-all duration-200 group" asChild>
+                <a href="/ai-assistant" title="Get smart assistance for your work">
+                  <Zap className="h-6 w-6 mb-2 text-accent group-hover:text-aj-yellow transition-colors" />
                   AI Assistant
                 </a>
               </Button>
-              <Button variant="outline" className="h-20 flex-col font-poppins" asChild>
-                <a href="/admin">
-                  <Shield className="h-6 w-6 mb-2 text-accent" />
+              <Button variant="outline" className="h-20 flex-col font-poppins hover:bg-aj-yellow/10 hover:border-aj-yellow/30 transition-all duration-200 group" asChild>
+                <a href="/admin" title="Administrative tools and settings">
+                  <Shield className="h-6 w-6 mb-2 text-accent group-hover:text-aj-yellow transition-colors" />
                   Admin
                 </a>
               </Button>
