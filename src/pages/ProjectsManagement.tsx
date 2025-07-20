@@ -30,6 +30,7 @@ const ProjectsManagement = () => {
         <Route path="/dashboard" element={<ProjectDashboard />} />
         <Route path="/create" element={<CreateProject />} />
         <Route path="/setup-wizard" element={<ProjectSetupWizard />} />
+        <Route path="/:projectId/units" element={<ProjectUnitsPage />} />
         <Route path="/:projectId" element={<ProjectDetailsEnhanced />} />
       </Routes>
     </div>

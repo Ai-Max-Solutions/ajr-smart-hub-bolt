@@ -233,8 +233,8 @@ export const MyWork: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">My Work</h1>
-          <p className="text-muted-foreground">Log your completed work and track progress</p>
+          <h1 className="text-3xl font-bold">My Work for {(user as any)?.name?.split(' ')[0] || 'Mark'}</h1>
+          <p className="text-muted-foreground">Voice log, QR scan, or manual entry—earn bonuses for early completion!</p>
         </div>
         <div className="flex items-center gap-3">
           <Button

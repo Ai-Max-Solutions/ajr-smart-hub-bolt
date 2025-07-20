@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Save, Camera } from 'lucide-react';
+import CelebrationSystem from '../gamification/CelebrationSystem';
 
 interface Assignment {
   id: string;
@@ -45,6 +46,7 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
   const [hours, setHours] = useState(assignment.estimated_hours);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +58,11 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
         notes: notes.trim() || `Completed ${assignment.work_category.main_category} - ${assignment.work_category.sub_task}`,
         photos: []
       });
+      
+      // Show celebration if bonus earned
+      if (isUnderTime) {
+        setShowCelebration(true);
+      }
       
       // Reset form
       setNotes('');
@@ -163,6 +170,14 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
           </Button>
         </form>
       </DialogContent>
+      
+      <CelebrationSystem
+        show={showCelebration}
+        onComplete={() => setShowCelebration(false)}
+        type="bonus"
+        message={`${timeDifference.toFixed(1)}h under estimate—early finish for family time!`}
+        points={Math.round(timeDifference * 10)}
+      />
     </Dialog>
   );
 };

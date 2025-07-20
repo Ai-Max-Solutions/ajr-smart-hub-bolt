@@ -6,9 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { Sparkles, Save, Users, Calendar, Target } from 'lucide-react';
 import { PlotAssignmentCard } from './PlotAssignmentCard';
 import { AIAssignmentModal } from './AIAssignmentModal';
+import { SmartAssignmentEngine } from './SmartAssignmentEngine';
+import { InteractiveHeatmap } from './InteractiveHeatmap';
+import { Leaderboard } from '../gamification/Leaderboard';
 
 interface Plot {
   id: string;
@@ -41,6 +45,7 @@ interface Assignment {
 export const ProjectUnitsPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [plots, setPlots] = useState<Plot[]>([]);
   const [workCategories, setWorkCategories] = useState<WorkCategory[]>([]);
@@ -239,8 +244,8 @@ export const ProjectUnitsPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Work Assignment</h1>
-          <p className="text-muted-foreground">Assign work types to project units</p>
+          <h1 className="text-3xl font-bold">Work Assignment for {(user as any)?.name?.split(' ')[0] || 'Mark'}</h1>
+          <p className="text-muted-foreground">Drag-drop or AI auto—save hours!</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -340,21 +345,50 @@ export const ProjectUnitsPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Units Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {plots.map((plot) => (
-          <PlotAssignmentCard
-            key={plot.id}
-            plot={plot}
-            workCategories={workCategories}
-            users={users}
-            assignments={assignments.filter(a => a.plotId === plot.id)}
-            onUpdateAssignment={updateAssignment}
-            onRemoveAssignment={removeAssignment}
-            isSelected={selectedPlots.includes(plot.id)}
-            onToggleSelection={() => togglePlotSelection(plot.id)}
-          />
-        ))}
+      {/* Smart Assignment Engine */}
+      <SmartAssignmentEngine
+        plots={plots}
+        workCategories={workCategories}
+        users={users}
+        projectId={projectId!}
+        onApplyAssignments={handleAIAssignment}
+      />
+
+      {/* Interactive Heatmap */}
+      <InteractiveHeatmap
+        plots={plots}
+        projectId={projectId!}
+        onPlotClick={(plot) => {
+          console.log('Plot clicked:', plot);
+        }}
+      />
+
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Units Grid - Takes 2/3 */}
+        <div className="lg:col-span-2">
+          <h3 className="text-lg font-semibold mb-4">Project Units</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {plots.map((plot) => (
+              <PlotAssignmentCard
+                key={plot.id}
+                plot={plot}
+                workCategories={workCategories}
+                users={users}
+                assignments={assignments.filter(a => a.plotId === plot.id)}
+                onUpdateAssignment={updateAssignment}
+                onRemoveAssignment={removeAssignment}
+                isSelected={selectedPlots.includes(plot.id)}
+                onToggleSelection={() => togglePlotSelection(plot.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Leaderboard - Takes 1/3 */}
+        <div className="lg:col-span-1">
+          <Leaderboard projectId={projectId} timeframe="week" />
+        </div>
       </div>
 
       {/* AI Assignment Modal */}
