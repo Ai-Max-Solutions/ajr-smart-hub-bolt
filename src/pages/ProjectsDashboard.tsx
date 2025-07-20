@@ -94,6 +94,7 @@ export function ProjectsDashboard() {
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [aiAssistance, setAiAssistance] = useState('');
   const [setupData, setSetupData] = useState<ProjectSetupData>({
+    code: '',
     name: '',
     description: '',
     client: '',
