@@ -263,7 +263,7 @@ export const PlotAssignmentCard: React.FC<PlotAssignmentCardProps> = ({
                 <Checkbox 
                   id="copyToAll"
                   checked={copyToAllPlots}
-                  onCheckedChange={setCopyToAllPlots}
+                  onCheckedChange={(checked) => setCopyToAllPlots(checked === true)}
                 />
                 <div className="flex items-center gap-2 flex-1">
                   <Copy className="h-4 w-4 text-blue-600" />
