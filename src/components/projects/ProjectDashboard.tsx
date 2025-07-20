@@ -1,88 +1,154 @@
 
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, Users, Clock, AlertTriangle, Search, Filter } from 'lucide-react';
+import { Building2, Users, Clock, AlertTriangle, Search, Filter, Bot, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { StatusBadge } from './StatusBadge';
+import { StatusDropdown } from './StatusDropdown';
 
 interface Project {
   id: string;
-  projectname: string;
-  clientname: string;
-  siteaddress: string;
-  status: string;
-  startdate: string;
-  plannedenddate: string;
-  projectvalue: number;
-  totalplots: number;
-  completeddeliveries: number;
-  pendingdeliveries: number;
-  projectmanager: string;
+  name: string;
+  client: string;
+  code: string;
+  status: 'Planning' | 'Active' | 'Building' | 'Completed' | 'Delayed';
+  start_date: string;
+  end_date: string;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export const ProjectDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [animatingStatuses, setAnimatingStatuses] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
 
-  // Fetch projects
-  const { data: projects = [], isLoading } = useQuery({
+  // Fetch projects (excluding archived)
+  const { data: projects = [], isLoading, refetch } = useQuery({
     queryKey: ['projects'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Project[]> => {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
+        .eq('is_archived', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      // Map database columns to expected Project interface
-      return data?.map(project => ({
-        id: project.id,
-        projectname: project.name,
-        clientname: project.client,
-        siteaddress: '',
-        status: 'In Progress',
-        startdate: project.start_date,
-        plannedenddate: project.end_date,
-        projectvalue: 0,
-        totalplots: 0,
-        completeddeliveries: 0,
-        pendingdeliveries: 0,
-        projectmanager: ''
-      })) as Project[] || [];
+      return data || [];
     },
+  });
+
+  // Real-time subscription for project changes
+  useEffect(() => {
+    const channel = supabase.channel('projects-dashboard')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'projects'
+        }, 
+        (payload) => {
+          console.log('Project change detected:', payload);
+          queryClient.invalidateQueries({ queryKey: ['projects'] });
+          
+          if (payload.eventType === 'UPDATE' && payload.new?.status !== payload.old?.status) {
+            const projectId = payload.new.id;
+            setAnimatingStatuses(prev => new Set(prev).add(projectId));
+            
+            setTimeout(() => {
+              setAnimatingStatuses(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(projectId);
+                return newSet;
+              });
+            }, 1000);
+            
+            toast(`Status updated to ${payload.new.status}!`, {
+              description: `${payload.new.name} is now marked as ${payload.new.status}.`
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Update project status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ projectId, status }: { projectId: string; status: Project['status'] }) => {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', projectId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, { status }) => {
+      toast(`Status updated to ${status}!`, {
+        description: status === 'Completed' ? 'Great finish, Mark!' : `Project marked as ${status}.`
+      });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to update status', {
+        description: error.message
+      });
+    }
+  });
+
+  // AI Delay Detection mutation
+  const scanDelaysMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('auto_flag_delayed_projects');
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (updatedCount) => {
+      if (updatedCount > 0) {
+        toast(`Flagged ${updatedCount} delayed project${updatedCount > 1 ? 's' : ''}`, {
+          description: 'Projects missing deadlines have been marked as Delayed.'
+        });
+      } else {
+        toast('No delays detected', {
+          description: 'All projects are on track—great job!'
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+    onError: (error) => {
+      toast.error('AI scan failed', {
+        description: error.message
+      });
+    }
   });
 
   // Filter projects based on search and status
   const filteredProjects = projects.filter((project) => {
-    const matchesSearch = project.projectname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.clientname?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = project.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         project.client?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         project.code?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return 'default';
-      case 'completed':
-        return 'secondary';
-      case 'on hold':
-        return 'destructive';
-      case 'planning':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
+  const handleStatusChange = (projectId: string, newStatus: string) => {
+    updateStatusMutation.mutate({ projectId, status: newStatus as Project['status'] });
   };
 
-  const getProjectProgress = (project: Project) => {
-    if (!project.totalplots || project.totalplots === 0) return 0;
-    return Math.round((project.completeddeliveries / project.totalplots) * 100);
+  const handleAiScan = () => {
+    scanDelaysMutation.mutate();
   };
 
   if (isLoading) {
@@ -103,6 +169,19 @@ export const ProjectDashboard: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-2">
+          <Button
+            onClick={handleAiScan}
+            disabled={scanDelaysMutation.isPending}
+            variant="outline"
+            className="gap-2"
+          >
+            {scanDelaysMutation.isPending ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Bot className="w-4 h-4" />
+            )}
+            Check Delays
+          </Button>
           <Button 
             onClick={() => window.location.href = '/projects/setup-wizard'}
             className="btn-primary"
@@ -134,8 +213,9 @@ export const ProjectDashboard: React.FC = () => {
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="Planning">Planning</SelectItem>
               <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="On Hold">On Hold</SelectItem>
+              <SelectItem value="Building">Building</SelectItem>
               <SelectItem value="Completed">Completed</SelectItem>
+              <SelectItem value="Delayed">Delayed</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -154,77 +234,60 @@ export const ProjectDashboard: React.FC = () => {
           </Card>
         ) : (
           filteredProjects.map((project) => (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow">
+            <Card 
+              key={project.id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => window.location.href = `/projects/${project.id}`}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-lg line-clamp-2">
-                      {project.projectname || 'Untitled Project'}
+                      {project.name || 'Untitled Project'}
                     </CardTitle>
                     <CardDescription>
-                      {project.clientname || 'Unknown Client'}
+                      {project.client || 'Unknown Client'}
                     </CardDescription>
                   </div>
-                  <Badge variant={getStatusColor(project.status)}>
-                    {project.status || 'Unknown'}
-                  </Badge>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <StatusDropdown
+                      value={project.status}
+                      onValueChange={(newStatus) => handleStatusChange(project.id, newStatus)}
+                      disabled={updateStatusMutation.isPending}
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Progress Bar */}
-                {project.totalplots > 0 && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Progress</span>
-                      <span>{getProjectProgress(project)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-ajryan-yellow h-2 rounded-full transition-all"
-                        style={{ width: `${getProjectProgress(project)}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
                 {/* Key Metrics */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span>{project.totalplots || 0} Plots</span>
+                    <span>{project.code}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>{project.projectmanager || 'No PM'}</span>
-                  </div>
-                  {project.startdate && (
+                  {project.start_date && (
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{format(new Date(project.startdate), 'MMM d, yyyy')}</span>
+                      <span>{format(new Date(project.start_date), 'MMM d, yyyy')}</span>
                     </div>
                   )}
-                  {project.pendingdeliveries > 0 && (
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-orange-500" />
-                      <span>{project.pendingdeliveries} Pending</span>
+                  {project.end_date && (
+                    <div className="flex items-center gap-2 col-span-2">
+                      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                      <span>Due: {format(new Date(project.end_date), 'MMM d, yyyy')}</span>
                     </div>
                   )}
                 </div>
 
-                {/* Project Value */}
-                {project.projectvalue && (
-                  <div className="pt-2 border-t">
-                    <p className="text-sm text-muted-foreground">Project Value</p>
-                    <p className="font-semibold">
-                      £{project.projectvalue.toLocaleString()}
-                    </p>
-                  </div>
-                )}
-
-                {/* Location */}
-                {project.siteaddress && (
-                  <div className="text-sm text-muted-foreground">
-                    <p className="line-clamp-2">{project.siteaddress}</p>
+                {/* Status Indicator for Delayed Projects */}
+                {project.status === 'Delayed' && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-red-700">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="text-sm font-medium">
+                        Project may miss deadline—consider boosting the team
+                      </span>
+                    </div>
                   </div>
                 )}
               </CardContent>

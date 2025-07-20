@@ -16,11 +16,15 @@ import {
   Briefcase,
   UserCheck,
   AlertCircle,
-  Clock
+  Clock,
+  Archive,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
+import { ArchiveModal, DeleteModal } from '../ConfirmationModals';
+import { StatusBadge } from '../StatusBadge';
 
 // Import tab components
 import { ProjectDetailsTab } from './tabs/ProjectDetailsTab';
@@ -33,9 +37,12 @@ interface Project {
   name: string;
   client: string;
   code: string;
+  status: 'Planning' | 'Active' | 'Building' | 'Completed' | 'Delayed';
   start_date: string;
   end_date: string;
+  is_archived: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 interface Plot {
@@ -85,6 +92,8 @@ export const ProjectDetailsEnhanced: React.FC = () => {
   const [activeTab, setActiveTab] = useState('details');
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   console.log('🎯 ProjectDetailsEnhanced rendering with ID:', projectId);
 
@@ -287,6 +296,54 @@ export const ProjectDetailsEnhanced: React.FC = () => {
     retry: 2,
   });
 
+  // Archive project mutation
+  const archiveProjectMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('archive_project', { p_project_id: projectId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast('Project archived—dash cleaner, more time for Maxwell\'s footie!', {
+        description: 'Project has been hidden from dashboard but all data is retained.'
+      });
+      navigate('/projects');
+    },
+    onError: (error) => {
+      toast.error('Failed to archive project', {
+        description: error.message
+      });
+    }
+  });
+
+  // Delete project mutation
+  const deleteProjectMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('delete_project_cascade', { p_project_id: projectId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast('Deleted—clean slate, Mark. Back to building smart.', {
+        description: 'Project and all related data have been permanently removed.'
+      });
+      navigate('/projects');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete project', {
+        description: error.message
+      });
+    }
+  });
+
+  const handleArchiveProject = () => {
+    archiveProjectMutation.mutate();
+    setArchiveModalOpen(false);
+  };
+
+  const handleDeleteProject = () => {
+    deleteProjectMutation.mutate();
+    setDeleteModalOpen(false);
+  };
+
   // Loading state with timeout
   if (projectLoading) {
     if (loadingTimeout) {
@@ -418,12 +475,29 @@ export const ProjectDetailsEnhanced: React.FC = () => {
           <p className="text-muted-foreground">{project.client}</p>
         </div>
         <div className="flex items-center gap-2">
+          <StatusBadge status={project.status} />
           <Button
             onClick={handleWorkAssignmentNavigation}
             className="gap-2"
           >
             <UserCheck className="h-4 w-4" />
             Assign Work
+          </Button>
+          <Button
+            onClick={() => setArchiveModalOpen(true)}
+            variant="outline"
+            className="gap-2 hover:bg-yellow-50 hover:border-yellow-300"
+          >
+            <Archive className="h-4 w-4" />
+            Archive
+          </Button>
+          <Button
+            onClick={() => setDeleteModalOpen(true)}
+            variant="outline"
+            className="gap-2 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
           </Button>
           <Badge variant="outline">{project.code}</Badge>
           {progressData && (
@@ -516,6 +590,23 @@ export const ProjectDetailsEnhanced: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation Modals */}
+      <ArchiveModal
+        open={archiveModalOpen}
+        onOpenChange={setArchiveModalOpen}
+        onConfirm={handleArchiveProject}
+        projectName={project.name}
+        loading={archiveProjectMutation.isPending}
+      />
+
+      <DeleteModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onConfirm={handleDeleteProject}
+        projectName={project.name}
+        loading={deleteProjectMutation.isPending}
+      />
     </div>
   );
 };

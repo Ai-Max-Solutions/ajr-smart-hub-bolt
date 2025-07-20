@@ -1378,6 +1378,14 @@ export type Database = {
           reason: string
         }[]
       }
+      archive_project: {
+        Args: { p_project_id: string }
+        Returns: boolean
+      }
+      auto_flag_delayed_projects: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       calculate_plot_completion: {
         Args: { p_plot_id: string }
         Returns: number
@@ -1385,6 +1393,10 @@ export type Database = {
       calculate_task_bonus: {
         Args: { p_assignment_id: string; p_actual_hours: number }
         Returns: Json
+      }
+      delete_project_cascade: {
+        Args: { p_project_id: string }
+        Returns: boolean
       }
       detect_suspicious_activity: {
         Args: Record<PropertyKey, never>
@@ -1402,6 +1414,14 @@ export type Database = {
         Args: { p_assignment_id: string }
         Returns: Json
       }
+      scan_project_delays: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          project_id: string
+          project_name: string
+          delay_reason: string
+        }[]
+      }
       update_plot_order: {
         Args: { plot_ids: string[]; project_id_param: string }
         Returns: undefined
@@ -1413,7 +1433,12 @@ export type Database = {
     }
     Enums: {
       hire_status_enum: "Available" | "On Hire" | "Maintenance" | "Damaged"
-      project_status_enum: "Planning" | "Active" | "Building" | "Completed"
+      project_status_enum:
+        | "Planning"
+        | "Active"
+        | "Building"
+        | "Completed"
+        | "Delayed"
       timesheet_status_enum: "Draft" | "Submitted" | "Approved" | "Rejected"
       user_role_enum: "Operative" | "Supervisor" | "Admin" | "PM" | "Director"
       work_assignment_status:
@@ -1551,7 +1576,13 @@ export const Constants = {
   public: {
     Enums: {
       hire_status_enum: ["Available", "On Hire", "Maintenance", "Damaged"],
-      project_status_enum: ["Planning", "Active", "Building", "Completed"],
+      project_status_enum: [
+        "Planning",
+        "Active",
+        "Building",
+        "Completed",
+        "Delayed",
+      ],
       timesheet_status_enum: ["Draft", "Submitted", "Approved", "Rejected"],
       user_role_enum: ["Operative", "Supervisor", "Admin", "PM", "Director"],
       work_assignment_status: [
