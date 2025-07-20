@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
+import { validateEmail, validatePasswordStrength } from '@/utils/inputSanitization';
 
 interface AuthContextType {
   user: User | null;
@@ -226,8 +227,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signUp = async (email: string, password: string, metadata?: any) => {
     try {
+      // Validate password strength before attempting signup
+      const passwordValidation = validatePasswordStrength(password);
+      if (!passwordValidation.isValid) {
+        return { error: { message: passwordValidation.message } };
+      }
+
+      // Sanitize and validate email
+      if (!validateEmail(email)) {
+        return { error: { message: 'Please enter a valid email address' } };
+      }
+
       const { error } = await supabase.auth.signUp({
-        email,
+        email: email.toLowerCase().trim(),
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,

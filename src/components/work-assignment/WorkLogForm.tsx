@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Save, Camera } from 'lucide-react';
+import { sanitizeWorkLogData } from '@/utils/inputSanitization';
+import { toast } from 'sonner';
 import CelebrationSystem from '../gamification/CelebrationSystem';
 
 interface Assignment {
@@ -53,9 +55,23 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
     setLoading(true);
 
     try {
-      await onSubmit({
+      // Validate and sanitize input data
+      const validation = sanitizeWorkLogData({
+        plot_id: assignment.plot_id,
+        work_category_id: assignment.work_category_id,
         hours,
-        notes: notes.trim() || `Completed ${assignment.work_category.main_category} - ${assignment.work_category.sub_task}`,
+        notes,
+        status: 'completed'
+      });
+
+      if (!validation.isValid) {
+        validation.errors?.forEach(error => toast.error(error));
+        return;
+      }
+
+      await onSubmit({
+        hours: validation.sanitizedData!.hours,
+        notes: validation.sanitizedData!.notes || `Completed ${assignment.work_category.main_category} - ${assignment.work_category.sub_task}`,
         photos: []
       });
       
@@ -67,6 +83,9 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
       // Reset form
       setNotes('');
       setHours(assignment.estimated_hours);
+    } catch (error) {
+      console.error('Work log submission error:', error);
+      toast.error('Failed to submit work log. Please try again.');
     } finally {
       setLoading(false);
     }
