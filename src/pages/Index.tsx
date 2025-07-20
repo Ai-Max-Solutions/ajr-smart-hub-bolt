@@ -19,19 +19,19 @@ import {
 } from "lucide-react";
 
 const Index = () => {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  console.log("Index component - User:", user, "Loading:", isLoading);
+  console.log("Index component - User:", user, "Loading:", loading);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!loading && !user) {
       console.log("No user found, redirecting to auth");
       navigate("/auth");
     }
-  }, [user, isLoading, navigate]);
+  }, [user, loading, navigate]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -104,7 +104,7 @@ const Index = () => {
       {/* Welcome Section */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, {user.name}
+          Welcome back, {user.user_metadata?.full_name || user.email}
         </h1>
         <p className="text-muted-foreground">
           Here's what's happening with your projects today.
