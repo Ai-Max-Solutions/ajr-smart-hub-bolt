@@ -17,8 +17,11 @@ import {
   Download, 
   UserCheck,
   UserX,
-  Wrench
+  Wrench,
+  ShieldCheck,
+  Shield
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { Enums } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -31,6 +34,7 @@ interface User {
   employmentstatus: string;
   last_sign_in: string;
   created_at: string;
+  is_verified?: boolean;
 }
 
 const AdminUserManagement = () => {
@@ -63,7 +67,8 @@ const AdminUserManagement = () => {
         role: user.role || 'Operative',
         employmentstatus: user.employmentstatus || 'Active',
         last_sign_in: user.last_sign_in || user.created_at,
-        created_at: user.created_at
+        created_at: user.created_at,
+        is_verified: (user as any).is_verified || false
       }));
       
       setUsers(transformedUsers);
@@ -121,6 +126,39 @@ const AdminUserManagement = () => {
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Status change failed - valve might be stuck!');
+    }
+  };
+
+  const handleVerificationToggle = async (userId: string, currentVerified: boolean) => {
+    try {
+      const newVerified = !currentVerified;
+      
+      const { error } = await supabase
+        .from('users')
+        .update({ is_verified: newVerified } as any)
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, is_verified: newVerified } : user
+      ));
+
+      if (newVerified) {
+        // Send activation email
+        const user = users.find(u => u.id === userId);
+        if (user?.email) {
+          await supabase.functions.invoke('send-activation-email', {
+            body: { email: user.email, name: user.name }
+          });
+        }
+        toast.success('User activated and notification email sent! 🎉');
+      } else {
+        toast.success('User verification revoked - access sealed! 🔒');
+      }
+    } catch (error) {
+      console.error('Error updating verification status:', error);
+      toast.error('Verification toggle failed - system might be blocked!');
     }
   };
 
@@ -184,7 +222,7 @@ const AdminUserManagement = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -235,6 +273,20 @@ const AdminUserManagement = () => {
                 </p>
               </div>
               <Wrench className="w-8 h-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Verified</p>
+                <p className="text-2xl font-bold text-emerald-600">
+                  {users.filter(u => u.is_verified).length}
+                </p>
+              </div>
+              <ShieldCheck className="w-8 h-8 text-emerald-600" />
             </div>
           </CardContent>
         </Card>
@@ -297,6 +349,7 @@ const AdminUserManagement = () => {
                     <TableHead>Worker</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Verified</TableHead>
                     <TableHead>Last Active</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -335,6 +388,25 @@ const AdminUserManagement = () => {
                         >
                           {user.employmentstatus}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.is_verified || false}
+                            onCheckedChange={() => handleVerificationToggle(user.id, user.is_verified || false)}
+                            disabled={['Admin', 'Director'].includes(user.role)} // Admins are always verified
+                          />
+                          <div className="flex items-center gap-1">
+                            {user.is_verified ? (
+                              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <Shield className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <span className="text-sm text-muted-foreground">
+                              {user.is_verified ? 'Verified' : 'Pending'}
+                            </span>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm text-muted-foreground">

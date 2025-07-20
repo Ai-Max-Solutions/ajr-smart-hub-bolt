@@ -10,6 +10,7 @@ interface AuthContextType {
   session: Session | null;
   userProfile: any;
   loading: boolean;
+  isVerified: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
@@ -35,6 +36,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isVerified, setIsVerified] = useState<boolean>(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -77,6 +79,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           debouncedFetch(async () => {
             try {
               await withRetry(async () => {
+                // Update last sign in and check verification status
+                const { data: userData, error: fetchError } = await supabase
+                  .from('users')
+                  .select('*')
+                  .eq('supabase_auth_id', session.user.id)
+                  .single();
+
+                if (fetchError) {
+                  console.warn('Failed to fetch user data:', fetchError);
+                  setIsVerified(false);
+                  return;
+                }
+
+                setIsVerified((userData as any)?.is_verified || false);
+
                 // Update last sign in
                 const { error: updateError } = await supabase
                   .from('users')
@@ -86,11 +103,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 if (updateError) {
                   console.warn('Failed to update last sign in:', updateError);
                 }
+
+                // Redirect unverified users unless they're admins
+                if (!(userData as any)?.is_verified && (userData as any)?.role !== 'Admin' && (userData as any)?.role !== 'Director') {
+                  if (!location.pathname.startsWith('/under-review') && !location.pathname.startsWith('/auth')) {
+                    navigate('/under-review');
+                  }
+                }
               });
             } catch (error) {
               console.warn('Auth profile update failed:', error);
+              setIsVerified(false);
             }
           }, 300);
+        } else {
+          setIsVerified(false);
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
@@ -205,6 +232,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     session,
     userProfile,
     loading,
+    isVerified,
     signIn,
     signUp,
     resetPassword,

@@ -22,6 +22,7 @@ import AdminUserManagement from "@/components/admin/AdminUserManagement";
 import DirectorDashboard from "./pages/DirectorDashboard";
 import AIAssistant from "./pages/AIAssistant";
 import { Auth } from "./pages/Auth";
+import { UnderReview } from "./pages/UnderReview";
 import ContractorAuth from "./pages/ContractorAuth";
 import ContractorOnboarding from "./pages/ContractorOnboarding";
 import ContractorDashboard from "./pages/ContractorDashboard";
@@ -45,6 +46,7 @@ function App() {
             <Routes>
               {/* Public routes without navigation */}
               <Route path="/auth" element={<Auth />} />
+              <Route path="/under-review" element={<UnderReview />} />
               <Route path="/contractor/auth" element={<ContractorAuth />} />
               <Route path="/contractor/onboarding" element={<ContractorOnboarding />} />
               <Route path="/contractor/dashboard" element={<ContractorDashboard />} />
