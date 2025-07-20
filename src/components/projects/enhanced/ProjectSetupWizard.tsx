@@ -70,12 +70,6 @@ interface ProjectTemplate {
   includes_mezzanine: boolean;
 }
 
-interface AIAssistantResponse {
-  success: boolean;
-  message: string;
-  action: string;
-}
-
 export const ProjectSetupWizard: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -83,18 +77,15 @@ export const ProjectSetupWizard: React.FC = () => {
   const [blocks, setBlocks] = useState<BlockFormData[]>([]);
   const [templates, setTemplates] = useState<ProjectTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null);
-  const [aiSuggestion, setAiSuggestion] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [customLevelInput, setCustomLevelInput] = useState('');
   const [isCheckingCode, setIsCheckingCode] = useState(false);
 
-  // Form for project details
   const projectForm = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
   });
 
-  // Form for block configuration
   const blockForm = useForm<BlockFormData>({
     resolver: zodResolver(blockSchema),
     defaultValues: {
@@ -104,7 +95,6 @@ export const ProjectSetupWizard: React.FC = () => {
     }
   });
 
-  // Load templates on mount
   useEffect(() => {
     fetchTemplates();
   }, []);
@@ -140,12 +130,10 @@ export const ProjectSetupWizard: React.FC = () => {
         .single();
       
       if (error && error.code === 'PGRST116') {
-        // No record found, code is unique
         return true;
       }
       
       if (data) {
-        // Code exists
         projectForm.setError('code', { message: `Project code "${code}" is already in use` });
         return false;
       }
@@ -153,89 +141,10 @@ export const ProjectSetupWizard: React.FC = () => {
       return true;
     } catch (error) {
       console.error('Error checking project code:', error);
-      return true; // Allow on error to not block user
+      return true;
     } finally {
       setIsCheckingCode(false);
     }
-  };
-
-  // Removed AI suggestion - not needed for PM workflow
-
-  // Removed AI validation - not needed for PM workflow
-
-  const suggestLevelCode = (input: string) => {
-    const suggestions = {
-      'ground': 'GF',
-      'basement': 'B1',
-      'mezzanine': 'M',
-      'parking': 'P1',
-      'roof': 'RF',
-      'penthouse': 'PH'
-    };
-    
-    const lower = input.toLowerCase();
-    for (const [key, code] of Object.entries(suggestions)) {
-      if (lower.includes(key)) {
-        return `Ground floor? Use '${code}'—avoids backflow! 🔧`;
-      }
-    }
-    return null;
-  };
-
-  const onProjectSubmit = async (data: ProjectFormData) => {
-    // Final code uniqueness check
-    const isCodeUnique = await checkProjectCodeUnique(data.code);
-    if (!isCodeUnique) {
-      return;
-    }
-
-    setProjectData(data);
-    
-    // If template is selected, pre-populate blocks
-    if (data.templateId && selectedTemplate) {
-      const templateBlocks: BlockFormData[] = [];
-      for (let i = 1; i <= selectedTemplate.default_blocks; i++) {
-        templateBlocks.push({
-          code: selectedTemplate.default_blocks === 1 ? 'A' : String.fromCharCode(64 + i),
-          name: `Block ${selectedTemplate.default_blocks === 1 ? 'A' : String.fromCharCode(64 + i)}`,
-          levels: selectedTemplate.default_levels,
-          unitsPerLevel: selectedTemplate.default_units_per_level,
-          includeGroundFloor: selectedTemplate.includes_ground_floor,
-          includeBasement: selectedTemplate.includes_basement,
-          includeMezzanine: selectedTemplate.includes_mezzanine,
-        });
-      }
-      setBlocks(templateBlocks);
-    }
-    
-    setCurrentStep(2);
-  };
-
-  const addBlock = () => {
-    const blockData = blockForm.getValues();
-    
-    // Auto-generate block code if not provided
-    if (!blockData.code) {
-      const nextCode = String.fromCharCode(65 + blocks.length); // A, B, C, etc.
-      blockData.code = nextCode;
-      blockData.name = `Block ${nextCode}`;
-    }
-
-    setBlocks([...blocks, blockData]);
-    blockForm.reset({
-      includeGroundFloor: true,
-      includeBasement: false,
-      includeMezzanine: false,
-    });
-    
-    toast({
-      title: "Block Added",
-      description: `${blockData.code} added to the project! 🏗️`,
-    });
-  };
-
-  const removeBlock = (index: number) => {
-    setBlocks(blocks.filter((_, i) => i !== index));
   };
 
   const generateProject = async () => {
@@ -245,12 +154,15 @@ export const ProjectSetupWizard: React.FC = () => {
     
     const retryRequest = async (attempt: number): Promise<any> => {
       try {
-        console.log(`Starting project generation attempt ${attempt} with data:`, { projectData, blocks });
+        console.log(`🚀 Starting project generation attempt ${attempt} with data:`, { 
+          projectCode: projectData.code,
+          projectName: projectData.name,
+          blocksCount: blocks.length 
+        });
 
-        // Prepare data in the format expected by bulk generator
         const projectPayload = {
           projectData: {
-            code: projectData.code, // Use user-provided code
+            code: projectData.code,
             name: projectData.name,
             client: projectData.client,
             startDate: format(projectData.startDate, 'yyyy-MM-dd'),
@@ -265,85 +177,112 @@ export const ProjectSetupWizard: React.FC = () => {
               includeMezzanine: block.includeMezzanine,
             }))
           },
-          applyTemplate: true // Apply standard tasks
+          applyTemplate: true
         };
 
-        console.log(`Sending payload to bulk generator (attempt ${attempt}):`, projectPayload);
+        console.log(`📤 Sending payload to bulk generator (attempt ${attempt}):`, projectPayload);
 
         const { data: generationResult, error: generationError } = await supabase.functions.invoke('project-bulk-generator', {
           body: projectPayload
         });
 
         if (generationError) {
-          console.error(`Generation error (attempt ${attempt}):`, generationError);
+          console.error(`💥 Generation error (attempt ${attempt}):`, generationError);
           
-          // Extract proper error message from function response
-          let errorMessage = 'Function error occurred';
+          let errorMessage = 'Unknown function error occurred';
+          let errorCode = 'UNKNOWN_ERROR';
+          let shouldRetry = true;
           
-          if (generationError.context?.json) {
+          if (generationError.name === 'FunctionsHttpError') {
+            try {
+              const errorBody = generationError.context?.json || {};
+              errorMessage = errorBody.message || errorBody.error || 'Function returned error response';
+              errorCode = errorBody.code || 'HTTP_ERROR';
+              
+              if (generationError.status >= 400 && generationError.status < 500) {
+                shouldRetry = false;
+              }
+              
+            } catch (parseError) {
+              console.error('Could not parse error response:', parseError);
+              errorMessage = `HTTP ${generationError.status}: Function error`;
+            }
+          } else if (generationError.context?.json) {
             const errorData = generationError.context.json;
-            errorMessage = errorData.message || errorData.error || 'Unknown function error';
+            errorMessage = errorData.message || errorData.error || 'Function context error';
+            errorCode = errorData.code || 'CONTEXT_ERROR';
           } else if (generationError.message) {
             errorMessage = generationError.message;
+            errorCode = 'BASIC_ERROR';
           }
           
-          // Create structured error for better handling
           const structuredError = new Error(errorMessage);
-          structuredError.name = 'FunctionError';
+          structuredError.name = errorCode;
+          (structuredError as any).shouldRetry = shouldRetry;
           throw structuredError;
         }
 
-        console.log(`Generation result (attempt ${attempt}):`, generationResult);
+        console.log(`✅ Generation result (attempt ${attempt}):`, generationResult);
 
         if (generationResult?.success) {
-          // Show PM Popup instead of AI summary
-          const { totalUnits, results, samplePlots } = generationResult;
-          const totalBlocks = results.length;
-          const totalLevels = results.reduce((sum: number, result: any) => sum + result.levelsCreated, 0);
+          const { totalUnits, results, samplePlots, projectCode, projectId } = generationResult;
+          const totalBlocks = results?.length || 0;
+          const totalLevels = results?.reduce((sum: number, result: any) => sum + (result.levelsCreated || 0), 0) || 0;
           
-          // Show PM success popup with encouraging message
           toast({
             title: "🎉 PM Nailed It!",
-            description: `${projectData.code} - ${projectData.name}: Efficiency win for the lads! ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots—smashed! 🚧💪`,
+            description: `${projectCode} - ${projectData.name}: Pipeline flowing! ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} units—job done! 🚧💪`,
             duration: 6000,
           });
 
-          console.log(`Project summary: ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots created`);
+          console.log(`✅ Project summary: ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots created`);
 
-          navigate(`/projects/${generationResult.projectId}`);
+          navigate(`/projects/${projectId}`);
           return generationResult;
         } else {
-          // Handle failed generation result
-          const errorMessage = generationResult?.message || generationResult?.error || 'Generation failed';
-          throw new Error(errorMessage);
+          const errorMessage = generationResult?.message || generationResult?.error || 'Generation failed without details';
+          const errorCode = generationResult?.code || 'GENERATION_FAILED';
+          
+          const failError = new Error(errorMessage);
+          failError.name = errorCode;
+          (failError as any).shouldRetry = false;
+          throw failError;
         }
       } catch (error: any) {
-        console.error(`Project generation error (attempt ${attempt}):`, error);
+        console.error(`💥 Project generation error (attempt ${attempt}):`, error);
         
-        // Retry logic for non-critical errors
-        if (attempt < 3) {
-          const delay = attempt * 1000; // Progressive delay
-          console.log(`Retrying in ${delay}ms...`);
+        const shouldRetry = error.shouldRetry !== false && attempt < 3;
+        
+        if (shouldRetry) {
+          const delay = attempt * 1000;
+          console.log(`⏰ Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           return retryRequest(attempt + 1);
         }
         
-        // Final error handling
-        let errorMessage = "Pipeline blocked! Check the flow and try again! 🔧";
+        let userMessage = "Pipeline blocked! Check the flow and try again! 🔧";
         const errorMsg = error.message || '';
+        const errorCode = error.name || '';
         
-        if (errorMsg.includes('duplicate key') || errorMsg.includes('collision') || errorMsg.includes('already in use')) {
-          errorMessage = `Project code "${projectData.code}" collision detected – try a different code! 🔧`;
-        } else if (errorMsg.includes('validation')) {
-          errorMessage = `Data validation failed: ${errorMsg} 📋`;
-        } else if (errorMsg.includes('RLS')) {
-          errorMessage = `Security check failed – check permissions? 🔒`;
+        if (errorCode === 'DUPLICATE_CODE' || errorMsg.includes('collision') || errorMsg.includes('already exists')) {
+          userMessage = `Project code "${projectData.code}" collision detected—try a different code! 🔧`;
+        } else if (errorCode === 'VALIDATION_ERROR' || errorMsg.includes('validation')) {
+          userMessage = `Data validation failed: ${errorMsg} 📋`;
+        } else if (errorCode === 'DUPLICATE_BLOCK' || errorCode === 'DUPLICATE_LEVEL' || errorCode === 'DUPLICATE_PLOT') {
+          userMessage = `Database conflict detected: ${errorMsg} 🔧`;
+        } else if (errorCode === 'CONSTRAINT_VIOLATION') {
+          userMessage = `Database constraint error: ${errorMsg} 🗄️`;
+        } else if (errorMsg.includes('RLS') || errorMsg.includes('permission')) {
+          userMessage = `Security check failed—check permissions? 🔒`;
+        } else if (errorCode === 'INVALID_JSON') {
+          userMessage = `Data format error: ${errorMsg} 📋`;
         }
         
         toast({
           title: "🚨 Generation Failed!",
-          description: `Crash: ${errorMessage}`,
+          description: userMessage,
           variant: "destructive",
+          duration: 8000,
         });
         
         throw error;
@@ -353,8 +292,7 @@ export const ProjectSetupWizard: React.FC = () => {
     try {
       await retryRequest(1);
     } catch (error) {
-      // Final catch after all retries
-      console.error('All retry attempts failed:', error);
+      console.error('💥 All retry attempts failed:', error);
     } finally {
       setIsGenerating(false);
     }
@@ -371,7 +309,6 @@ export const ProjectSetupWizard: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
       <div className="flex items-center space-x-4 mb-6">
         <Button
           variant="ghost"
@@ -387,7 +324,6 @@ export const ProjectSetupWizard: React.FC = () => {
         </div>
       </div>
 
-      {/* Progress Steps */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
@@ -425,7 +361,6 @@ export const ProjectSetupWizard: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Step 1: Project Details */}
       {currentStep === 1 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
@@ -637,7 +572,6 @@ export const ProjectSetupWizard: React.FC = () => {
             </Card>
           </div>
 
-          {/* AI Assistant Panel */}
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
@@ -648,17 +582,9 @@ export const ProjectSetupWizard: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {aiSuggestion ? (
-                  <div className="space-y-3">
-                    <div className="p-3 bg-muted rounded-lg">
-                      <p className="text-sm whitespace-pre-wrap">{aiSuggestion}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    Fill in your project details and I'll suggest the best template and setup for your project! 🤖⚡
-                  </p>
-                )}
+                <p className="text-muted-foreground text-sm">
+                  Fill in your project details and I'll suggest the best template and setup for your project! 🤖⚡
+                </p>
               </CardContent>
             </Card>
 
@@ -685,7 +611,6 @@ export const ProjectSetupWizard: React.FC = () => {
         </div>
       )}
 
-      {/* Step 2: Blocks Configuration */}
       {currentStep === 2 && projectData && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -833,14 +758,6 @@ export const ProjectSetupWizard: React.FC = () => {
                           value={customLevelInput}
                           onChange={(e) => {
                             setCustomLevelInput(e.target.value);
-                            const suggestion = suggestLevelCode(e.target.value);
-                            if (suggestion) {
-                              toast({
-                                title: "AI Level Suggestion",
-                                description: suggestion,
-                                duration: 3000,
-                              });
-                            }
                           }}
                         />
                         <p className="text-xs text-muted-foreground mt-1">
@@ -906,7 +823,6 @@ export const ProjectSetupWizard: React.FC = () => {
             </div>
           </div>
 
-          {/* Summary Panel */}
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
@@ -951,27 +867,10 @@ export const ProjectSetupWizard: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-
-            {aiSuggestion && (
-              <Card className="mt-4">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-sm">
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    AI Suggestions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-sm whitespace-pre-wrap">{aiSuggestion}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       )}
 
-      {/* Step 3: Review & Generate */}
       {currentStep === 3 && projectData && (
         <Card>
           <CardHeader>
@@ -981,7 +880,6 @@ export const ProjectSetupWizard: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Project Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <h4 className="font-medium mb-2">Project Details</h4>
@@ -1015,7 +913,6 @@ export const ProjectSetupWizard: React.FC = () => {
 
             <Separator />
 
-            {/* Blocks Detail */}
             <div>
               <h4 className="font-medium mb-3">Block Configuration</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1044,21 +941,6 @@ export const ProjectSetupWizard: React.FC = () => {
                 })}
               </div>
             </div>
-
-            {aiSuggestion && (
-              <>
-                <Separator />
-                <div>
-                  <h4 className="font-medium mb-2 flex items-center">
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    AI Validation
-                  </h4>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm whitespace-pre-wrap">{aiSuggestion}</p>
-                  </div>
-                </div>
-              </>
-            )}
 
             <Separator />
 
