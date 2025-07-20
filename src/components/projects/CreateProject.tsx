@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -152,6 +153,7 @@ const CreateProject = () => {
       if (error) throw error;
       
       console.log('✅ Project created successfully:', project);
+      console.log('Result ID:', project.id);
       
       // Set created project for dialog
       setCreatedProject(project);
@@ -186,13 +188,19 @@ const CreateProject = () => {
     setShowSuccessDialog(false);
     
     if (createdProject) {
-      console.log('🧭 Navigating to project:', createdProject.id);
+      const projectId = createdProject.id;
+      console.log('🧭 Navigating to project:', projectId);
+      
+      if (!projectId) {
+        console.error('❌ Nav failed—no projectId!');
+        return;
+      }
       
       // Wait for project to be available before navigating
-      await waitForProjectAvailability(createdProject.id);
+      await waitForProjectAvailability(projectId);
       
       // Navigate to the project details page
-      navigate(`/projects/${createdProject.id}`);
+      navigate(`/projects/${projectId}`);
     }
   };
 
@@ -238,7 +246,8 @@ const CreateProject = () => {
                         <FormControl>
                           <Input 
                             placeholder="e.g. 382, 379" 
-                            {...field}
+                            value={field.value || ''}
+                            onChange={field.onChange}
                             onBlur={async (e) => {
                               field.onBlur();
                               if (e.target.value) {
@@ -263,7 +272,11 @@ const CreateProject = () => {
                       <FormItem className="form-field md:col-span-2">
                         <FormLabel>Project Name *</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. Bow Common Phase 1" {...field} />
+                          <Input 
+                            placeholder="e.g. Bow Common Phase 1" 
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -279,7 +292,11 @@ const CreateProject = () => {
                     <FormItem className="form-field">
                       <FormLabel>Client *</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Riverside Holdings Ltd" {...field} />
+                        <Input 
+                          placeholder="e.g. Riverside Holdings Ltd" 
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -297,7 +314,8 @@ const CreateProject = () => {
                         <Textarea 
                           placeholder="Brief description of the project scope and objectives..."
                           className="min-h-[100px]"
-                          {...field} 
+                          value={field.value || ''}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -316,7 +334,11 @@ const CreateProject = () => {
                         Site Address *
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="123 Project Street, City, Postcode" {...field} />
+                        <Input 
+                          placeholder="123 Project Street, City, Postcode" 
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -418,7 +440,7 @@ const CreateProject = () => {
                           <User className="w-4 h-4 mr-1" />
                           Project Manager *
                         </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select project manager" />

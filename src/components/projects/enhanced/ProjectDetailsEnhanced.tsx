@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -86,7 +87,7 @@ interface ProgressData {
 }
 
 export const ProjectDetailsEnhanced: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
   const queryClient = useQueryClient();
@@ -94,20 +95,29 @@ export const ProjectDetailsEnhanced: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [retryCount, setRetryCount] = useState(0);
 
-  console.log('🎯 ProjectDetailsEnhanced loading with ID:', id);
+  console.log('🎯 ProjectDetailsEnhanced loading with ID:', projectId);
+
+  // Early validation - if no projectId, redirect immediately
+  useEffect(() => {
+    if (!projectId) {
+      console.error('❌ Missing project ID - returning to dashboard');
+      toast.error('Missing project ID - returning to dashboard');
+      navigate('/projects/dashboard');
+    }
+  }, [projectId, navigate]);
 
   // Enhanced project fetch with retry logic
-  const fetchProjectWithRetry = async (projectId: string, attempt = 1): Promise<Project> => {
+  const fetchProjectWithRetry = async (id: string, attempt = 1): Promise<Project> => {
     const maxAttempts = 3;
     const backoffDelays = [500, 1000, 2000]; // Exponential backoff
     
-    console.log(`📡 Fetching project (attempt ${attempt}/${maxAttempts}):`, projectId);
+    console.log(`📡 Fetching project (attempt ${attempt}/${maxAttempts}):`, id);
     
     try {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('id', projectId)
+        .eq('id', id)
         .single();
 
       if (error) {
@@ -131,7 +141,7 @@ export const ProjectDetailsEnhanced: React.FC = () => {
         if (attempt < maxAttempts) {
           console.log(`⏳ Retrying in ${backoffDelays[attempt - 1]}ms...`);
           await new Promise(resolve => setTimeout(resolve, backoffDelays[attempt - 1]));
-          return fetchProjectWithRetry(projectId, attempt + 1);
+          return fetchProjectWithRetry(id, attempt + 1);
         } else {
           throw new Error('Project not found after retries');
         }
@@ -151,9 +161,9 @@ export const ProjectDetailsEnhanced: React.FC = () => {
       if (attempt < maxAttempts) {
         console.warn(`⚠️ Attempt ${attempt} failed, retrying...`);
         await new Promise(resolve => setTimeout(resolve, backoffDelays[attempt - 1]));
-        return fetchProjectWithRetry(projectId, attempt + 1);
+        return fetchProjectWithRetry(id, attempt + 1);
       } else {
-        console.error(`❌ All ${maxAttempts} attempts failed for project:`, projectId);
+        console.error(`❌ All ${maxAttempts} attempts failed for project:`, id);
         throw error;
       }
     }
@@ -161,17 +171,17 @@ export const ProjectDetailsEnhanced: React.FC = () => {
 
   // Real-time subscription setup with immediate post-creation detection
   useEffect(() => {
-    if (!id) return;
+    if (!projectId) return;
 
-    console.log('🔔 Setting up realtime subscriptions for project:', id);
+    console.log('🔔 Setting up realtime subscriptions for project:', projectId);
 
-    const channel = supabase.channel(`project:${id}`)
+    const channel = supabase.channel(`project:${projectId}`)
       .on('postgres_changes', 
         { 
           event: '*', 
           schema: 'public', 
           table: 'projects',
-          filter: `id=eq.${id}`
+          filter: `id=eq.${projectId}`
         }, 
         (payload) => {
           console.log('📡 Project change detected:', payload);
@@ -184,7 +194,7 @@ export const ProjectDetailsEnhanced: React.FC = () => {
             });
           }
           
-          queryClient.invalidateQueries({ queryKey: ['project', id] });
+          queryClient.invalidateQueries({ queryKey: ['project', projectId] });
           
           if (payload.eventType !== 'UPDATE' || payload.old?.updated_at !== payload.new?.updated_at) {
             uiToast({
@@ -199,12 +209,12 @@ export const ProjectDetailsEnhanced: React.FC = () => {
           event: '*',
           schema: 'public',
           table: 'plots',
-          filter: `project_id=eq.${id}`
+          filter: `project_id=eq.${projectId}`
         },
         (payload) => {
           console.log('📡 Plots change detected:', payload);
-          queryClient.invalidateQueries({ queryKey: ['plots', id] });
-          queryClient.invalidateQueries({ queryKey: ['project-progress', id] });
+          queryClient.invalidateQueries({ queryKey: ['plots', projectId] });
+          queryClient.invalidateQueries({ queryKey: ['project-progress', projectId] });
         }
       )
       .on('postgres_changes',
@@ -223,11 +233,11 @@ export const ProjectDetailsEnhanced: React.FC = () => {
           event: '*',
           schema: 'public',
           table: 'project_team_members',
-          filter: `project_id=eq.${id}`
+          filter: `project_id=eq.${projectId}`
         },
         (payload) => {
           console.log('📡 Team members change detected:', payload);
-          queryClient.invalidateQueries({ queryKey: ['team-members', id] });
+          queryClient.invalidateQueries({ queryKey: ['team-members', projectId] });
         }
       )
       .subscribe();
@@ -236,16 +246,16 @@ export const ProjectDetailsEnhanced: React.FC = () => {
       console.log('🔕 Cleaning up realtime subscriptions');
       supabase.removeChannel(channel);
     };
-  }, [id, queryClient, uiToast]);
+  }, [projectId, queryClient, uiToast]);
 
   // Fetch project data with enhanced retry logic
   const { data: project, isLoading: projectLoading, error: projectError, refetch: refetchProject } = useQuery({
-    queryKey: ['project', id],
+    queryKey: ['project', projectId],
     queryFn: async (): Promise<Project> => {
-      if (!id) throw new Error('Project ID is required');
-      return fetchProjectWithRetry(id);
+      if (!projectId) throw new Error('Project ID is required');
+      return fetchProjectWithRetry(projectId);
     },
-    enabled: !!id,
+    enabled: !!projectId,
     retry: false, // We handle retries manually
     staleTime: 5000, // Consider data fresh for 5 seconds
   });
@@ -328,20 +338,20 @@ export const ProjectDetailsEnhanced: React.FC = () => {
 
   // Fetch plots/units
   const { data: plots = [], isLoading: plotsLoading } = useQuery({
-    queryKey: ['plots', id],
+    queryKey: ['plots', projectId],
     queryFn: async (): Promise<Plot[]> => {
-      if (!id) return [];
+      if (!projectId) return [];
       
       const { data, error } = await supabase
         .from('plots')
         .select('*')
-        .eq('project_id', id)
+        .eq('project_id', projectId)
         .order('plot_sequence_order');
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!id,
+    enabled: !!projectId,
   });
 
   // Fetch work categories
@@ -360,34 +370,34 @@ export const ProjectDetailsEnhanced: React.FC = () => {
 
   // Fetch team members
   const { data: teamMembers = [], isLoading: teamLoading } = useQuery({
-    queryKey: ['team-members', id],
+    queryKey: ['team-members', projectId],
     queryFn: async () => {
-      if (!id) return [];
+      if (!projectId) return [];
       
       const { data, error } = await supabase
         .from('project_team_members')
         .select('*')
-        .eq('project_id', id);
+        .eq('project_id', projectId);
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!id,
+    enabled: !!projectId,
   });
 
   // Fetch project progress
   const { data: progressData } = useQuery({
-    queryKey: ['project-progress', id],
+    queryKey: ['project-progress', projectId],
     queryFn: async (): Promise<ProgressData | null> => {
-      if (!id) return null;
+      if (!projectId) return null;
       
       const { data, error } = await supabase
-        .rpc('get_project_progress', { project_id_param: id });
+        .rpc('get_project_progress', { project_id_param: projectId });
 
       if (error) throw error;
       return data as unknown as ProgressData;
     },
-    enabled: !!id,
+    enabled: !!projectId,
   });
 
   const filteredPlots = plots.filter(plot =>
@@ -459,7 +469,7 @@ export const ProjectDetailsEnhanced: React.FC = () => {
 
         <TabsContent value="blocks">
           <BlocksUnitsTab 
-            projectId={id!}
+            projectId={projectId!}
             plots={filteredPlots}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -476,7 +486,7 @@ export const ProjectDetailsEnhanced: React.FC = () => {
 
         <TabsContent value="team">
           <TeamTab 
-            projectId={id!}
+            projectId={projectId!}
             teamMembers={teamMembers as any}
             isLoading={teamLoading}
           />
