@@ -282,6 +282,37 @@
   @apply focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background;
 }
 
+/* Projects Page Yellow Hover Enhancements */
+.projects-card {
+  @apply hover:bg-aj-yellow/5 hover:border-aj-yellow/20;
+}
+
+.projects-card:hover .group-hover\:text-primary {
+  @apply text-aj-yellow-dark;
+}
+
+/* Button hover states with accessible contrast */
+.btn-yellow-hover {
+  @apply hover:bg-aj-yellow hover:text-aj-yellow-dark transition-colors duration-200;
+}
+
+/* Status badges with proper contrast */
+.status-badge-planning {
+  @apply bg-blue-500 text-white hover:bg-blue-600;
+}
+
+.status-badge-active {
+  @apply bg-green-500 text-white hover:bg-green-600;
+}
+
+.status-badge-building {
+  @apply bg-orange-500 text-white hover:bg-orange-600;
+}
+
+.status-badge-completed {
+  @apply bg-gray-500 text-white hover:bg-gray-600;
+}
+
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   :root {

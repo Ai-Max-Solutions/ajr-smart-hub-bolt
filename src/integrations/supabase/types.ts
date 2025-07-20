@@ -692,8 +692,10 @@ export type Database = {
           created_at: string
           end_date: string | null
           id: string
+          is_archived: boolean
           name: string
           start_date: string
+          status: Database["public"]["Enums"]["project_status_enum"]
           updated_at: string
         }
         Insert: {
@@ -702,8 +704,10 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_archived?: boolean
           name: string
           start_date: string
+          status?: Database["public"]["Enums"]["project_status_enum"]
           updated_at?: string
         }
         Update: {
@@ -712,8 +716,10 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_archived?: boolean
           name?: string
           start_date?: string
+          status?: Database["public"]["Enums"]["project_status_enum"]
           updated_at?: string
         }
         Relationships: []
@@ -1190,6 +1196,7 @@ export type Database = {
     }
     Enums: {
       hire_status_enum: "Available" | "On Hire" | "Maintenance" | "Damaged"
+      project_status_enum: "Planning" | "Active" | "Building" | "Completed"
       timesheet_status_enum: "Draft" | "Submitted" | "Approved" | "Rejected"
       user_role_enum: "Operative" | "Supervisor" | "Admin" | "PM" | "Director"
       work_status_enum: "Available" | "In Progress" | "Completed" | "On Hold"
@@ -1321,6 +1328,7 @@ export const Constants = {
   public: {
     Enums: {
       hire_status_enum: ["Available", "On Hire", "Maintenance", "Damaged"],
+      project_status_enum: ["Planning", "Active", "Building", "Completed"],
       timesheet_status_enum: ["Draft", "Submitted", "Approved", "Rejected"],
       user_role_enum: ["Operative", "Supervisor", "Admin", "PM", "Director"],
       work_status_enum: ["Available", "In Progress", "Completed", "On Hold"],
