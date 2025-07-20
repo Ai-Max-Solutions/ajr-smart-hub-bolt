@@ -20,6 +20,7 @@ interface UserProfile {
   last_sign_in: string | null;
   airtable_created_time: string;
   avatar_url: string | null;
+  is_verified: boolean;
 }
 
 export const useUserProfile = () => {
@@ -54,7 +55,7 @@ export const useUserProfile = () => {
             .single();
 
           if (error) throw error;
-          return data;
+          return data as any; // Cast to any to access is_verified field
         },
         { 
           operation: 'fetchUserProfile',
@@ -79,7 +80,8 @@ export const useUserProfile = () => {
           internalnotes: userData.internalnotes,
           last_sign_in: userData.last_sign_in,
           airtable_created_time: userData.airtable_created_time,
-          avatar_url: userData.avatar_url
+          avatar_url: userData.avatar_url,
+          is_verified: userData.is_verified || false
         });
       }
     } catch (err: any) {

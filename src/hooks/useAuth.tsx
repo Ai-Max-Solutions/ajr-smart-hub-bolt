@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   .from('users')
                   .select('*')
                   .eq('supabase_auth_id', session.user.id)
-                  .single();
+                  .single() as { data: any; error: any };
 
                 if (fetchError) {
                   console.warn('Failed to fetch user data:', fetchError);
