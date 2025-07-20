@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -13,9 +14,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from '@/hooks/use-toast';
-import { CalendarIcon, Building2, User, MapPin, FileText, ArrowLeft } from 'lucide-react';
+import { CalendarIcon, Building2, User, MapPin, FileText, ArrowLeft, Hash } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock project managers - in real app, fetch from backend
 const projectManagers = [
@@ -26,6 +28,7 @@ const projectManagers = [
 ];
 
 const formSchema = z.object({
+  code: z.string().min(1, 'Project code is required').regex(/^\d+$/, 'Project code must contain only numbers'),
   name: z.string().min(3, 'Project name must be at least 3 characters'),
   client: z.string().min(2, 'Client name is required'),
   description: z.string().optional(),
@@ -47,10 +50,12 @@ type FormData = z.infer<typeof formSchema>;
 const CreateProject = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      code: '',
       name: '',
       client: '',
       description: '',
@@ -59,23 +64,79 @@ const CreateProject = () => {
     },
   });
 
+  const checkProjectCodeUnique = async (code: string) => {
+    if (!code || !/^\d+$/.test(code)) return true;
+    
+    setIsCheckingCode(true);
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('code', code)
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        // No record found, code is unique
+        return true;
+      }
+      
+      if (data) {
+        // Code exists
+        form.setError('code', { message: `Project code "${code}" is already in use` });
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error checking project code:', error);
+      return true; // Allow on error to not block user
+    } finally {
+      setIsCheckingCode(false);
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
+    // Final code uniqueness check
+    const isCodeUnique = await checkProjectCodeUnique(data.code);
+    if (!isCodeUnique) {
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Create project with user-provided code
+      const { data: project, error } = await supabase
+        .from('projects')
+        .insert({
+          code: data.code,
+          name: data.name,
+          client: data.client,
+          start_date: format(data.startDate, 'yyyy-MM-dd'),
+          end_date: format(data.endDate, 'yyyy-MM-dd'),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
       
       toast({
         title: "Project Created",
-        description: `${data.name} has been created successfully.`,
+        description: `${data.code} - ${data.name} has been created successfully.`,
       });
       
       navigate('/projects/dashboard');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Project creation error:', error);
+      
+      let errorMessage = "Failed to create project. Please try again.";
+      if (error.message?.includes('duplicate key')) {
+        errorMessage = `Project code "${data.code}" is already in use. Please choose a different code.`;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to create project. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -110,37 +171,67 @@ const CreateProject = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Project Name */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Project Code */}
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="code"
                   render={({ field }) => (
                     <FormItem className="form-field">
-                      <FormLabel>Project Name *</FormLabel>
+                      <FormLabel className="flex items-center">
+                        <Hash className="w-4 h-4 mr-1" />
+                        Project Code *
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Riverside Development Phase 1" {...field} />
+                        <Input 
+                          placeholder="e.g. 382, 379" 
+                          {...field}
+                          onBlur={async (e) => {
+                            field.onBlur(e);
+                            if (e.target.value) {
+                              await checkProjectCodeUnique(e.target.value);
+                            }
+                          }}
+                        />
                       </FormControl>
+                      {isCheckingCode && (
+                        <p className="text-xs text-muted-foreground">Checking code availability...</p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                {/* Client */}
+                {/* Project Name */}
                 <FormField
                   control={form.control}
-                  name="client"
+                  name="name"
                   render={({ field }) => (
-                    <FormItem className="form-field">
-                      <FormLabel>Client *</FormLabel>
+                    <FormItem className="form-field md:col-span-2">
+                      <FormLabel>Project Name *</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Riverside Holdings Ltd" {...field} />
+                        <Input placeholder="e.g. Bow Common Phase 1" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
+
+              {/* Client */}
+              <FormField
+                control={form.control}
+                name="client"
+                render={({ field }) => (
+                  <FormItem className="form-field">
+                    <FormLabel>Client *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Riverside Holdings Ltd" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Description */}
               <FormField
@@ -310,7 +401,7 @@ const CreateProject = () => {
                 <Button
                   type="submit"
                   className="btn-primary"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isCheckingCode}
                 >
                   {isSubmitting ? (
                     <>

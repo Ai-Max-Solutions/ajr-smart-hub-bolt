@@ -24,12 +24,14 @@ import {
   Loader2, 
   CheckCircle,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Hash
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const projectSchema = z.object({
+  code: z.string().min(1, 'Project code is required').regex(/^\d+$/, 'Project code must contain only numbers'),
   name: z.string().min(3, 'Project name must be at least 3 characters'),
   client: z.string().min(2, 'Client name is required'),
   description: z.string().optional(),
@@ -85,6 +87,7 @@ export const ProjectSetupWizard: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [customLevelInput, setCustomLevelInput] = useState('');
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
 
   // Form for project details
   const projectForm = useForm<ProjectFormData>({
@@ -122,6 +125,37 @@ export const ProjectSetupWizard: React.FC = () => {
         description: "Failed to load project templates",
         variant: "destructive",
       });
+    }
+  };
+
+  const checkProjectCodeUnique = async (code: string) => {
+    if (!code || !/^\d+$/.test(code)) return true;
+    
+    setIsCheckingCode(true);
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('code', code)
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        // No record found, code is unique
+        return true;
+      }
+      
+      if (data) {
+        // Code exists
+        projectForm.setError('code', { message: `Project code "${code}" is already in use` });
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error checking project code:', error);
+      return true; // Allow on error to not block user
+    } finally {
+      setIsCheckingCode(false);
     }
   };
 
@@ -215,6 +249,12 @@ export const ProjectSetupWizard: React.FC = () => {
   };
 
   const onProjectSubmit = async (data: ProjectFormData) => {
+    // Final code uniqueness check
+    const isCodeUnique = await checkProjectCodeUnique(data.code);
+    if (!isCodeUnique) {
+      return;
+    }
+
     setProjectData(data);
     
     // Get AI suggestion for this project
@@ -277,6 +317,7 @@ export const ProjectSetupWizard: React.FC = () => {
       // Prepare data in the format expected by bulk generator
       const projectPayload = {
         projectData: {
+          code: projectData.code, // Use user-provided code
           name: projectData.name,
           client: projectData.client,
           startDate: format(projectData.startDate, 'yyyy-MM-dd'),
@@ -315,7 +356,7 @@ export const ProjectSetupWizard: React.FC = () => {
         
         toast({
           title: "🎉 Project Generated Successfully!",
-          description: `${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots—flowing nicely! No leaks detected! 🔧💧`,
+          description: `${projectData.code} - ${projectData.name}: ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots—flowing nicely! 🔧💧`,
           duration: 6000,
         });
 
@@ -325,11 +366,17 @@ export const ProjectSetupWizard: React.FC = () => {
       } else {
         throw new Error(generationResult.error || 'Generation failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Project generation error:', error);
+      
+      let errorMessage = "Failed to create project. Check the flow and try again! 🔧";
+      if (error.message?.includes('duplicate key')) {
+        errorMessage = `Project code "${projectData.code}" is already in use. Please choose a different code.`;
+      }
+      
       toast({
         title: "🚨 Generation Pipeline Blocked!",
-        description: "Failed to create project. Check the flow and try again! 🔧",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -416,16 +463,31 @@ export const ProjectSetupWizard: React.FC = () => {
               <CardContent>
                 <Form {...projectForm}>
                   <form onSubmit={projectForm.handleSubmit(onProjectSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <FormField
                         control={projectForm.control}
-                        name="name"
+                        name="code"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Project Name *</FormLabel>
+                            <FormLabel className="flex items-center">
+                              <Hash className="w-4 h-4 mr-1" />
+                              Project Code *
+                            </FormLabel>
                             <FormControl>
-                              <Input placeholder="e.g. Sunrise Apartments" {...field} />
+                              <Input 
+                                placeholder="e.g. 382, 379" 
+                                {...field}
+                                onBlur={async (e) => {
+                                  field.onBlur(e);
+                                  if (e.target.value) {
+                                    await checkProjectCodeUnique(e.target.value);
+                                  }
+                                }}
+                              />
                             </FormControl>
+                            {isCheckingCode && (
+                              <p className="text-xs text-muted-foreground">Checking availability...</p>
+                            )}
                             <FormMessage />
                           </FormItem>
                         )}
@@ -433,18 +495,32 @@ export const ProjectSetupWizard: React.FC = () => {
 
                       <FormField
                         control={projectForm.control}
-                        name="client"
+                        name="name"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Client *</FormLabel>
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>Project Name *</FormLabel>
                             <FormControl>
-                              <Input placeholder="e.g. Riverside Holdings Ltd" {...field} />
+                              <Input placeholder="e.g. Bow Common Phase 1" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
+
+                    <FormField
+                      control={projectForm.control}
+                      name="client"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Client *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Riverside Holdings Ltd" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <FormField
                       control={projectForm.control}
@@ -574,7 +650,7 @@ export const ProjectSetupWizard: React.FC = () => {
                     </div>
 
                     <div className="flex justify-end">
-                      <Button type="submit" className="btn-primary">
+                      <Button type="submit" className="btn-primary" disabled={isCheckingCode}>
                         <ArrowRight className="w-4 h-4 mr-2" />
                         Continue to Blocks Setup
                       </Button>
@@ -637,7 +713,6 @@ export const ProjectSetupWizard: React.FC = () => {
       {currentStep === 2 && projectData && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {/* Add Block Form */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -774,7 +849,6 @@ export const ProjectSetupWizard: React.FC = () => {
                       />
                     </div>
 
-                    {/* Custom Level Codes Input */}
                     <div className="mt-4">
                       <FormLabel className="text-sm font-medium">Custom Level Codes (Optional)</FormLabel>
                       <div className="mt-2">
@@ -807,7 +881,6 @@ export const ProjectSetupWizard: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Current Blocks */}
             {blocks.length > 0 && (
               <Card>
                 <CardHeader>
@@ -869,7 +942,7 @@ export const ProjectSetupWizard: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium">{projectData.name}</h4>
+                    <h4 className="font-medium">{projectData.code} - {projectData.name}</h4>
                     <p className="text-sm text-muted-foreground">{projectData.client}</p>
                   </div>
                   
@@ -903,7 +976,6 @@ export const ProjectSetupWizard: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* AI Validation */}
             {aiSuggestion && (
               <Card className="mt-4">
                 <CardHeader>
@@ -938,6 +1010,7 @@ export const ProjectSetupWizard: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-2">Project Details</h4>
                 <div className="space-y-1 text-sm">
+                  <p><strong>Code:</strong> {projectData.code}</p>
                   <p><strong>Name:</strong> {projectData.name}</p>
                   <p><strong>Client:</strong> {projectData.client}</p>
                   <p><strong>Start:</strong> {format(projectData.startDate, 'PPP')}</p>
@@ -996,7 +1069,6 @@ export const ProjectSetupWizard: React.FC = () => {
               </div>
             </div>
 
-            {/* AI Validation */}
             {aiSuggestion && (
               <>
                 <Separator />
@@ -1014,7 +1086,6 @@ export const ProjectSetupWizard: React.FC = () => {
 
             <Separator />
 
-            {/* Action Buttons */}
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setCurrentStep(2)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />

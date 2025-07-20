@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
@@ -10,7 +11,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper function to generate unique project code
+// Helper function to generate unique project code (fallback for legacy cases)
 async function generateUniqueProjectCode(supabase: any, baseName: string): Promise<string> {
   const baseCode = baseName.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 8);
   let code = baseCode;
@@ -39,6 +40,30 @@ async function generateUniqueProjectCode(supabase: any, baseName: string): Promi
   }
 }
 
+// Helper function to validate user's project code is unique
+async function validateProjectCode(supabase: any, userCode: string): Promise<boolean> {
+  if (!userCode) return false;
+  
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('code', userCode)
+    .single();
+  
+  if (error && error.code === 'PGRST116') {
+    // No record found, code is unique
+    return true;
+  }
+  
+  if (data) {
+    // Code exists, not unique
+    return false;
+  }
+  
+  // Some other error, assume not unique for safety
+  return false;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -49,23 +74,36 @@ serve(async (req) => {
     const { projectData, applyTemplate } = await req.json();
     
     console.log('🚧 Starting bulk project generation:', { 
-      projectName: projectData.name, 
+      projectName: projectData.name,
+      projectCode: projectData.code,
       blocksCount: projectData.blocks?.length || 0,
       applyTemplate 
     });
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Generate unique project code
-    const uniqueCode = await generateUniqueProjectCode(supabase, projectData.name);
-    console.log('✅ Generated unique project code:', uniqueCode);
+    let projectCode = projectData.code;
+    
+    // Use user-provided code if available, otherwise generate one
+    if (projectCode) {
+      // Validate user's code is unique
+      const isUnique = await validateProjectCode(supabase, projectCode);
+      if (!isUnique) {
+        throw new Error(`Project code "${projectCode}" is already in use. Please choose a different code.`);
+      }
+      console.log('✅ Using user-provided project code:', projectCode);
+    } else {
+      // Fallback: Generate unique project code (for backward compatibility)
+      projectCode = await generateUniqueProjectCode(supabase, projectData.name);
+      console.log('✅ Generated unique project code:', projectCode);
+    }
     
     // Create the main project
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .insert({
         name: projectData.name,
-        code: uniqueCode,
+        code: projectCode,
         client: projectData.client,
         start_date: projectData.startDate,
         end_date: projectData.endDate || null
@@ -75,6 +113,12 @@ serve(async (req) => {
 
     if (projectError) {
       console.error('💥 Project creation failed:', projectError);
+      
+      // Provide specific error messages
+      if (projectError.message?.includes('duplicate key')) {
+        throw new Error(`🔧 Project code "${projectCode}" is already in use. Please choose a different code.`);
+      }
+      
       throw new Error(`Project creation failed: ${projectError.message}`);
     }
 
@@ -270,7 +314,7 @@ serve(async (req) => {
       console.log(`✅ Block ${blockConfig.code} complete: ${levelInserts.length} levels, ${blockPlotsCreated} plots`);
     }
 
-    const successMessage = `🚧 Project "${project.name}" (${project.code}) flowing smoothly! Generated ${totalUnitsGenerated} units across ${projectData.blocks.length} blocks. No leaks detected! 🔧💧`;
+    const successMessage = `🚧 Project "${project.code} - ${project.name}" flowing smoothly! Generated ${totalUnitsGenerated} units across ${projectData.blocks.length} blocks. No leaks detected! 🔧💧`;
     
     console.log('🎉 Bulk generation completed:', {
       projectId: project.id,
@@ -295,10 +339,12 @@ serve(async (req) => {
     
     // Provide more specific error messages
     let errorMessage = '🚨 Pipeline blocked! Check the flow and try again.';
-    if (error.message.includes('duplicate key')) {
-      errorMessage = '🔧 Project code collision detected! The system tried to generate a unique code but failed. Please try again or contact support.';
+    if (error.message.includes('duplicate key') || error.message.includes('already in use')) {
+      errorMessage = '🔧 Project code collision detected! ' + error.message;
     } else if (error.message.includes('violates')) {
       errorMessage = '📋 Data validation failed! Please check your project details and try again.';
+    } else if (error.message.includes('already in use')) {
+      errorMessage = error.message;
     }
 
     return new Response(JSON.stringify({ 
