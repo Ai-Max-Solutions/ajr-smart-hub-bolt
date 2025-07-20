@@ -11,9 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { Checkbox } from '@/components/ui/checkbox';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,13 +33,7 @@ import {
   ArrowRight,
   Sparkles,
   Wrench,
-  Zap,
-  Archive,
-  Trash2,
-  Eye,
-  EyeOff,
-  MoreHorizontal,
-  Edit
+  Zap
 } from 'lucide-react';
 
 interface Project {
@@ -54,8 +45,6 @@ interface Project {
   end_date?: string;
   created_at: string;
   updated_at: string;
-  status: 'Planning' | 'Active' | 'Building' | 'Completed';
-  is_archived: boolean;
 }
 
 interface ProjectStats {
@@ -103,9 +92,6 @@ export function ProjectsDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
-  const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set());
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successData, setSuccessData] = useState<any>(null);
@@ -134,7 +120,7 @@ export function ProjectsDashboard() {
   useEffect(() => {
     fetchProjects();
     fetchStats();
-  }, [showArchived]);
+  }, []);
 
   const fetchProjects = async () => {
     try {
@@ -143,7 +129,6 @@ export function ProjectsDashboard() {
           const { data, error } = await supabase
             .from('projects')
             .select('*')
-            .eq('is_archived', showArchived)
             .order('created_at', { ascending: false });
 
           if (error) throw error;
@@ -356,199 +341,6 @@ export function ProjectsDashboard() {
     project.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const updateProjectStatus = async (projectId: string, status: 'Planning' | 'Active' | 'Building' | 'Completed') => {
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ status })
-        .eq('id', projectId);
-
-      if (error) throw error;
-
-      setProjects(prev => prev.map(p => 
-        p.id === projectId ? { ...p, status } : p
-      ));
-
-      toast({
-        title: "Status Updated",
-        description: `Project status changed to ${status}! 🎯`,
-        variant: "default"
-      });
-    } catch (error) {
-      toast({
-        title: "Update Failed",
-        description: "Couldn't update project status. Try again!",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const archiveProject = async (projectId: string, projectName: string) => {
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ is_archived: true })
-        .eq('id', projectId);
-
-      if (error) throw error;
-
-      setProjects(prev => prev.filter(p => p.id !== projectId));
-      
-      toast({
-        title: "Archived Successfully",
-        description: `Smashed that archive, ${profile?.firstname || 'Mark'}—dashboard cleaner! 🗂️`,
-        variant: "default"
-      });
-    } catch (error) {
-      toast({
-        title: "Archive Failed",
-        description: "Couldn't archive project. Try again!",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const deleteProject = async (projectId: string) => {
-    try {
-      setIsDeleting(true);
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId);
-
-      if (error) throw error;
-
-      setProjects(prev => prev.filter(p => p.id !== projectId));
-      
-      toast({
-        title: "Project Deleted",
-        description: "Deleted—clean slate! 🧹",
-        variant: "default"
-      });
-    } catch (error) {
-      toast({
-        title: "Delete Failed",
-        description: "Couldn't delete project. Try again!",
-        variant: "destructive"
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleBulkArchive = async () => {
-    if (selectedProjects.size === 0) return;
-    
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ is_archived: true })
-        .in('id', Array.from(selectedProjects));
-
-      if (error) throw error;
-
-      setProjects(prev => prev.filter(p => !selectedProjects.has(p.id)));
-      setSelectedProjects(new Set());
-      
-      toast({
-        title: "Bulk Archive Complete",
-        description: `Archived ${selectedProjects.size} projects! Dashboard cleaned up! 🗂️`,
-        variant: "default"
-      });
-    } catch (error) {
-      toast({
-        title: "Bulk Archive Failed",
-        description: "Couldn't archive projects. Try again!",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedProjects.size === 0) return;
-    
-    try {
-      setIsDeleting(true);
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .in('id', Array.from(selectedProjects));
-
-      if (error) throw error;
-
-      setProjects(prev => prev.filter(p => !selectedProjects.has(p.id)));
-      setSelectedProjects(new Set());
-      
-      toast({
-        title: "Bulk Delete Complete",
-        description: `Deleted ${selectedProjects.size} projects—clean slate! 🧹`,
-        variant: "default"
-      });
-    } catch (error) {
-      toast({
-        title: "Bulk Delete Failed",
-        description: "Couldn't delete projects. Try again!",
-        variant: "destructive"
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const toggleProjectSelection = (projectId: string) => {
-    setSelectedProjects(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(projectId)) {
-        newSet.delete(projectId);
-      } else {
-        newSet.add(projectId);
-      }
-      return newSet;
-    });
-  };
-
-  const selectAllProjects = () => {
-    if (selectedProjects.size === filteredProjects.length) {
-      setSelectedProjects(new Set());
-    } else {
-      setSelectedProjects(new Set(filteredProjects.map(p => p.id)));
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Planning': return 'bg-blue-500 text-white';
-      case 'Active': return 'bg-green-500 text-white';
-      case 'Building': return 'bg-orange-500 text-white';
-      case 'Completed': return 'bg-gray-500 text-white';
-      default: return 'bg-gray-400 text-white';
-    }
-  };
-
-  const StatusBadge = ({ project }: { project: Project }) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Badge className={`cursor-pointer hover:opacity-80 ${getStatusColor(project.status)}`}>
-          {project.status}
-        </Badge>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuItem onClick={() => updateProjectStatus(project.id, 'Planning')}>
-          Planning
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => updateProjectStatus(project.id, 'Active')}>
-          Active
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => updateProjectStatus(project.id, 'Building')}>
-          Building
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => updateProjectStatus(project.id, 'Completed')}>
-          Completed
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
   const MetricCard = ({ 
     title, 
     value, 
@@ -602,28 +394,15 @@ export function ProjectsDashboard() {
             </p>
           </div>
           
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowArchived(!showArchived)}
-                  className="flex items-center gap-2"
-                >
-                  {showArchived ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  {showArchived ? 'Hide Archived' : 'Show Archived'}
-                </Button>
-              </div>
-              
-              {canEdit && (
-                <SupabaseErrorBoundary operation="ProjectSetup">
-                  <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
-                    <DialogTrigger asChild>
-                      <Button variant="default" size="lg" className="flex items-center gap-2">
-                        <Plus className="h-5 w-5" />
-                        Setup New Project
-                      </Button>
-                    </DialogTrigger>
+          {canEdit && (
+            <SupabaseErrorBoundary operation="ProjectSetup">
+              <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
+                <DialogTrigger asChild>
+                  <Button variant="default" size="lg" className="flex items-center gap-2">
+                    <Plus className="h-5 w-5" />
+                    Setup New Project
+                  </Button>
+                </DialogTrigger>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
@@ -824,10 +603,9 @@ export function ProjectsDashboard() {
                   </div>
                 </DialogContent>
               </Dialog>
-                </SupabaseErrorBoundary>
-              )}
-            </div>
-          </div>
+            </SupabaseErrorBoundary>
+          )}
+        </div>
 
         {/* Success Popup */}
         {successData && (
@@ -875,223 +653,100 @@ export function ProjectsDashboard() {
           </div>
         </SupabaseErrorBoundary>
 
-        {/* Search and Bulk Actions */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Quick search projects, clients, or codes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          {selectedProjects.size > 0 && canEdit && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {selectedProjects.size} selected
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkArchive}
-                className="flex items-center gap-2"
-              >
-                <Archive className="h-4 w-4" />
-                Archive Selected
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="flex items-center gap-2"
-                    disabled={isDeleting}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete Selected
+        {/* Projects Overview */}
+        <SupabaseErrorBoundary operation="ProjectsList">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <CardTitle>Project Overview</CardTitle>
+                  <CardDescription>
+                    All active construction sites – flowing smoothly!
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search projects..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-64"
+                    />
+                  </div>
+                  <Button variant="outline" size="icon">
+                    <Filter className="h-4 w-4" />
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Permanent nuke?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete {selectedProjects.size} projects and all their data. 
-                      This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground">
-                      Delete Projects
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          )}
-        </div>
-
-        {/* Projects Grid */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">
-              {showArchived ? 'Archived Projects' : 'Recent Projects'}
-            </h2>
-            {filteredProjects.length > 0 && canEdit && (
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={selectedProjects.size === filteredProjects.length && filteredProjects.length > 0}
-                  onCheckedChange={selectAllProjects}
-                />
-                <span className="text-sm text-muted-foreground">Select All</span>
+                </div>
               </div>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 bg-muted rounded w-3/4"></div>
-                    <div className="h-3 bg-muted rounded w-1/2"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-muted rounded"></div>
-                      <div className="h-3 bg-muted rounded w-2/3"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : filteredProjects.length === 0 ? (
-            <Card className="text-center py-8">
-              <CardContent>
-                <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {showArchived ? 'No Archived Projects' : 'No Projects Found'}
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm ? 'No projects match your search criteria.' : 
-                   showArchived ? 'No projects have been archived yet.' : 'Start by creating your first project!'}
-                </p>
-                {canEdit && !searchTerm && !showArchived && (
-                  <Button onClick={() => setShowSetupModal(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create First Project
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredProjects.map((project) => (
-                <Card 
-                  key={project.id} 
-                  className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary projects-card"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      {canEdit && (
-                        <Checkbox
-                          checked={selectedProjects.has(project.id)}
-                          onCheckedChange={() => toggleProjectSelection(project.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="mt-1 mr-2"
-                        />
-                      )}
-                      <div className="flex-1 cursor-pointer" onClick={() => navigate(`/projects/${project.id}`)}>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Building className="h-5 w-5 text-primary" />
-                          {project.name}
-                        </CardTitle>
-                        <CardDescription className="mt-1">
-                          {project.client}
-                        </CardDescription>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <StatusBadge project={project} />
-                        {canEdit && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => navigate(`/projects/${project.id}`)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => archiveProject(project.id, project.name)}>
-                                <Archive className="h-4 w-4 mr-2" />
-                                Archive
-                              </DropdownMenuItem>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Permanent nuke?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently delete "{project.name}" and all its data. 
-                                      This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => deleteProject(project.id)}
-                                      className="bg-destructive text-destructive-foreground"
-                                    >
-                                      Delete Project
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                        <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all cursor-pointer" onClick={() => navigate(`/projects/${project.id}`)} />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="cursor-pointer" onClick={() => navigate(`/projects/${project.id}`)}>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Project Code</span>
-                        <Badge variant="outline" className="font-mono">
-                          {project.code}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Start Date</span>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(project.start_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      {project.end_date && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">End Date</span>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(project.end_date).toLocaleDateString()}
-                          </span>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-16 bg-muted/50 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : filteredProjects.length === 0 ? (
+                <div className="text-center py-12">
+                  <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No projects found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {searchTerm ? 'Try adjusting your search' : 'Ready to build something amazing?'}
+                  </p>
+                  {canEdit && (
+                    <Button onClick={() => setShowSetupModal(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create First Project
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredProjects.map((project) => (
+                    <Card key={project.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold">{project.name}</h3>
+                              <Badge variant="outline">{project.code}</Badge>
+                              <Badge className="bg-green-100 text-green-800">Active</Badge>
+                            </div>
+                            <p className="text-muted-foreground mb-3">Client: {project.client}</p>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-4 w-4" />
+                                Started: {new Date(project.start_date).toLocaleDateString()}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Users className="h-4 w-4" />
+                                Progress: Flowing smoothly
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-primary">85%</div>
+                              <div className="text-xs text-muted-foreground">Complete</div>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              onClick={() => navigate(`/projects/${project.id}`)}
+                            >
+                              View Details
+                              <ArrowRight className="h-4 w-4 ml-2" />
+                            </Button>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </SupabaseErrorBoundary>
       </div>
     </SupabaseErrorBoundary>
   );
