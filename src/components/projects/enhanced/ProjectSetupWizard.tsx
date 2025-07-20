@@ -298,6 +298,32 @@ export const ProjectSetupWizard: React.FC = () => {
     }
   };
 
+  const onProjectSubmit = async (data: ProjectFormData) => {
+    console.log('🚀 Project form submitted:', data);
+    setProjectData(data);
+    setCurrentStep(2);
+  };
+
+  const addBlock = (data: BlockFormData) => {
+    console.log('➕ Adding new block:', data);
+    setBlocks(prev => [...prev, data]);
+    blockForm.reset();
+    toast({
+      title: "Block Added",
+      description: `Block "${data.name}" has been added to the project`,
+    });
+  };
+
+  const removeBlock = (index: number) => {
+    const removedBlock = blocks[index];
+    console.log('➖ Removing block:', removedBlock);
+    setBlocks(prev => prev.filter((_, i) => i !== index));
+    toast({
+      title: "Block Removed",
+      description: `Block "${removedBlock.name}" has been removed`,
+    });
+  };
+
   const totalUnits = blocks.reduce((sum, block) => {
     const specialLevels = 
       (block.includeGroundFloor ? 1 : 0) + 
