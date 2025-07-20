@@ -380,10 +380,12 @@ export type Database = {
           composite_code: string | null
           created_at: string
           description: string | null
+          handed_over: boolean | null
           id: string
           level: number | null
           level_id: string | null
           name: string
+          plot_sequence_order: number | null
           project_id: string
           sequence_order: number | null
           status: string | null
@@ -396,10 +398,12 @@ export type Database = {
           composite_code?: string | null
           created_at?: string
           description?: string | null
+          handed_over?: boolean | null
           id?: string
           level?: number | null
           level_id?: string | null
           name: string
+          plot_sequence_order?: number | null
           project_id: string
           sequence_order?: number | null
           status?: string | null
@@ -412,10 +416,12 @@ export type Database = {
           composite_code?: string | null
           created_at?: string
           description?: string | null
+          handed_over?: boolean | null
           id?: string
           level?: number | null
           level_id?: string | null
           name?: string
+          plot_sequence_order?: number | null
           project_id?: string
           sequence_order?: number | null
           status?: string | null
@@ -603,6 +609,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      project_team_members: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       project_templates: {
         Row: {
@@ -1107,6 +1140,7 @@ export type Database = {
           created_at: string
           id: string
           main_category: string
+          sequence_order: number | null
           sub_task: string
           updated_at: string
         }
@@ -1114,6 +1148,7 @@ export type Database = {
           created_at?: string
           id?: string
           main_category: string
+          sequence_order?: number | null
           sub_task: string
           updated_at?: string
         }
@@ -1121,6 +1156,7 @@ export type Database = {
           created_at?: string
           id?: string
           main_category?: string
+          sequence_order?: number | null
           sub_task?: string
           updated_at?: string
         }
@@ -1138,6 +1174,18 @@ export type Database = {
       get_contractor_rams_compliance: {
         Args: { p_contractor_id: string; p_project_id?: string }
         Returns: Json
+      }
+      get_project_progress: {
+        Args: { project_id_param: string }
+        Returns: Json
+      }
+      update_plot_order: {
+        Args: { plot_ids: string[]; project_id_param: string }
+        Returns: undefined
+      }
+      update_work_category_order: {
+        Args: { category_ids: string[] }
+        Returns: undefined
       }
     }
     Enums: {
