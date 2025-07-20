@@ -1,13 +1,18 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
+  userProfile: any;
   loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -27,13 +32,15 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Debounced fetch function to prevent rapid-fire requests
   const debouncedFetch = (() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: any;
     return (fn: Function, delay: number) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(fn, delay);
@@ -63,6 +70,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
         
         setUser(session?.user ?? null);
+        setSession(session);
         
         if (session?.user) {
           // Debounce the profile fetch to avoid race conditions
@@ -98,6 +106,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setUser(session?.user ?? null);
+        setSession(session);
         
         if (event === 'SIGNED_IN' && session?.user) {
           // Debounce profile updates on sign in
@@ -136,6 +145,45 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => subscription.unsubscribe();
   }, [navigate, location.pathname]);
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const signUp = async (email: string, password: string, metadata?: any) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: metadata,
+        },
+      });
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       setLoading(true);
@@ -154,7 +202,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const value = {
     user,
+    session,
+    userProfile,
     loading,
+    signIn,
+    signUp,
+    resetPassword,
     signOut,
   };
 
