@@ -230,6 +230,17 @@ export function ProjectsDashboard() {
       return;
     }
 
+    // Validate project code format (should be numbers only)
+    const codeRegex = /^\d+$/;
+    if (!codeRegex.test(setupData.code.trim())) {
+      toast({
+        title: "Invalid Project Code",
+        description: "🔧 Project code must contain only numbers (e.g., 799, 382)!",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const data = await withRetry(
         async () => {
@@ -281,11 +292,15 @@ export function ProjectsDashboard() {
       const errorMsg = (error as Error).message || '';
       
       if (errorMsg.includes('duplicate') || errorMsg.includes('collision') || errorMsg.includes('already in use')) {
-        errorMessage = `🔧 Project code "${setupData.code}" collision detected – try a different code!`;
+        errorMessage = `🔧 Project code "${setupData.code}" collision detected – code already exists! Try a different number.`;
       } else if (errorMsg.includes('validation')) {
         errorMessage = `📋 ${errorMsg}`;
       } else if (errorMsg.includes('Data validation failed')) {
         errorMessage = `📋 ${errorMsg}`;
+      } else if (errorMsg.includes('non-2xx')) {
+        errorMessage = `🚨 Server error – function crashed! Check logs and try again.`;
+      } else if (errorMsg.includes('FunctionsHttpError')) {
+        errorMessage = `🚨 Function error – pipeline blocked! Try again or check different code.`;
       }
       
       toast({
@@ -383,7 +398,7 @@ export function ProjectsDashboard() {
             <SupabaseErrorBoundary operation="ProjectSetup">
               <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
                 <DialogTrigger asChild>
-                  <Button size="lg" className="flex items-center gap-2">
+                  <Button variant="default" size="lg" className="flex items-center gap-2">
                     <Plus className="h-5 w-5" />
                     Setup New Project
                   </Button>
@@ -581,8 +596,8 @@ export function ProjectsDashboard() {
                       <Button variant="outline" onClick={() => setShowSetupModal(false)}>
                         Cancel
                       </Button>
-                      <Button onClick={handleCreateProject}>
-                        Create Project
+                      <Button variant="default" onClick={handleCreateProject} disabled={!setupData.code?.trim()}>
+                        {!setupData.code?.trim() ? 'Enter Project Code' : 'Create Project'}
                       </Button>
                     </div>
                   </div>
