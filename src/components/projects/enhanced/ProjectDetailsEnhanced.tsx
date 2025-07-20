@@ -7,27 +7,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { 
   Building2, 
   Calendar, 
   ArrowLeft, 
-  Search,
-  Plus,
-  Edit2,
-  Trash2,
-  GripVertical,
-  Users,
-  Home,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Settings,
   RefreshCw,
   Briefcase,
-  UserCheck
+  UserCheck,
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -95,9 +84,18 @@ export const ProjectDetailsEnhanced: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('details');
   const [searchQuery, setSearchQuery] = useState('');
-  const [retryCount, setRetryCount] = useState(0);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
-  console.log('🎯 ProjectDetailsEnhanced loading with ID:', projectId);
+  console.log('🎯 ProjectDetailsEnhanced rendering with ID:', projectId);
+
+  // Set up loading timeout
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoadingTimeout(true);
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Early validation - if no projectId, redirect immediately
   useEffect(() => {
@@ -108,29 +106,25 @@ export const ProjectDetailsEnhanced: React.FC = () => {
     }
   }, [projectId, navigate]);
 
-  // Enhanced project fetch with retry logic
-  const fetchProjectWithRetry = async (id: string, attempt = 1): Promise<Project> => {
-    const maxAttempts = 3;
-    const backoffDelays = [500, 1000, 2000]; // Exponential backoff
-    
-    console.log(`📡 Fetching project (attempt ${attempt}/${maxAttempts}):`, id);
-    
-    try {
+  // Simplified project fetch with React Query's built-in retry
+  const { data: project, isLoading: projectLoading, error: projectError, refetch: refetchProject } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: async (): Promise<Project> => {
+      if (!projectId) throw new Error('Project ID is required');
+      
+      console.log(`📡 Fetching project:`, projectId);
+      
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('id', id)
+        .eq('id', projectId)
         .single();
 
       if (error) {
-        console.error(`❌ Project fetch error (attempt ${attempt}):`, error);
+        console.error('❌ Project fetch error:', error);
         
-        // Check for RLS policy violation
         if (error.code === '42501') {
           console.error('🚫 RLS Policy violation - user may not have access to this project');
-          toast('Account access issue detected. Please contact admin if this persists.', {
-            description: 'RLS policy may be blocking access to this project.'
-          });
           throw new Error('Access denied to project');
         }
         
@@ -138,42 +132,22 @@ export const ProjectDetailsEnhanced: React.FC = () => {
       }
 
       if (!data) {
-        console.warn(`⚠️ No project data returned (attempt ${attempt})`);
-        
-        if (attempt < maxAttempts) {
-          console.log(`⏳ Retrying in ${backoffDelays[attempt - 1]}ms...`);
-          await new Promise(resolve => setTimeout(resolve, backoffDelays[attempt - 1]));
-          return fetchProjectWithRetry(id, attempt + 1);
-        } else {
-          throw new Error('Project not found after retries');
-        }
+        console.warn('⚠️ No project data returned');
+        throw new Error('Project not found');
       }
 
       console.log('✅ Project fetched successfully:', data);
-      
-      // Show success toast if this was a retry
-      if (attempt > 1) {
-        toast('Project loaded successfully!', {
-          description: 'Data synced after retry.'
-        });
-      }
-      
       return data;
-    } catch (error) {
-      if (attempt < maxAttempts) {
-        console.warn(`⚠️ Attempt ${attempt} failed, retrying...`);
-        await new Promise(resolve => setTimeout(resolve, backoffDelays[attempt - 1]));
-        return fetchProjectWithRetry(id, attempt + 1);
-      } else {
-        console.error(`❌ All ${maxAttempts} attempts failed for project:`, id);
-        throw error;
-      }
-    }
-  };
+    },
+    enabled: !!projectId,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
+    staleTime: 5000,
+  });
 
-  // Real-time subscription setup with immediate post-creation detection
+  // Real-time subscription setup (only after project is loaded)
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || !project) return;
 
     console.log('🔔 Setting up realtime subscriptions for project:', projectId);
 
@@ -187,21 +161,11 @@ export const ProjectDetailsEnhanced: React.FC = () => {
         }, 
         (payload) => {
           console.log('📡 Project change detected:', payload);
-          
-          // If this is an INSERT event, it might be immediate post-creation
-          if (payload.eventType === 'INSERT') {
-            console.log('🆕 New project detected via realtime - refreshing queries');
-            toast('Project synced successfully!', {
-              description: 'Your new project is now available.'
-            });
-          }
-          
           queryClient.invalidateQueries({ queryKey: ['project', projectId] });
           
-          if (payload.eventType !== 'UPDATE' || payload.old?.updated_at !== payload.new?.updated_at) {
-            uiToast({
-              title: "Project Updated",
-              description: "Project details have been updated.",
+          if (payload.eventType === 'INSERT') {
+            toast('Project synced successfully!', {
+              description: 'Your new project is now available.'
             });
           }
         }
@@ -219,61 +183,148 @@ export const ProjectDetailsEnhanced: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ['project-progress', projectId] });
         }
       )
-      .on('postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'work_categories'
-        },
-        (payload) => {
-          console.log('📡 Work categories change detected:', payload);
-          queryClient.invalidateQueries({ queryKey: ['work-categories'] });
-        }
-      )
-      .on('postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'project_team_members',
-          filter: `project_id=eq.${projectId}`
-        },
-        (payload) => {
-          console.log('📡 Team members change detected:', payload);
-          queryClient.invalidateQueries({ queryKey: ['team-members', projectId] });
-        }
-      )
       .subscribe();
 
     return () => {
       console.log('🔕 Cleaning up realtime subscriptions');
       supabase.removeChannel(channel);
     };
-  }, [projectId, queryClient, uiToast]);
+  }, [projectId, project, queryClient]);
 
-  // Fetch project data with enhanced retry logic
-  const { data: project, isLoading: projectLoading, error: projectError, refetch: refetchProject } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: async (): Promise<Project> => {
-      if (!projectId) throw new Error('Project ID is required');
-      return fetchProjectWithRetry(projectId);
+  // Fetch plots/units (only after project is loaded)
+  const { data: plots = [], isLoading: plotsLoading } = useQuery({
+    queryKey: ['plots', projectId],
+    queryFn: async (): Promise<Plot[]> => {
+      if (!projectId) return [];
+      
+      console.log('📡 Fetching plots for project:', projectId);
+      
+      const { data, error } = await supabase
+        .from('plots')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('plot_sequence_order');
+
+      if (error) {
+        console.error('❌ Plots fetch error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Plots fetched successfully:', data?.length || 0, 'plots');
+      return data || [];
     },
-    enabled: !!projectId,
-    retry: false, // We handle retries manually
-    staleTime: 5000, // Consider data fresh for 5 seconds
+    enabled: !!projectId && !!project,
+    retry: 2,
   });
 
-  // Show loading state with retry information
+  // Fetch work categories
+  const { data: workCategories = [], isLoading: workCategoriesLoading } = useQuery({
+    queryKey: ['work-categories'],
+    queryFn: async (): Promise<WorkCategory[]> => {
+      console.log('📡 Fetching work categories');
+      
+      const { data, error } = await supabase
+        .from('work_categories')
+        .select('*')
+        .order('sequence_order');
+
+      if (error) {
+        console.error('❌ Work categories fetch error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Work categories fetched successfully:', data?.length || 0, 'categories');
+      return data || [];
+    },
+    retry: 2,
+  });
+
+  // Fetch team members (only after project is loaded)
+  const { data: teamMembers = [], isLoading: teamLoading } = useQuery({
+    queryKey: ['team-members', projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      
+      console.log('📡 Fetching team members for project:', projectId);
+      
+      const { data, error } = await supabase
+        .from('project_team_members')
+        .select('*')
+        .eq('project_id', projectId);
+
+      if (error) {
+        console.error('❌ Team members fetch error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Team members fetched successfully:', data?.length || 0, 'members');
+      return data || [];
+    },
+    enabled: !!projectId && !!project,
+    retry: 2,
+  });
+
+  // Fetch project progress (only after project is loaded)
+  const { data: progressData } = useQuery({
+    queryKey: ['project-progress', projectId],
+    queryFn: async (): Promise<ProgressData | null> => {
+      if (!projectId) return null;
+      
+      console.log('📡 Fetching project progress for:', projectId);
+      
+      const { data, error } = await supabase
+        .rpc('get_project_progress', { project_id_param: projectId });
+
+      if (error) {
+        console.error('❌ Project progress fetch error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Project progress fetched successfully:', data);
+      return data as unknown as ProgressData;
+    },
+    enabled: !!projectId && !!project,
+    retry: 2,
+  });
+
+  // Loading state with timeout
   if (projectLoading) {
+    if (loadingTimeout) {
+      return (
+        <Card>
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="flex justify-center">
+              <Clock className="h-12 w-12 text-destructive" />
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">Loading Taking Too Long</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                The project is taking longer than expected to load.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button onClick={() => refetchProject()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Force Retry
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/projects/dashboard')}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center p-8 space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         <div className="text-center">
           <p className="text-sm text-muted-foreground">Loading project details...</p>
-          {retryCount > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Retry attempt {retryCount}/3
-            </p>
-          )}
         </div>
       </div>
     );
@@ -338,70 +389,6 @@ export const ProjectDetailsEnhanced: React.FC = () => {
     );
   }
 
-  // Fetch plots/units
-  const { data: plots = [], isLoading: plotsLoading } = useQuery({
-    queryKey: ['plots', projectId],
-    queryFn: async (): Promise<Plot[]> => {
-      if (!projectId) return [];
-      
-      const { data, error } = await supabase
-        .from('plots')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('plot_sequence_order');
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!projectId,
-  });
-
-  // Fetch work categories
-  const { data: workCategories = [], isLoading: workCategoriesLoading } = useQuery({
-    queryKey: ['work-categories'],
-    queryFn: async (): Promise<WorkCategory[]> => {
-      const { data, error } = await supabase
-        .from('work_categories')
-        .select('*')
-        .order('sequence_order');
-
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Fetch team members
-  const { data: teamMembers = [], isLoading: teamLoading } = useQuery({
-    queryKey: ['team-members', projectId],
-    queryFn: async () => {
-      if (!projectId) return [];
-      
-      const { data, error } = await supabase
-        .from('project_team_members')
-        .select('*')
-        .eq('project_id', projectId);
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!projectId,
-  });
-
-  // Fetch project progress
-  const { data: progressData } = useQuery({
-    queryKey: ['project-progress', projectId],
-    queryFn: async (): Promise<ProgressData | null> => {
-      if (!projectId) return null;
-      
-      const { data, error } = await supabase
-        .rpc('get_project_progress', { project_id_param: projectId });
-
-      if (error) throw error;
-      return data as unknown as ProgressData;
-    },
-    enabled: !!projectId,
-  });
-
   const filteredPlots = plots.filter(plot =>
     plot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     plot.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -454,7 +441,7 @@ export const ProjectDetailsEnhanced: React.FC = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="details" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
+            <Building2 className="h-4 w-4" />
             Details
           </TabsTrigger>
           <TabsTrigger value="blocks" className="flex items-center gap-2">
@@ -462,11 +449,11 @@ export const ProjectDetailsEnhanced: React.FC = () => {
             Blocks & Units
           </TabsTrigger>
           <TabsTrigger value="worktypes" className="flex items-center gap-2">
-            <Home className="h-4 w-4" />
+            <Calendar className="h-4 w-4" />
             Work Types
           </TabsTrigger>
           <TabsTrigger value="team" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
+            <UserCheck className="h-4 w-4" />
             Team
           </TabsTrigger>
           <TabsTrigger value="workassignment" className="flex items-center gap-2">

@@ -1,464 +1,277 @@
 
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { useAuth } from "@/hooks/useAuth";
-import { Building, Users, FileText, Shield, Calendar, TrendingUp, LogIn, LayoutDashboard, Activity, Clock, Zap, Plus, Upload, Search, Settings, MessageSquare, BarChart3, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { getConstructionGreeting, getMotivationalMessage } from "@/utils/greetings";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { BlockingModal } from "@/components/dashboard/BlockingModal";
-import { useUserProfile } from "@/hooks/useUserProfile";
+import { 
+  Building2, 
+  Users, 
+  ClipboardList, 
+  BarChart3, 
+  Calendar,
+  ArrowRight,
+  Plus,
+  Clock,
+  Target,
+  TrendingUp
+} from "lucide-react";
 
 const Index = () => {
-  const { user, session } = useAuth();
-  const { profile } = useUserProfile();
-  const [activityOpen, setActivityOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
 
-  // Get user profile data
+  console.log("Index component - User:", user, "Loading:", isLoading);
+
   useEffect(() => {
-    const getUserProfile = async () => {
-      if (!user || !session) {
-        setProfileLoading(false);
-        return;
-      }
+    if (!isLoading && !user) {
+      console.log("No user found, redirecting to auth");
+      navigate("/auth");
+    }
+  }, [user, isLoading, navigate]);
 
-      try {
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('supabase_auth_id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching user profile:', error);
-          setProfileLoading(false);
-          return;
-        }
-
-        setUserProfile(userData);
-        setProfileLoading(false);
-      } catch (error) {
-        console.error('Error checking user profile:', error);
-        setProfileLoading(false);
-      }
-    };
-
-    getUserProfile();
-  }, [user, session]);
-
-  // Show loading while checking onboarding status
-  if (profileLoading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  // Mock activity data
-  const recentActivity = [
+  if (!user) {
+    return null;
+  }
+
+  const quickActions = [
     {
-      id: 1,
-      type: "project_update",
-      title: "Project Milestone Reached",
-      description: "Thames Gateway project reached 75% completion",
-      time: "2 minutes ago",
-      icon: Building,
-      color: "text-green-600"
+      title: "View Projects",
+      description: "Manage and view all active projects",
+      icon: Building2,
+      href: "/projects/dashboard",
+      badge: "Active",
+      color: "bg-blue-500/10 text-blue-600 border-blue-200"
     },
     {
-      id: 2,
-      type: "document_upload",
-      title: "New RAMS Document",
-      description: "Health & Safety document uploaded by John Smith",
-      time: "15 minutes ago",
-      icon: FileText,
-      color: "text-blue-600"
+      title: "My Work",
+      description: "Track your assigned tasks and progress",
+      icon: ClipboardList,
+      href: "/operative/work",
+      badge: "Tasks",
+      color: "bg-green-500/10 text-green-600 border-green-200"
     },
     {
-      id: 3,
-      type: "team_update",
-      title: "Team Member Added",
-      description: "Sarah Johnson joined as Site Supervisor",
-      time: "1 hour ago",
-      icon: Users,
-      color: "text-purple-600"
+      title: "Timesheets",
+      description: "Submit and review timesheet entries",
+      icon: Clock,
+      href: "/operative/timesheets",
+      badge: "Weekly",
+      color: "bg-purple-500/10 text-purple-600 border-purple-200"
     },
     {
-      id: 4,
-      type: "compliance",
-      title: "Compliance Check Completed",
-      description: "Weekly safety inspection passed",
-      time: "3 hours ago",
-      icon: Shield,
-      color: "text-green-600"
-    },
-    {
-      id: 5,
-      type: "notification",
-      title: "Payment Approved",
-      description: "Invoice #12345 has been approved for payment",
-      time: "5 hours ago",
-      icon: Calendar,
-      color: "text-orange-600"
+      title: "Reports",
+      description: "View analytics and performance reports",
+      icon: BarChart3,
+      href: "/admin/reports",
+      badge: "Analytics",
+      color: "bg-orange-500/10 text-orange-600 border-orange-200"
     }
   ];
 
-  const quickActions = [
-    { label: "Create New Project", icon: Plus, href: "/projects?action=create", tooltip: "Start a new project—build your empire!" },
-    { label: "Upload Documents", icon: Upload, href: "/projects?tab=documents", tooltip: "Upload docs—keep everything organized!" },
-    { label: "Search Projects", icon: Search, href: "/projects?search=true", tooltip: "Find projects fast—efficiency wins!" },
-    { label: "Analytics Dashboard", icon: BarChart3, href: "/analytics", tooltip: "Check the numbers—data drives success!" },
-    { label: "Team Chat", icon: MessageSquare, href: "/collaboration", tooltip: "Connect with your crew—teamwork makes the dream work!" },
-    { label: "Settings", icon: Settings, href: "/admin", tooltip: "Fine-tune your setup—perfection in the details!" }
+  const adminActions = [
+    {
+      title: "User Management",
+      description: "Manage users, roles and permissions",
+      icon: Users,
+      href: "/admin/users",
+      badge: "Admin",
+      color: "bg-red-500/10 text-red-600 border-red-200"
+    },
+    {
+      title: "Create Project",
+      description: "Set up new construction projects",
+      icon: Plus,
+      href: "/projects/new",
+      badge: "New",
+      color: "bg-indigo-500/10 text-indigo-600 border-indigo-200"
+    }
   ];
 
-  // Get user's first name for personalization
-  const firstName = profile?.firstname || user?.user_metadata?.first_name || user?.email?.split('@')[0];
+  const isAdmin = user.role === 'Admin' || user.role === 'Director' || user.role === 'PM';
 
-  // If user is not authenticated, show landing page with login option
-  if (!session || !user) {
-    return (
-      <AppLayout showNavigation={false}>
-        <div className="min-h-screen bg-background">
-          <div className="container mx-auto px-lg py-12">
-            {/* AJ Ryan Landing Header */}
-            <div className="text-center mb-16">
-              <div className="flex items-center justify-center mb-8">
-                <img 
-                  src="/lovable-uploads/0b275deb-8a7d-4a00-85a3-ae746d59b6f1.png" 
-                  alt="A&J Ryan Logo" 
-                  className="w-[180px] rounded-[5px] mr-6"
-                />
-              </div>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-poppins">
-                Modern Construction Management Platform
-              </p>
-              <p className="text-muted-foreground mt-3 font-poppins">
-                Streamlined workflows, enhanced safety compliance, and real-time project oversight
-              </p>
-              
-              <div className="mt-10">
-                <Button asChild size="touch" variant="accent" className="font-poppins font-semibold shadow-elevated hover:bg-aj-yellow hover:text-aj-navy-deep transition-colors">
-                  <a href="/auth">
-                    <LogIn className="w-5 h-5 mr-3" />
-                    Sign In to Continue
-                  </a>
-                </Button>
-              </div>
-            </div>
-
-            {/* AJ Ryan Feature Overview */}
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-2 hover:border-aj-yellow/30">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
-                    <Shield className="h-7 w-7 text-accent" />
-                  </div>
-                  <CardTitle className="font-poppins">Safety First</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground font-poppins">
-                    Comprehensive safety compliance tracking, risk assessments, and incident management
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-2 hover:border-aj-yellow/30">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
-                    <Users className="h-7 w-7 text-accent" />
-                  </div>
-                  <CardTitle className="font-poppins">Team Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground font-poppins">
-                    Efficient workforce coordination, skills tracking, and resource allocation
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-2 hover:border-aj-yellow/30">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4">
-                    <TrendingUp className="h-7 w-7 text-accent" />
-                  </div>
-                  <CardTitle className="font-poppins">Real-time Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground font-poppins">
-                    Live project insights, performance monitoring, and predictive analytics
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  // Authenticated user dashboard with navigation
   return (
-    <>
-      {/* Show blocking modal if user is blocked */}
-      <BlockingModal 
-        isOpen={userProfile?.is_blocked === true} 
-        userName={userProfile?.name}
-      />
-      
-      <div className="min-h-screen bg-gradient-to-br from-aj-navy-deep to-aj-navy-light">
-      <PageHeader
-        title="Dashboard"
-        description={getConstructionGreeting(firstName)}
-        icon={LayoutDashboard}
-        badge="Home"
-        breadcrumbs={[
-          { label: "Home" }
-        ]}
-        actions={
-          <div className="flex gap-3">
-            {/* Activity Sheet */}
-            <Sheet open={activityOpen} onOpenChange={setActivityOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="touch" className="font-poppins hover:bg-aj-yellow/10 hover:border-aj-yellow/30">
-                  <Activity className="w-5 h-5 mr-2" />
-                  Activity
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:w-[400px] bg-background border-l">
-                <SheetHeader className="border-b pb-4 mb-6">
-                  <SheetTitle className="flex items-center gap-2 font-poppins">
-                    <Activity className="w-5 h-5 text-accent" />
-                    Recent Activity
-                  </SheetTitle>
-                </SheetHeader>
-                <div className="space-y-4">
-                  {recentActivity.map((item, index) => {
-                    const IconComponent = item.icon;
-                    return (
-                      <div 
-                        key={item.id} 
-                        className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-all duration-200 animate-fade-in"
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      >
-                        <div className={`p-2 rounded-lg bg-background border ${item.color}`}>
-                          <IconComponent className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-poppins font-medium text-sm leading-5">{item.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1 leading-4">{item.description}</p>
-                          <p className="text-xs text-muted-foreground mt-2 opacity-70">{item.time}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-6 pt-4 border-t">
-                  <Button 
-                    variant="outline" 
-                    className="w-full font-poppins hover:bg-aj-yellow/10"
-                    onClick={() => setActivityOpen(false)}
-                  >
-                    View All Activity
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
+    <div className="space-y-8">
+      {/* Welcome Section */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">
+          Welcome back, {user.name}
+        </h1>
+        <p className="text-muted-foreground">
+          Here's what's happening with your projects today.
+        </p>
+      </div>
 
-            {/* Quick Actions Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="accent" size="touch" className="font-poppins bg-aj-yellow text-aj-navy-deep hover:bg-aj-yellow/90">
-                  <Zap className="w-5 h-5 mr-2" />
-                  Quick Actions
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-background/95 backdrop-blur-sm border shadow-elevated">
-                <div className="p-2">
-                  <div className="text-xs font-poppins font-medium text-muted-foreground mb-2 px-2">QUICK ACTIONS</div>
-                  {quickActions.slice(0, 3).map((action) => {
-                    const IconComponent = action.icon;
-                    return (
-                      <DropdownMenuItem key={action.label} asChild>
-                        <a 
-                          href={action.href}
-                          className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-aj-yellow/10 transition-colors cursor-pointer"
-                          title={action.tooltip}
-                        >
-                          <IconComponent className="w-4 h-4 text-accent" />
-                          <span className="font-poppins text-sm">{action.label}</span>
-                        </a>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                  <DropdownMenuSeparator className="my-2" />
-                  <div className="text-xs font-poppins font-medium text-muted-foreground mb-2 px-2">TOOLS</div>
-                  {quickActions.slice(3).map((action) => {
-                    const IconComponent = action.icon;
-                    return (
-                      <DropdownMenuItem key={action.label} asChild>
-                        <a 
-                          href={action.href}
-                          className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-aj-yellow/10 transition-colors cursor-pointer"
-                          title={action.tooltip}
-                        >
-                          <IconComponent className="w-4 h-4 text-accent" />
-                          <span className="font-poppins text-sm">{action.label}</span>
-                        </a>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        }
-      />
-
-      <div className="container mx-auto px-4 md:px-lg py-6 md:py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <div className="bg-aj-navy-deep/80 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/10">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl md:text-2xl font-poppins font-bold text-white">
-                  {getConstructionGreeting(firstName)}
-                </h2>
-                <p className="text-white/80 font-poppins mt-1 text-sm md:text-base">
-                  {getMotivationalMessage(firstName)}
-                </p>
-              </div>
-              <Badge variant="secondary" className="font-poppins">
-                <Clock className="w-4 h-4 mr-2" />
-                Last updated: Just now
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        {/* Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 hover:border-aj-yellow/30">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
-                  <Building className="h-6 w-6 text-accent" />
-                </div>
-                <Badge variant="secondary" className="text-xs">Active</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <h3 className="font-poppins font-semibold text-lg">12</h3>
-                <p className="text-sm text-muted-foreground font-poppins">Active Projects</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 hover:border-aj-yellow/30">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-accent" />
-                </div>
-                <Badge variant="secondary" className="text-xs">Online</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <h3 className="font-poppins font-semibold text-lg">47</h3>
-                <p className="text-sm text-muted-foreground font-poppins">Team Members</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 hover:border-aj-yellow/30">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-accent" />
-                </div>
-                <Badge variant="default" className="text-xs">98%</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <h3 className="font-poppins font-semibold text-lg">Safe</h3>
-                <p className="text-sm text-muted-foreground font-poppins">Compliance Rate</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 hover:border-aj-yellow/30">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-accent" />
-                </div>
-                <Badge variant="default" className="text-xs">+12%</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <h3 className="font-poppins font-semibold text-lg">£2.4M</h3>
-                <p className="text-sm text-muted-foreground font-poppins">Monthly Revenue</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Access */}
+      {/* Stats Overview */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="font-poppins">Quick Access</CardTitle>
-            <CardDescription className="font-poppins">
-              Jump to your most used features and tools—time is money!
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-20 flex-col font-poppins hover:bg-aj-yellow/10 hover:border-aj-yellow/30 transition-all duration-200 group" asChild>
-                <a href="/projects" title="Manage your construction projects">
-                  <Building className="h-6 w-6 mb-2 text-accent group-hover:text-aj-yellow transition-colors" />
-                  Projects
-                </a>
-              </Button>
-              <Button variant="outline" className="h-20 flex-col font-poppins hover:bg-aj-yellow/10 hover:border-aj-yellow/30 transition-all duration-200 group" asChild>
-                <a href="/operative" title="Access your personal portal">
-                  <Users className="h-6 w-6 mb-2 text-accent group-hover:text-aj-yellow transition-colors" />
-                  My Portal
-                </a>
-              </Button>
-              <Button variant="outline" className="h-20 flex-col font-poppins hover:bg-aj-yellow/10 hover:border-aj-yellow/30 transition-all duration-200 group" asChild>
-                <a href="/ai-assistant" title="Get smart assistance for your work">
-                  <Zap className="h-6 w-6 mb-2 text-accent group-hover:text-aj-yellow transition-colors" />
-                  AI Assistant
-                </a>
-              </Button>
-              <Button variant="outline" className="h-20 flex-col font-poppins hover:bg-aj-yellow/10 hover:border-aj-yellow/30 transition-all duration-200 group" asChild>
-                <a href="/admin" title="Administrative tools and settings">
-                  <Shield className="h-6 w-6 mb-2 text-accent group-hover:text-aj-yellow transition-colors" />
-                  Admin
-                </a>
-              </Button>
-            </div>
+            <div className="text-2xl font-bold">12</div>
+            <p className="text-xs text-muted-foreground">
+              +2 from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">1,543</div>
+            <p className="text-xs text-muted-foreground">
+              +12% from last week
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">892</div>
+            <p className="text-xs text-muted-foreground">
+              58% completion rate
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">This Week</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">24</div>
+            <p className="text-xs text-muted-foreground">
+              Hours logged
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Quick Actions */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Quick Actions</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Card key={action.title} className="group hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div className="flex items-center space-x-2">
+                    <div className={`p-2 rounded-lg ${action.color}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <CardTitle className="text-base">{action.title}</CardTitle>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    {action.badge}
+                  </Badge>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="mb-4">
+                    {action.description}
+                  </CardDescription>
+                  <Button asChild className="w-full group-hover:translate-x-1 transition-transform">
+                    <Link to={action.href}>
+                      Go to {action.title}
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Admin Actions */}
+      {isAdmin && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Admin Actions</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {adminActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Card key={action.title} className="group hover:shadow-lg transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className={`p-2 rounded-lg ${action.color}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <CardTitle className="text-base">{action.title}</CardTitle>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {action.badge}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="mb-4">
+                      {action.description}
+                    </CardDescription>
+                    <Button asChild className="w-full group-hover:translate-x-1 transition-transform">
+                      <Link to={action.href}>
+                        Go to {action.title}
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+          <CardDescription>
+            Your latest project updates and notifications
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Project Woodberry Down Phase 12 updated</p>
+                <p className="text-xs text-muted-foreground">2 hours ago</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">New task assigned: Electrical Installation</p>
+                <p className="text-xs text-muted-foreground">4 hours ago</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Timesheet submitted for review</p>
+                <p className="text-xs text-muted-foreground">1 day ago</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
-    </>
   );
 };
 
