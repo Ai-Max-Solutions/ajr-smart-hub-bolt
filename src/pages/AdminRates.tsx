@@ -139,7 +139,7 @@ const AdminRates = () => {
         .from('user_job_rates')
         .update({ effective_to: new Date().toISOString().split('T')[0] })
         .eq('user_id', selectedUser)
-        .eq('role', selectedRole)
+        .eq('role', selectedRole as "Operative" | "Supervisor" | "Admin" | "PM" | "Director")
         .is('effective_to', null);
 
       if (endError) throw endError;
