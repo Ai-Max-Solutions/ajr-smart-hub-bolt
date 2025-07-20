@@ -290,6 +290,41 @@ export type Database = {
           },
         ]
       }
+      plot_qr_codes: {
+        Row: {
+          created_at: string
+          id: string
+          plot_id: string
+          qr_code_data: string
+          qr_image_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plot_id: string
+          qr_code_data: string
+          qr_image_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plot_id?: string
+          qr_code_data?: string
+          qr_image_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plot_qr_codes_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: true
+            referencedRelation: "plots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plot_tasks: {
         Row: {
           actual_hours: number | null
@@ -692,8 +727,10 @@ export type Database = {
           created_at: string
           end_date: string | null
           id: string
+          is_archived: boolean
           name: string
           start_date: string
+          status: Database["public"]["Enums"]["project_status_enum"]
           updated_at: string
         }
         Insert: {
@@ -702,8 +739,10 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_archived?: boolean
           name: string
           start_date: string
+          status?: Database["public"]["Enums"]["project_status_enum"]
           updated_at?: string
         }
         Update: {
@@ -712,8 +751,10 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_archived?: boolean
           name?: string
           start_date?: string
+          status?: Database["public"]["Enums"]["project_status_enum"]
           updated_at?: string
         }
         Relationships: []
@@ -934,8 +975,163 @@ export type Database = {
           },
         ]
       }
+      unit_work_assignments: {
+        Row: {
+          ai_suggested: boolean
+          assigned_user_id: string
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          id: string
+          notes: string | null
+          plot_id: string
+          status: Database["public"]["Enums"]["work_assignment_status"]
+          updated_at: string
+          work_category_id: string
+        }
+        Insert: {
+          ai_suggested?: boolean
+          assigned_user_id: string
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          notes?: string | null
+          plot_id: string
+          status?: Database["public"]["Enums"]["work_assignment_status"]
+          updated_at?: string
+          work_category_id: string
+        }
+        Update: {
+          ai_suggested?: boolean
+          assigned_user_id?: string
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          notes?: string | null
+          plot_id?: string
+          status?: Database["public"]["Enums"]["work_assignment_status"]
+          updated_at?: string
+          work_category_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_work_assignments_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_work_assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_work_assignments_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "plots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_work_assignments_work_category_id_fkey"
+            columns: ["work_category_id"]
+            isOneToOne: false
+            referencedRelation: "work_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unit_work_logs: {
+        Row: {
+          assignment_id: string
+          completed_at: string | null
+          completion_photos: string[] | null
+          created_at: string
+          hours: number
+          id: string
+          notes: string | null
+          plot_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["work_log_status"]
+          updated_at: string
+          user_id: string
+          voice_transcript: string | null
+          work_category_id: string
+        }
+        Insert: {
+          assignment_id: string
+          completed_at?: string | null
+          completion_photos?: string[] | null
+          created_at?: string
+          hours: number
+          id?: string
+          notes?: string | null
+          plot_id: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["work_log_status"]
+          updated_at?: string
+          user_id: string
+          voice_transcript?: string | null
+          work_category_id: string
+        }
+        Update: {
+          assignment_id?: string
+          completed_at?: string | null
+          completion_photos?: string[] | null
+          created_at?: string
+          hours?: number
+          id?: string
+          notes?: string | null
+          plot_id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["work_log_status"]
+          updated_at?: string
+          user_id?: string
+          voice_transcript?: string | null
+          work_category_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_work_logs_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "unit_work_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_work_logs_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "plots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_work_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_work_logs_work_category_id_fkey"
+            columns: ["work_category_id"]
+            isOneToOne: false
+            referencedRelation: "work_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_job_rates: {
         Row: {
+          bonus_rate: number | null
           created_at: string
           effective_from: string
           effective_to: string | null
@@ -946,6 +1142,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bonus_rate?: number | null
           created_at?: string
           effective_from: string
           effective_to?: string | null
@@ -956,6 +1153,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bonus_rate?: number | null
           created_at?: string
           effective_from?: string
           effective_to?: string | null
@@ -1190,8 +1388,15 @@ export type Database = {
     }
     Enums: {
       hire_status_enum: "Available" | "On Hire" | "Maintenance" | "Damaged"
+      project_status_enum: "Planning" | "Active" | "Building" | "Completed"
       timesheet_status_enum: "Draft" | "Submitted" | "Approved" | "Rejected"
       user_role_enum: "Operative" | "Supervisor" | "Admin" | "PM" | "Director"
+      work_assignment_status:
+        | "assigned"
+        | "in_progress"
+        | "completed"
+        | "disputed"
+      work_log_status: "pending" | "in_progress" | "completed" | "verified"
       work_status_enum: "Available" | "In Progress" | "Completed" | "On Hold"
     }
     CompositeTypes: {
@@ -1321,8 +1526,16 @@ export const Constants = {
   public: {
     Enums: {
       hire_status_enum: ["Available", "On Hire", "Maintenance", "Damaged"],
+      project_status_enum: ["Planning", "Active", "Building", "Completed"],
       timesheet_status_enum: ["Draft", "Submitted", "Approved", "Rejected"],
       user_role_enum: ["Operative", "Supervisor", "Admin", "PM", "Director"],
+      work_assignment_status: [
+        "assigned",
+        "in_progress",
+        "completed",
+        "disputed",
+      ],
+      work_log_status: ["pending", "in_progress", "completed", "verified"],
       work_status_enum: ["Available", "In Progress", "Completed", "On Hold"],
     },
   },

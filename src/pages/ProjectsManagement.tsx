@@ -10,6 +10,7 @@ import ProjectHeader from '@/components/projects/ProjectHeader';
 import { ProjectSetupWizard } from '@/components/projects/enhanced/ProjectSetupWizard';
 import { ProjectDetailsEnhanced } from '@/components/projects/enhanced/ProjectDetailsEnhanced';
 import { ProjectsDashboard } from '@/pages/ProjectsDashboard';
+import { ProjectUnitsPage } from '@/components/work-assignment/ProjectUnitsPage';
 
 const ProjectsManagement = () => {
   const { user } = useAuth();
