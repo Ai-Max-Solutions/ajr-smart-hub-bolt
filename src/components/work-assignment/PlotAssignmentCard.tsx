@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Plus, Trash2, Clock, User } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, Clock, User, Copy } from 'lucide-react';
 
 interface Plot {
   id: string;
@@ -46,8 +47,10 @@ interface PlotAssignmentCardProps {
   assignments: Assignment[];
   onUpdateAssignment: (plotId: string, workCategoryId: string, assignedUserId: string, estimatedHours: number, dueDate: string) => void;
   onRemoveAssignment: (plotId: string, workCategoryId: string) => void;
+  onBulkAssignment: (workCategoryId: string, assignedUserId: string, estimatedHours: number, dueDate: string) => void;
   isSelected: boolean;
   onToggleSelection: () => void;
+  totalPlotsCount: number;
 }
 
 export const PlotAssignmentCard: React.FC<PlotAssignmentCardProps> = ({
@@ -57,29 +60,44 @@ export const PlotAssignmentCard: React.FC<PlotAssignmentCardProps> = ({
   assignments,
   onUpdateAssignment,
   onRemoveAssignment,
+  onBulkAssignment,
   isSelected,
-  onToggleSelection
+  onToggleSelection,
+  totalPlotsCount
 }) => {
   const [newWorkCategoryId, setNewWorkCategoryId] = useState('');
   const [newAssignedUserId, setNewAssignedUserId] = useState('');
   const [newEstimatedHours, setNewEstimatedHours] = useState(8);
   const [newDueDate, setNewDueDate] = useState<Date>();
+  const [copyToAllPlots, setCopyToAllPlots] = useState(false);
 
   const handleAddAssignment = () => {
     if (newWorkCategoryId && newAssignedUserId) {
-      onUpdateAssignment(
-        plot.id,
-        newWorkCategoryId,
-        newAssignedUserId,
-        newEstimatedHours,
-        newDueDate ? format(newDueDate, 'yyyy-MM-dd') : ''
-      );
+      const dueDate = newDueDate ? format(newDueDate, 'yyyy-MM-dd') : '';
+      
+      if (copyToAllPlots) {
+        onBulkAssignment(
+          newWorkCategoryId,
+          newAssignedUserId,
+          newEstimatedHours,
+          dueDate
+        );
+      } else {
+        onUpdateAssignment(
+          plot.id,
+          newWorkCategoryId,
+          newAssignedUserId,
+          newEstimatedHours,
+          dueDate
+        );
+      }
       
       // Reset form
       setNewWorkCategoryId('');
       setNewAssignedUserId('');
       setNewEstimatedHours(8);
       setNewDueDate(undefined);
+      setCopyToAllPlots(false);
     }
   };
 
@@ -239,6 +257,33 @@ export const PlotAssignmentCard: React.FC<PlotAssignmentCardProps> = ({
               </div>
             </div>
 
+            {/* Copy to All Plots Checkbox */}
+            {totalPlotsCount > 1 && (
+              <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                <Checkbox 
+                  id="copyToAll"
+                  checked={copyToAllPlots}
+                  onCheckedChange={setCopyToAllPlots}
+                />
+                <div className="flex items-center gap-2 flex-1">
+                  <Copy className="h-4 w-4 text-blue-600" />
+                  <label 
+                    htmlFor="copyToAll" 
+                    className="text-sm font-medium text-blue-900 cursor-pointer"
+                  >
+                    Copy to all plots ({totalPlotsCount - 1} others)
+                  </label>
+                </div>
+              </div>
+            )}
+            
+            {copyToAllPlots && (
+              <p className="text-xs text-muted-foreground bg-amber-50 p-2 rounded border border-amber-200">
+                ⚠️ This assignment will be added to all {totalPlotsCount} plots in the project. 
+                Existing assignments for the same work type will be skipped.
+              </p>
+            )}
+
             <Button
               onClick={handleAddAssignment}
               disabled={!newWorkCategoryId || !newAssignedUserId}
@@ -246,7 +291,7 @@ export const PlotAssignmentCard: React.FC<PlotAssignmentCardProps> = ({
               size="sm"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Assignment
+              {copyToAllPlots ? `Add to All ${totalPlotsCount} Plots` : 'Add Assignment'}
             </Button>
           </div>
         </div>

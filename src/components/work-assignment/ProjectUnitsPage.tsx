@@ -140,6 +140,44 @@ export const ProjectUnitsPage: React.FC = () => {
     });
   };
 
+  const handleBulkAssignment = (workCategoryId: string, assignedUserId: string, estimatedHours: number, dueDate: string) => {
+    const newAssignments: Assignment[] = [];
+    let skippedCount = 0;
+    let addedCount = 0;
+
+    plots.forEach(plot => {
+      // Check if this plot already has an assignment for this work category
+      const existingAssignment = assignments.find(a => 
+        a.plotId === plot.id && a.workCategoryId === workCategoryId
+      );
+
+      if (!existingAssignment) {
+        newAssignments.push({
+          plotId: plot.id,
+          workCategoryId,
+          assignedUserId,
+          estimatedHours,
+          dueDate
+        });
+        addedCount++;
+      } else {
+        skippedCount++;
+      }
+    });
+
+    // Update the assignments state
+    setAssignments(prev => [...prev, ...newAssignments]);
+
+    // Show feedback to user
+    const workCategory = workCategories.find(wc => wc.id === workCategoryId);
+    const workCategoryName = workCategory ? `${workCategory.main_category} - ${workCategory.sub_task}` : 'Work';
+    
+    toast({
+      title: "Bulk Assignment Complete",
+      description: `${workCategoryName} assigned to ${addedCount} plots${skippedCount > 0 ? ` (${skippedCount} already assigned)` : ''}`,
+    });
+  };
+
   const removeAssignment = (plotId: string, workCategoryId: string) => {
     setAssignments(prev => prev.filter(a => !(a.plotId === plotId && a.workCategoryId === workCategoryId)));
   };
@@ -378,8 +416,10 @@ export const ProjectUnitsPage: React.FC = () => {
                 assignments={assignments.filter(a => a.plotId === plot.id)}
                 onUpdateAssignment={updateAssignment}
                 onRemoveAssignment={removeAssignment}
+                onBulkAssignment={handleBulkAssignment}
                 isSelected={selectedPlots.includes(plot.id)}
                 onToggleSelection={() => togglePlotSelection(plot.id)}
+                totalPlotsCount={plots.length}
               />
             ))}
           </div>
