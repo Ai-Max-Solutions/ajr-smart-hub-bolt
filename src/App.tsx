@@ -35,13 +35,13 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <OnboardingProvider>
-          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <OnboardingProvider>
             <Routes>
               {/* Public routes without navigation */}
               <Route path="/auth" element={<Auth />} />
@@ -177,11 +177,11 @@ function App() {
               
               <Route path="*" element={<NotFound />} />
             </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </ThemeProvider>
-        </OnboardingProvider>
-      </AuthProvider>
+              </OnboardingProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
