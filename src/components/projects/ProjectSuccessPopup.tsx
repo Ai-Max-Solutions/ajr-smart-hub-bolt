@@ -93,13 +93,13 @@ export const ProjectSuccessPopup: React.FC<ProjectSuccessPopupProps> = ({
           )}
 
           {/* PM Pep Talk */}
-          <div className="p-4 bg-gradient-to-r from-ajryan-yellow/20 to-ajryan-yellow/10 rounded-lg border border-ajryan-yellow/20">
-            <div className="font-semibold text-ajryan-dark mb-2">
-              💪 PM Pep: Job Smashed, Mark!
+          <div className="p-4 bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg border border-primary/20">
+            <div className="font-semibold text-foreground mb-2">
+              💪 PM Pep: Job Smashed!
             </div>
             <p className="text-sm text-muted-foreground">
-              That's efficiency gold right there! More wins, less hours – time for the lads now. 
-              What'd the PM say to the deadline? "Plumb out of luck!" You've got this! 🚧💧
+              Nailed it – that's wins banked! Less graft, more gains; time for the boys now. 
+              What'd the PM say to the error? "Non-2xx off!" You've got this – brews await! 🚧💪
             </p>
           </div>
         </div>

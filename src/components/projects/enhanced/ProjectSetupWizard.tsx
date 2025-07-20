@@ -159,75 +159,9 @@ export const ProjectSetupWizard: React.FC = () => {
     }
   };
 
-  const getAISuggestion = async (projectName: string, description?: string) => {
-    setIsLoadingAI(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('project-ai-assistant', {
-        body: {
-          action: 'suggest_template',
-          data: { projectName, description }
-        }
-      });
+  // Removed AI suggestion - not needed for PM workflow
 
-      if (error) throw error;
-      
-      const response: AIAssistantResponse = data;
-      if (response.success) {
-        setAiSuggestion(response.message);
-        toast({
-          title: "AI Assistant",
-          description: "Got some smart suggestions for your project! 🤖",
-        });
-      }
-    } catch (error) {
-      console.error('AI suggestion error:', error);
-      toast({
-        title: "AI Assistant Offline",
-        description: "No worries, you can still set up your project manually! 🔧",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingAI(false);
-    }
-  };
-
-  const validateWithAI = async () => {
-    if (!projectData || blocks.length === 0) return;
-
-    setIsLoadingAI(true);
-    try {
-      const totalLevels = blocks.reduce((sum, block) => sum + block.levels, 0);
-      const totalUnits = blocks.reduce((sum, block) => sum + (block.levels * block.unitsPerLevel), 0);
-
-      const { data, error } = await supabase.functions.invoke('project-ai-assistant', {
-        body: {
-          action: 'validate_setup',
-          data: {
-            projectName: projectData.name,
-            blocks: blocks.map(block => ({
-              code: block.code,
-              levels: block.levels,
-              unitsPerLevel: block.unitsPerLevel
-            })),
-            totalLevels,
-            totalUnits,
-            template: selectedTemplate?.name || 'Custom'
-          }
-        }
-      });
-
-      if (error) throw error;
-      
-      const response: AIAssistantResponse = data;
-      if (response.success) {
-        setAiSuggestion(response.message);
-      }
-    } catch (error) {
-      console.error('AI validation error:', error);
-    } finally {
-      setIsLoadingAI(false);
-    }
-  };
+  // Removed AI validation - not needed for PM workflow
 
   const suggestLevelCode = (input: string) => {
     const suggestions = {
@@ -256,9 +190,6 @@ export const ProjectSetupWizard: React.FC = () => {
     }
 
     setProjectData(data);
-    
-    // Get AI suggestion for this project
-    await getAISuggestion(data.name, data.description);
     
     // If template is selected, pre-populate blocks
     if (data.templateId && selectedTemplate) {
@@ -311,74 +242,103 @@ export const ProjectSetupWizard: React.FC = () => {
     if (!projectData || blocks.length === 0) return;
 
     setIsGenerating(true);
-    try {
-      console.log('Starting project generation with data:', { projectData, blocks });
+    
+    const retryRequest = async (attempt: number): Promise<any> => {
+      try {
+        console.log(`Starting project generation attempt ${attempt} with data:`, { projectData, blocks });
 
-      // Prepare data in the format expected by bulk generator
-      const projectPayload = {
-        projectData: {
-          code: projectData.code, // Use user-provided code
-          name: projectData.name,
-          client: projectData.client,
-          startDate: format(projectData.startDate, 'yyyy-MM-dd'),
-          endDate: format(projectData.endDate, 'yyyy-MM-dd'),
-          blocks: blocks.map(block => ({
-            code: block.code,
-            name: block.name,
-            levels: block.levels,
-            unitsPerLevel: block.unitsPerLevel,
-            includeGroundFloor: block.includeGroundFloor,
-            includeBasement: block.includeBasement,
-            includeMezzanine: block.includeMezzanine,
-          }))
-        },
-        applyTemplate: true // Apply standard tasks
-      };
+        // Prepare data in the format expected by bulk generator
+        const projectPayload = {
+          projectData: {
+            code: projectData.code, // Use user-provided code
+            name: projectData.name,
+            client: projectData.client,
+            startDate: format(projectData.startDate, 'yyyy-MM-dd'),
+            endDate: format(projectData.endDate, 'yyyy-MM-dd'),
+            blocks: blocks.map(block => ({
+              code: block.code,
+              name: block.name,
+              levels: block.levels,
+              unitsPerLevel: block.unitsPerLevel,
+              includeGroundFloor: block.includeGroundFloor,
+              includeBasement: block.includeBasement,
+              includeMezzanine: block.includeMezzanine,
+            }))
+          },
+          applyTemplate: true // Apply standard tasks
+        };
 
-      console.log('Sending payload to bulk generator:', projectPayload);
+        console.log(`Sending payload to bulk generator (attempt ${attempt}):`, projectPayload);
 
-      const { data: generationResult, error: generationError } = await supabase.functions.invoke('project-bulk-generator', {
-        body: projectPayload
-      });
-
-      if (generationError) {
-        console.error('Generation error:', generationError);
-        throw generationError;
-      }
-
-      console.log('Generation result:', generationResult);
-
-      if (generationResult.success) {
-        // Show AI summary with project breakdown
-        const { totalUnits, results } = generationResult;
-        const totalBlocks = results.length;
-        const totalLevels = results.reduce((sum: number, result: any) => sum + result.levelsCreated, 0);
-        
-        toast({
-          title: "🎉 Project Generated Successfully!",
-          description: `${projectData.code} - ${projectData.name}: ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots—flowing nicely! 🔧💧`,
-          duration: 6000,
+        const { data: generationResult, error: generationError } = await supabase.functions.invoke('project-bulk-generator', {
+          body: projectPayload
         });
 
-        console.log(`Project summary: ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots created`);
+        if (generationError) {
+          console.error(`Generation error (attempt ${attempt}):`, generationError);
+          throw generationError;
+        }
 
-        navigate(`/projects/${generationResult.projectId}`);
-      } else {
-        throw new Error(generationResult.error || 'Generation failed');
+        console.log(`Generation result (attempt ${attempt}):`, generationResult);
+
+        if (generationResult.success) {
+          // Show PM Popup instead of AI summary
+          const { totalUnits, results, samplePlots } = generationResult;
+          const totalBlocks = results.length;
+          const totalLevels = results.reduce((sum: number, result: any) => sum + result.levelsCreated, 0);
+          
+          // Show PM success popup with encouraging message
+          toast({
+            title: "🎉 PM Nailed It!",
+            description: `${projectData.code} - ${projectData.name}: Efficiency win for the lads! ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots—smashed! 🚧💪`,
+            duration: 6000,
+          });
+
+          console.log(`Project summary: ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} plots created`);
+
+          navigate(`/projects/${generationResult.projectId}`);
+          return generationResult;
+        } else {
+          throw new Error(generationResult.error || 'Generation failed');
+        }
+      } catch (error: any) {
+        console.error(`Project generation error (attempt ${attempt}):`, error);
+        
+        // Retry logic for non-critical errors
+        if (attempt < 3) {
+          const delay = attempt * 1000; // Progressive delay
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return retryRequest(attempt + 1);
+        }
+        
+        // Final error handling
+        let errorMessage = "Pipeline blocked! Check the flow and try again! 🔧";
+        const errorMsg = error.message || '';
+        
+        if (errorMsg.includes('duplicate key') || errorMsg.includes('collision') || errorMsg.includes('already in use')) {
+          errorMessage = `Project code "${projectData.code}" collision detected – try a different code! 🔧`;
+        } else if (errorMsg.includes('validation')) {
+          errorMessage = `Data validation failed: ${errorMsg} 📋`;
+        } else if (errorMsg.includes('RLS')) {
+          errorMessage = `Security check failed – check permissions? 🔒`;
+        }
+        
+        toast({
+          title: "🚨 Generation Failed!",
+          description: `Crash: ${errorMessage}`,
+          variant: "destructive",
+        });
+        
+        throw error;
       }
-    } catch (error: any) {
-      console.error('Project generation error:', error);
-      
-      let errorMessage = "Failed to create project. Check the flow and try again! 🔧";
-      if (error.message?.includes('duplicate key')) {
-        errorMessage = `Project code "${projectData.code}" is already in use. Please choose a different code.`;
-      }
-      
-      toast({
-        title: "🚨 Generation Pipeline Blocked!",
-        description: errorMessage,
-        variant: "destructive",
-      });
+    };
+
+    try {
+      await retryRequest(1);
+    } catch (error) {
+      // Final catch after all retries
+      console.error('All retry attempts failed:', error);
     } finally {
       setIsGenerating(false);
     }
@@ -922,7 +882,7 @@ export const ProjectSetupWizard: React.FC = () => {
                 Back
               </Button>
               {blocks.length > 0 && (
-                <Button onClick={() => { validateWithAI(); setCurrentStep(3); }} className="btn-primary">
+                <Button onClick={() => setCurrentStep(3)} className="btn-primary">
                   <ArrowRight className="w-4 h-4 mr-2" />
                   Review & Generate
                 </Button>

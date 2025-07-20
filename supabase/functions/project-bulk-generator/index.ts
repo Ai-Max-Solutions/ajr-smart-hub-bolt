@@ -128,72 +128,170 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let projectId: string | null = null;
+
   try {
-    const { projectData, applyTemplate } = await req.json();
+    console.log('🚧 Function entry: Starting project-bulk-generator');
+    
+    // Parse and validate request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('📋 Request body parsed successfully');
+    } catch (parseError) {
+      console.error('💥 JSON parse error:', parseError);
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Invalid JSON in request body',
+        message: '📋 Data format error - check your payload!'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { projectData, applyTemplate } = requestBody;
     
     console.log('🚧 Starting bulk project generation:', { 
-      projectName: projectData.name,
-      projectCode: projectData.code,
-      blocksCount: projectData.blocks?.length || 0,
+      projectName: projectData?.name,
+      projectCode: projectData?.code,
+      blocksCount: projectData?.blocks?.length || 0,
       applyTemplate,
       payload: JSON.stringify(projectData, null, 2)
     });
 
     // Validate input data
+    console.log('📋 Validating project data...');
     const validationError = validateProjectData(projectData);
     if (validationError) {
       console.error('❌ Validation failed:', validationError);
-      throw new Error(`Data validation failed: ${validationError}`);
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: validationError,
+        message: `📋 Data validation failed: ${validationError}`
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+    console.log('✅ Validation passed');
 
+    console.log('🔗 Connecting to Supabase...');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     let projectCode = projectData.code;
     
     // Use user-provided code if available, otherwise generate one
+    console.log('🔍 Checking project code...');
     if (projectCode) {
       // Validate user's code is unique
-      const isUnique = await validateProjectCode(supabase, projectCode);
-      if (!isUnique) {
-        throw new Error(`🔧 Project code collision detected! "${projectCode}" is already in use. Please choose a different code.`);
+      try {
+        const isUnique = await validateProjectCode(supabase, projectCode);
+        if (!isUnique) {
+          console.error('💥 Project code collision:', projectCode);
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: `Project code "${projectCode}" already exists`,
+            message: `🔧 Project code collision detected! "${projectCode}" is already in use. Please choose a different code.`
+          }), {
+            status: 409,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        console.log('✅ Using user-provided project code:', projectCode);
+      } catch (codeError) {
+        console.error('💥 Error checking project code:', codeError);
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'Failed to validate project code',
+          message: '🔧 Error checking project code - please try again!'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
-      console.log('✅ Using user-provided project code:', projectCode);
     } else {
       // Fallback: Generate unique project code (for backward compatibility)
-      projectCode = await generateUniqueProjectCode(supabase, projectData.name);
-      console.log('✅ Generated unique project code:', projectCode);
+      try {
+        projectCode = await generateUniqueProjectCode(supabase, projectData.name);
+        console.log('✅ Generated unique project code:', projectCode);
+      } catch (genError) {
+        console.error('💥 Error generating project code:', genError);
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'Failed to generate project code',
+          message: '🔧 Error generating project code - please try again!'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
     
     // Create the main project
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .insert({
+    console.log('🏗️ Creating main project...');
+    let project;
+    try {
+      const insertData = {
         name: projectData.name,
         code: projectCode,
         client: projectData.client,
         start_date: projectData.startDate,
         end_date: projectData.endDate || null
-      })
-      .select()
-      .single();
+      };
+      console.log('📤 Inserting project data:', insertData);
 
-    if (projectError) {
-      console.error('💥 Project creation failed:', {
-        error: projectError.message,
-        code: projectError.code,
-        details: projectError.details,
-        hint: projectError.hint
-      });
-      
-      // Provide specific error messages
-      if (projectError.message?.includes('duplicate key')) {
-        throw new Error(`🔧 Project code "${projectCode}" collision detected during creation. Please try a different code.`);
+      const { data, error: projectError } = await supabase
+        .from('projects')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (projectError) {
+        console.error('💥 Project creation failed:', {
+          error: projectError.message,
+          code: projectError.code,
+          details: projectError.details,
+          hint: projectError.hint,
+          stack: projectError.stack
+        });
+        
+        // Provide specific error messages
+        if (projectError.message?.includes('duplicate key')) {
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: `Project code "${projectCode}" collision detected during creation`,
+            message: `🔧 Project code "${projectCode}" collision detected during creation. Please try a different code.`
+          }), {
+            status: 409,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: `Project creation failed: ${projectError.message}`,
+          message: `🔧 Project creation failed: ${projectError.message}`
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
-      
-      throw new Error(`Project creation failed: ${projectError.message}`);
-    }
 
-    console.log('✅ Project created:', project.id, project.name, 'with code:', project.code);
+      project = data;
+      projectId = project.id; // Store for cleanup
+      console.log('✅ Project created:', project.id, project.name, 'with code:', project.code);
+    } catch (projectCreateError) {
+      console.error('💥 Unexpected error during project creation:', projectCreateError);
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Unexpected error during project creation',
+        message: '🔧 Unexpected error during project creation - please try again!'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     let totalUnitsGenerated = 0;
     const generationResults = [];
@@ -447,26 +545,59 @@ serve(async (req) => {
 
     } catch (processingError) {
       // Clean up project if block/level/plot creation fails
-      console.error('💥 Processing failed, cleaning up project:', processingError);
-      await cleanupProject(supabase, project.id);
-      throw processingError;
+      console.error('💥 Processing failed, cleaning up project:', {
+        error: processingError.message,
+        stack: processingError.stack,
+        projectId: projectId
+      });
+      
+      if (projectId) {
+        await cleanupProject(supabase, projectId);
+      }
+      
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: processingError.message || 'Processing failed',
+        message: `🔧 Processing failed: ${processingError.message || 'Unknown error'}`
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
   } catch (error) {
     console.error('💥 Error in project-bulk-generator function:', {
       error: error.message,
       stack: error.stack,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      projectId: projectId
     });
+    
+    // Final cleanup if we have a project ID
+    if (projectId) {
+      try {
+        await cleanupProject(supabase, projectId);
+      } catch (cleanupError) {
+        console.error('💥 Final cleanup failed:', cleanupError);
+      }
+    }
     
     // Provide more specific error messages
     let errorMessage = '🚨 Pipeline blocked! Check the flow and try again.';
+    let statusCode = 500;
+    
     if (error.message.includes('duplicate key') || error.message.includes('already in use') || error.message.includes('collision')) {
       errorMessage = '🔧 Project code collision detected! ' + error.message;
+      statusCode = 409;
     } else if (error.message.includes('violates') || error.message.includes('validation')) {
       errorMessage = '📋 Data validation failed! ' + error.message;
+      statusCode = 400;
     } else if (error.message.includes('Data validation failed')) {
       errorMessage = error.message;
+      statusCode = 400;
+    } else if (error.message.includes('Invalid JSON')) {
+      errorMessage = '📋 Invalid request format! ' + error.message;
+      statusCode = 400;
     }
 
     return new Response(JSON.stringify({ 
@@ -474,7 +605,7 @@ serve(async (req) => {
       error: error.message,
       message: errorMessage
     }), {
-      status: 500,
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

@@ -35,8 +35,9 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
-  const performOnboardingCheck = useCallback(async () => {
+  const performOnboardingCheck = useCallback(async (retryCount = 0) => {
     if (!user) {
       setIsLoading(false);
       return;
@@ -46,7 +47,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setError(null);
 
     try {
-      console.log('[OnboardingContext] Starting onboarding check for user:', user.id);
+      console.log('[OnboardingContext] Starting onboarding check for user:', user.id, 'retry:', retryCount);
 
       // Single comprehensive query to get all user data
       const { data: userData, error: userError } = await supabase
@@ -62,7 +63,14 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
 
       if (!userData) {
-        console.log('[OnboardingContext] No user found in database, creating profile');
+        // Retry logic for race condition where user profile isn't created yet
+        if (retryCount < 3) {
+          console.log('[OnboardingContext] No user found, retrying in 1000ms...', retryCount + 1);
+          setTimeout(() => performOnboardingCheck(retryCount + 1), 1000);
+          return;
+        }
+
+        console.log('[OnboardingContext] No user found in database after retries, creating profile');
         // Create user profile if it doesn't exist
         const { data: newUser, error: createError } = await supabase
           .from('users')
@@ -200,10 +208,25 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [user]);
 
-  // Initial check on mount and when user changes
+  // Initial check on mount and when user changes with debouncing
   useEffect(() => {
-    performOnboardingCheck();
-  }, [performOnboardingCheck]);
+    // Clear any existing timer
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+
+    // Set up debounced execution
+    const timer = setTimeout(() => {
+      performOnboardingCheck();
+    }, 300);
+    
+    setDebounceTimer(timer);
+
+    // Cleanup on unmount
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [user]); // Only depend on user, not performOnboardingCheck to avoid loops
 
   const refreshOnboarding = useCallback(async () => {
     console.log('[OnboardingContext] Manual refresh triggered');
