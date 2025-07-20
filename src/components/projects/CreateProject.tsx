@@ -187,7 +187,7 @@ const CreateProject = () => {
                           placeholder="e.g. 382, 379" 
                           {...field}
                           onBlur={async (e) => {
-                            field.onBlur(e);
+                            field.onBlur();
                             if (e.target.value) {
                               await checkProjectCodeUnique(e.target.value);
                             }
