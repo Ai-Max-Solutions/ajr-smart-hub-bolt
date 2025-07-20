@@ -288,12 +288,12 @@
 }
 
 .projects-card:hover .group-hover\:text-primary {
-  @apply text-aj-yellow-dark;
+  @apply text-yellow-800;
 }
 
 /* Button hover states with accessible contrast */
 .btn-yellow-hover {
-  @apply hover:bg-aj-yellow hover:text-aj-yellow-dark transition-colors duration-200;
+  @apply hover:bg-yellow-400 hover:text-yellow-900 transition-colors duration-200;
 }
 
 /* Status badges with proper contrast */
