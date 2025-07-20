@@ -79,17 +79,14 @@ export function LocationTracker({
         timestamp: position.timestamp
       };
 
-      // Reverse geocoding (simplified)
+      // Reverse geocoding (disabled for security - requires API key configuration)
+      // To enable: Configure OpenCage API key in Supabase Edge Functions
       try {
-        const response = await fetch(
-          `https://api.opencagedata.com/geocode/v1/json?q=${locationData.latitude}+${locationData.longitude}&key=YOUR_API_KEY`
-        );
-        const data = await response.json();
-        if (data.results?.[0]) {
-          locationData.address = data.results[0].formatted;
-        }
+        // Note: Direct API calls with keys should be done server-side
+        // Consider implementing this via Supabase Edge Function
+        console.log('Reverse geocoding disabled - implement via Edge Function for security');
       } catch (error) {
-        console.log('Reverse geocoding failed:', error);
+        console.log('Reverse geocoding not configured:', error);
       }
 
       setCurrentLocation(locationData);

@@ -12,7 +12,7 @@ interface PendingUser {
   email: string;
   phone: string;
   created_at: string;
-  is_blocked: boolean;
+  is_verified: boolean;
   onboarding_completed: boolean;
 }
 
@@ -30,8 +30,8 @@ export const UserApprovalPanel = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, phone, created_at, is_blocked, onboarding_completed')
-        .eq('is_blocked', true)
+        .select('id, name, email, phone, created_at, onboarding_completed, is_verified')
+        .eq('is_verified', false)
         .eq('onboarding_completed', true)
         .order('created_at', { ascending: false });
 
@@ -54,7 +54,7 @@ export const UserApprovalPanel = () => {
     try {
       const { error } = await supabase
         .from('users')
-        .update({ is_blocked: false })
+        .update({ is_verified: true })
         .eq('id', userId);
 
       if (error) throw error;

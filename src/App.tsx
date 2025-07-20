@@ -30,6 +30,7 @@ import NotFound from "./pages/NotFound";
 import InductionDemo from "./pages/InductionDemo";
 import MobileDashboard from "./pages/MobileDashboard";
 import { JobTrackerDashboard } from "./components/job-tracker/JobTrackerDashboard";
+import { SecurityHeader } from "@/components/ui/security-header";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
         <TooltipProvider>
+          <SecurityHeader />
           <Toaster />
           <Sonner />
           <BrowserRouter>
