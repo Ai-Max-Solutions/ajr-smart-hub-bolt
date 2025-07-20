@@ -1365,6 +1365,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ai_suggest_user_for_task: {
+        Args: {
+          p_work_category_id: string
+          p_plot_id: string
+          p_project_id?: string
+        }
+        Returns: {
+          user_id: string
+          user_name: string
+          suggestion_score: number
+          reason: string
+        }[]
+      }
+      calculate_plot_completion: {
+        Args: { p_plot_id: string }
+        Returns: number
+      }
+      calculate_task_bonus: {
+        Args: { p_assignment_id: string; p_actual_hours: number }
+        Returns: Json
+      }
       detect_suspicious_activity: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -1375,6 +1396,10 @@ export type Database = {
       }
       get_project_progress: {
         Args: { project_id_param: string }
+        Returns: Json
+      }
+      predict_task_delay: {
+        Args: { p_assignment_id: string }
         Returns: Json
       }
       update_plot_order: {

@@ -20,6 +20,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { SmartUnitCard } from '../smart-kanban/SmartUnitCard';
 
 interface Plot {
   id: string;
@@ -228,7 +229,7 @@ export const BlocksUnitsTab: React.FC<BlocksUnitsTabProps> = ({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Search units by name, code, or composite code..."
+              placeholder="Search by unit, work type, or assignee..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-10"
@@ -327,86 +328,27 @@ export const BlocksUnitsTab: React.FC<BlocksUnitsTabProps> = ({
         </Card>
       )}
 
-      {/* Units List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Units ({plots.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : plots.length === 0 ? (
-            <div className="text-center py-8">
-              <Home className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No units found</p>
-            </div>
-          ) : (
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="units">
-                {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                    {plots.map((plot, index) => (
-                      <Draggable key={plot.id} draggableId={plot.id} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={`flex items-center gap-4 p-4 border rounded-lg bg-background ${
-                              snapshot.isDragging ? 'shadow-lg' : ''
-                            }`}
-                          >
-                            <div {...provided.dragHandleProps}>
-                              <GripVertical className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(plot.status)}
-                              <div>
-                                <p className="font-medium">{plot.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {plot.composite_code || plot.code}
-                                </p>
-                              </div>
-                            </div>
-
-                            <Badge variant="outline">{plot.unit_type}</Badge>
-                            
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                checked={plot.handed_over}
-                                onCheckedChange={(checked) => 
-                                  handleHandoverChange(plot.id, checked as boolean)
-                                }
-                              />
-                              <span className="text-sm">Handed Over</span>
-                            </div>
-
-                            <div className="ml-auto flex items-center gap-2">
-                              <Button variant="ghost" size="sm">
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleDeleteUnit(plot.id, plot.name)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-          )}
-        </CardContent>
-      </Card>
+      {/* Smart Units List */}
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : plots.length === 0 ? (
+          <div className="text-center py-8">
+            <Home className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No units found</p>
+          </div>
+        ) : (
+          plots.map((plot) => (
+            <SmartUnitCard 
+              key={plot.id}
+              plot={plot}
+              projectId={projectId}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 };
