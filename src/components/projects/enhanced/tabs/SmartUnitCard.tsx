@@ -30,17 +30,17 @@ interface Plot {
 
 interface WorkAssignment {
   id: string;
-  status: 'assigned' | 'in_progress' | 'completed';
+  status: 'assigned' | 'in_progress' | 'completed' | 'disputed';
   work_category_id: string;
   assigned_user_id: string;
   estimated_hours: number;
   work_categories: {
     main_category: string;
     sub_task: string;
-  };
+  } | null;
   users: {
     name: string;
-  };
+  } | null;
 }
 
 interface SmartUnitCardProps {
@@ -71,7 +71,7 @@ export const SmartUnitCard: React.FC<SmartUnitCardProps> = ({ plot }) => {
         .eq('plot_id', plot.id);
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as WorkAssignment[];
     },
     retry: 2,
   });
