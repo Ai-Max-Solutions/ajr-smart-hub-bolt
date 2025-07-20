@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useSupabaseError } from '@/hooks/useSupabaseError';
 import { SupabaseErrorBoundary } from '@/components/errors/SupabaseErrorBoundary';
+import { ProjectSuccessPopup } from '@/components/projects/ProjectSuccessPopup';
 import { 
   Building, 
   Plus, 
@@ -92,7 +93,8 @@ export function ProjectsDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSetupModal, setShowSetupModal] = useState(false);
-  const [aiAssistance, setAiAssistance] = useState('');
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successData, setSuccessData] = useState<any>(null);
   const [setupData, setSetupData] = useState<ProjectSetupData>({
     code: '',
     name: '',
@@ -209,52 +211,20 @@ export function ProjectsDashboard() {
     }
   };
 
-  const handleAIAssistance = async (prompt: string) => {
-    try {
-      const data = await withRetry(
-        async () => {
-          const { data, error } = await supabase.functions.invoke('project-ai-assistant', {
-            body: { 
-              action: 'suggest_template',
-              data: {
-                projectName: setupData.name,
-                description: setupData.description,
-                blocks: setupData.blocks
-              }
-            }
-          });
-
-          if (error) throw error;
-          return data;
-        },
-        { operation: 'aiAssistance' }
-      );
-
-      if (data.success && data.message) {
-        setAiAssistance(data.message);
-
-        // Apply AI suggestions if provided
-        if (data.suggestions) {
-          setSetupData(prev => ({ ...prev, ...data.suggestions }));
-        }
-      } else {
-        throw new Error(data.error || 'AI assistance failed');
-      }
-    } catch (error) {
-      handleError(error as Error, { operation: 'aiAssistance' });
-      toast({
-        title: "AI Assistant Offline",
-        description: "🤖 Our smart plumber is taking a tea break. Try again in a moment!",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleCreateProject = async () => {
     if (!canEdit) {
       toast({
         title: "Access Denied",
         description: "🔒 Only master plumbers can create new projects!",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!setupData.code?.trim()) {
+      toast({
+        title: "Project Code Required",
+        description: "🔧 Please enter a project code before creating the project!",
         variant: "destructive"
       });
       return;
@@ -270,20 +240,35 @@ export function ProjectsDashboard() {
             }
           });
 
-          if (error) throw error;
+          if (error) {
+            console.error('Function invoke error:', error);
+            throw error;
+          }
+
+          if (!data.success) {
+            throw new Error(data.error || data.message || 'Project creation failed');
+          }
+
           return data;
         },
         { operation: 'createProject' }
       );
 
       if (data.success) {
-        toast({
-          title: "Project Created! 🚰",
-          description: `${data.totalUnits} units generated for "${setupData.name}" (${data.projectCode}) – flow secured, no leaks detected!`,
-          duration: 5000
+        // Show success popup instead of toast
+        setSuccessData({
+          code: data.projectCode,
+          name: setupData.name,
+          totalBlocks: data.totalBlocks || setupData.blocks.length,
+          totalLevels: data.totalLevels || 0,
+          totalUnits: data.totalUnits || 0,
+          samplePlots: data.samplePlots || []
         });
 
         setShowSetupModal(false);
+        setShowSuccessPopup(true);
+        
+        // Refresh data in background
         fetchProjects();
         fetchStats();
       } else {
@@ -293,8 +278,14 @@ export function ProjectsDashboard() {
       handleError(error as Error, { operation: 'createProject' });
       
       let errorMessage = "🔧 Project hit a snag – check the blueprints and try again!";
-      if (error.message.includes('duplicate') || error.message.includes('collision')) {
-        errorMessage = "🔧 Project name conflict detected – try a different name or the system will generate a unique code!";
+      const errorMsg = (error as Error).message || '';
+      
+      if (errorMsg.includes('duplicate') || errorMsg.includes('collision') || errorMsg.includes('already in use')) {
+        errorMessage = `🔧 Project code "${setupData.code}" collision detected – try a different code!`;
+      } else if (errorMsg.includes('validation')) {
+        errorMessage = `📋 ${errorMsg}`;
+      } else if (errorMsg.includes('Data validation failed')) {
+        errorMessage = `📋 ${errorMsg}`;
       }
       
       toast({
@@ -303,6 +294,30 @@ export function ProjectsDashboard() {
         variant: "destructive"
       });
     }
+  };
+
+  const handleSuccessViewDetails = () => {
+    setShowSuccessPopup(false);
+    if (successData?.code) {
+      // Find the project and navigate to it
+      const project = projects.find(p => p.code === successData.code);
+      if (project) {
+        navigate(`/projects/${project.id}`);
+      } else {
+        // If not found immediately, refresh and try again
+        fetchProjects().then(() => {
+          const updatedProject = projects.find(p => p.code === successData.code);
+          if (updatedProject) {
+            navigate(`/projects/${updatedProject.id}`);
+          }
+        });
+      }
+    }
+  };
+
+  const handleSuccessBackToWizard = () => {
+    setShowSuccessPopup(false);
+    setShowSetupModal(true);
   };
 
   const filteredProjects = projects.filter(project =>
@@ -380,7 +395,7 @@ export function ProjectsDashboard() {
                       Project Setup Wizard
                     </DialogTitle>
                     <DialogDescription>
-                      AI-powered project generation – let's build something watertight!
+                      Quick project generation – let's build something watertight!
                     </DialogDescription>
                   </DialogHeader>
                   
@@ -396,10 +411,14 @@ export function ProjectsDashboard() {
                             value={setupData.code || ''}
                             onChange={(e) => setSetupData(prev => ({ ...prev, code: e.target.value }))}
                             placeholder="e.g., 382, 379"
+                            className="font-mono"
                           />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Unique project identifier
+                          </p>
                         </div>
                         <div>
-                          <Label htmlFor="name">Project Name</Label>
+                          <Label htmlFor="name">Project Name *</Label>
                           <Input
                             id="name"
                             value={setupData.name}
@@ -408,7 +427,7 @@ export function ProjectsDashboard() {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="client">Client</Label>
+                          <Label htmlFor="client">Client *</Label>
                           <Input
                             id="client"
                             value={setupData.client}
@@ -428,7 +447,7 @@ export function ProjectsDashboard() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="startDate">Start Date</Label>
+                          <Label htmlFor="startDate">Start Date *</Label>
                           <Input
                             id="startDate"
                             type="date"
@@ -454,14 +473,9 @@ export function ProjectsDashboard() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">Block Configuration</h3>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAIAssistance(`Suggest optimal block configuration for ${setupData.name}`)}
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          AI Suggest
-                        </Button>
+                        <div className="text-sm text-muted-foreground">
+                          Configure your project structure
+                        </div>
                       </div>
 
                       {setupData.blocks.map((block, index) => (
@@ -496,6 +510,7 @@ export function ProjectsDashboard() {
                               <Input
                                 id={`levels-${index}`}
                                 type="number"
+                                min="1"
                                 value={block.levels}
                                 onChange={(e) => {
                                   const newBlocks = [...setupData.blocks];
@@ -509,6 +524,7 @@ export function ProjectsDashboard() {
                               <Input
                                 id={`units-${index}`}
                                 type="number"
+                                min="1"
                                 value={block.unitsPerLevel}
                                 onChange={(e) => {
                                   const newBlocks = [...setupData.blocks];
@@ -561,19 +577,6 @@ export function ProjectsDashboard() {
                       ))}
                     </div>
 
-                    {/* AI Preview */}
-                    {aiAssistance && (
-                      <Card className="p-4 bg-primary/5 border-primary/20">
-                        <div className="flex items-start gap-2">
-                          <Zap className="h-5 w-5 text-primary mt-0.5" />
-                          <div>
-                            <h4 className="font-semibold text-primary">AI Assistant</h4>
-                            <p className="text-sm mt-1">{aiAssistance}</p>
-                          </div>
-                        </div>
-                      </Card>
-                    )}
-
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" onClick={() => setShowSetupModal(false)}>
                         Cancel
@@ -588,6 +591,17 @@ export function ProjectsDashboard() {
             </SupabaseErrorBoundary>
           )}
         </div>
+
+        {/* Success Popup */}
+        {successData && (
+          <ProjectSuccessPopup
+            open={showSuccessPopup}
+            onOpenChange={setShowSuccessPopup}
+            projectData={successData}
+            onViewDetails={handleSuccessViewDetails}
+            onBackToWizard={handleSuccessBackToWizard}
+          />
+        )}
 
         {/* Metrics Grid */}
         <SupabaseErrorBoundary operation="ProjectMetrics">
