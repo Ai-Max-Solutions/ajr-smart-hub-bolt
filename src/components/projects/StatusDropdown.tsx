@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Select,
@@ -29,7 +30,7 @@ export const StatusDropdown: React.FC<StatusDropdownProps> = ({
 }) => {
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger className="w-auto min-w-[100px] h-auto p-0 border-0 bg-transparent">
+      <SelectTrigger className="w-auto min-w-[120px] h-auto p-1 border-0 bg-transparent hover:bg-muted/50 transition-colors">
         <SelectValue asChild>
           <StatusBadge status={value as any} />
         </SelectValue>

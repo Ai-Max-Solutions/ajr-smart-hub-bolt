@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -344,7 +343,6 @@ export const ProjectDetailsEnhanced: React.FC = () => {
     setDeleteModalOpen(false);
   };
 
-  // Loading state with timeout
   if (projectLoading) {
     if (loadingTimeout) {
       return (
@@ -458,56 +456,69 @@ export const ProjectDetailsEnhanced: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate('/projects/dashboard')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-primary">
-            {project.name}
-          </h1>
-          <p className="text-muted-foreground">{project.client}</p>
+      {/* Header - Fixed layout to ensure buttons are visible */}
+      <div className="space-y-4">
+        {/* Back button and title row */}
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/projects/dashboard')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold text-primary truncate">
+              {project.name}
+            </h1>
+            <p className="text-muted-foreground truncate">{project.client}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={project.status} />
-          <Button
-            onClick={handleWorkAssignmentNavigation}
-            className="gap-2"
-          >
-            <UserCheck className="h-4 w-4" />
-            Assign Work
-          </Button>
-          <Button
-            onClick={() => setArchiveModalOpen(true)}
-            variant="outline"
-            className="gap-2 hover:bg-yellow-50 hover:border-yellow-300"
-          >
-            <Archive className="h-4 w-4" />
-            Archive
-          </Button>
-          <Button
-            onClick={() => setDeleteModalOpen(true)}
-            variant="outline"
-            className="gap-2 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </Button>
-          <Badge variant="outline">{project.code}</Badge>
-          {progressData && (
-            <div className="flex items-center gap-2">
-              <Progress value={progressData.progress_percentage} className="w-20" />
-              <span className="text-sm text-muted-foreground">
-                {Math.round(progressData.progress_percentage)}%
-              </span>
-            </div>
-          )}
+        
+        {/* Action buttons row - ensures visibility */}
+        <div className="flex flex-wrap items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            <StatusBadge status={project.status} />
+            <Badge variant="outline">{project.code}</Badge>
+            {progressData && (
+              <div className="flex items-center gap-2">
+                <Progress value={progressData.progress_percentage} className="w-20" />
+                <span className="text-sm text-muted-foreground">
+                  {Math.round(progressData.progress_percentage)}%
+                </span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              onClick={handleWorkAssignmentNavigation}
+              size="sm"
+              className="gap-2"
+            >
+              <UserCheck className="h-4 w-4" />
+              Assign Work
+            </Button>
+            <Button
+              onClick={() => setArchiveModalOpen(true)}
+              variant="outline"
+              size="sm"
+              className="gap-2 hover:bg-yellow-50 hover:border-yellow-300"
+            >
+              <Archive className="h-4 w-4" />
+              Archive
+            </Button>
+            <Button
+              onClick={() => setDeleteModalOpen(true)}
+              variant="outline"
+              size="sm"
+              className="gap-2 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </div>
         </div>
       </div>
 

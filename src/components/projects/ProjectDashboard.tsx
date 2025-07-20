@@ -240,8 +240,8 @@ export const ProjectDashboard: React.FC = () => {
               onClick={() => window.location.href = `/projects/${project.id}`}
             >
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1 flex-1 min-w-0">
                     <CardTitle className="text-lg line-clamp-2">
                       {project.name || 'Untitled Project'}
                     </CardTitle>
@@ -249,7 +249,7 @@ export const ProjectDashboard: React.FC = () => {
                       {project.client || 'Unknown Client'}
                     </CardDescription>
                   </div>
-                  <div onClick={(e) => e.stopPropagation()}>
+                  <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
                     <StatusDropdown
                       value={project.status}
                       onValueChange={(newStatus) => handleStatusChange(project.id, newStatus)}
