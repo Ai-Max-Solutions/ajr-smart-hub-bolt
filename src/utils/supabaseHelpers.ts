@@ -1,9 +1,8 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Centralized Supabase operation wrapper
 export async function executeSupabaseOperation<T>(
-  operation: () => Promise<{ data: T; error: any }>,
+  operation: () => Promise<T>,
   context: {
     operationName: string;
     table?: string;
@@ -17,14 +16,10 @@ export async function executeSupabaseOperation<T>(
     try {
       console.log(`[Supabase] ${operationName} attempt ${attempt}/${retries}`, { table });
       
-      const { data, error } = await operation();
-      
-      if (error) {
-        throw error;
-      }
+      const result = await operation();
       
       console.log(`[Supabase] ${operationName} successful`, { table, attempt });
-      return data;
+      return result;
       
     } catch (error: any) {
       lastError = error;
@@ -55,47 +50,5 @@ export async function executeSupabaseOperation<T>(
   throw lastError;
 }
 
-// Common Supabase operations with built-in error handling
-export const supabaseHelpers = {
-  async select<T>(tableName: string, query?: any): Promise<T[]> {
-    return executeSupabaseOperation(
-      () => supabase.from(tableName).select(query || '*'),
-      { operationName: 'select', table: tableName }
-    );
-  },
-
-  async selectSingle<T>(tableName: string, filter: any, query?: any): Promise<T> {
-    return executeSupabaseOperation(
-      () => supabase.from(tableName).select(query || '*').match(filter).single(),
-      { operationName: 'selectSingle', table: tableName }
-    );
-  },
-
-  async insert<T>(tableName: string, data: any): Promise<T> {
-    return executeSupabaseOperation(
-      () => supabase.from(tableName).insert(data).select().single(),
-      { operationName: 'insert', table: tableName }
-    );
-  },
-
-  async update<T>(tableName: string, data: any, filter: any): Promise<T> {
-    return executeSupabaseOperation(
-      () => supabase.from(tableName).update(data).match(filter).select().single(),
-      { operationName: 'update', table: tableName }
-    );
-  },
-
-  async delete(tableName: string, filter: any): Promise<void> {
-    return executeSupabaseOperation(
-      () => supabase.from(tableName).delete().match(filter),
-      { operationName: 'delete', table: tableName }
-    );
-  },
-
-  async rpc<T>(functionName: string, params?: any): Promise<T> {
-    return executeSupabaseOperation(
-      () => supabase.rpc(functionName, params),
-      { operationName: `rpc:${functionName}` }
-    );
-  }
-};
+// Re-export supabase client for convenience
+export { supabase };
