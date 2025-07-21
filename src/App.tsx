@@ -18,6 +18,7 @@ import ProjectsManagement from "./pages/ProjectsManagement";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminReports from "./pages/AdminReports";
 import AdminUserManagement from "@/components/admin/AdminUserManagement";
+import { UserManagement } from "./pages/UserManagement";
 import DirectorDashboard from "./pages/DirectorDashboard";
 import AIAssistant from "./pages/AIAssistant";
 import EngineerDashboard from "./pages/EngineerDashboard";
@@ -123,6 +124,17 @@ function App() {
                   <RouteProtection requiredRole={['admin', 'dpo']}>
                     <AppLayout>
                       <AdminUserManagement />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/user-management" 
+                element={
+                  <RouteProtection requiredRole={['admin', 'director']}>
+                    <AppLayout>
+                      <UserManagement />
                     </AppLayout>
                   </RouteProtection>
                 } 

@@ -40,6 +40,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Fetch user profile safely using direct database query
+  const fetchUserProfileSafe = async (authId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('supabase_auth_id', authId)
+        .single();
+      
+      if (error) {
+        console.warn('Failed to fetch user profile safely:', error);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  };
+
   // Debounced fetch function to prevent rapid-fire requests
   const debouncedFetch = (() => {
     let timeoutId: any;
@@ -83,24 +104,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               await withRetry(async () => {
                 console.log('📊 Fetching user profile for verification check...');
                 
-                // Update last sign in and check verification status
-                const { data: userData, error: fetchError } = await supabase
-                  .from('users')
-                  .select('*')
-                  .eq('supabase_auth_id', session.user.id)
-                  .single() as { data: any; error: any };
+                // Use the safe fetch function
+                const userData = await fetchUserProfileSafe(session.user.id);
 
-                if (fetchError) {
-                  console.warn('Failed to fetch user data:', fetchError);
+                if (!userData) {
+                  console.warn('Failed to fetch user data safely');
                   setIsVerified(false);
+                  setUserProfile(null);
                   return;
                 }
 
                 console.log('👤 User profile loaded:', {
+                  name: userData?.name,
                   role: userData?.role,
                   is_verified: userData?.is_verified,
                   email: session.user.email
                 });
+
+                // Set the user profile in state
+                setUserProfile(userData);
 
                 // STRENGTHENED ADMIN BYPASS - Admins and Directors always bypass verification
                 const isAdminRole = ['Admin', 'Director', 'PM'].includes(userData?.role);
@@ -196,8 +218,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
         
         if (event === 'SIGNED_OUT') {
-          // Clear any pending debounced calls
+          // Clear all user state
           setUser(null);
+          setUserProfile(null);
           setIsVerified(false);
           
           // Only redirect if not already on auth page

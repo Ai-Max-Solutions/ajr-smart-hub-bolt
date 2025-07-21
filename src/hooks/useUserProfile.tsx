@@ -24,20 +24,42 @@ interface UserProfile {
 }
 
 export const useUserProfile = () => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { withRetry, handleError } = useSupabaseError();
 
   useEffect(() => {
-    if (user) {
+    if (user && userProfile) {
+      // Use the userProfile from auth context when available
+      setProfile({
+        id: userProfile.id,
+        auth_email: user.email || '',
+        firstname: userProfile.firstname || '',
+        lastname: userProfile.lastname || '',
+        fullname: userProfile.fullname || userProfile.name || '',
+        role: userProfile.role,
+        system_role: userProfile.role,
+        employmentstatus: userProfile.employmentstatus || 'Active',
+        currentproject: userProfile.currentproject,
+        phone: userProfile.phone || '',
+        onboarding_completed: userProfile.onboarding_completed || false,
+        internalnotes: userProfile.internalnotes,
+        last_sign_in: userProfile.last_sign_in,
+        airtable_created_time: userProfile.airtable_created_time,
+        avatar_url: userProfile.avatar_url,
+        is_verified: userProfile.is_verified || false
+      });
+      setLoading(false);
+    } else if (user) {
+      // Fallback to fetching profile if not available in auth context
       fetchProfile();
     } else {
       setProfile(null);
       setLoading(false);
     }
-  }, [user]);
+  }, [user, userProfile]);
 
   const fetchProfile = async () => {
     if (!user) return;

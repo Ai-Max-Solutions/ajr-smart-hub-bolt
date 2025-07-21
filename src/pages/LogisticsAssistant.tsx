@@ -5,7 +5,7 @@ import { PendingRequestsTab } from '@/components/logistics/PendingRequestsTab';
 import { BookedDeliveriesTab } from '@/components/logistics/BookedDeliveriesTab';
 import { UploadFormTab } from '@/components/logistics/UploadFormTab';
 import { useAuth } from '@/hooks/useAuth';
-import { RouteProtection } from '@/components/auth/RouteProtection';
+import { RoleProtection } from '@/components/auth/RoleProtection';
 import { Package, Truck, Upload, BarChart3 } from 'lucide-react';
 
 const LogisticsAssistant = () => {
@@ -13,10 +13,9 @@ const LogisticsAssistant = () => {
   const [activeTab, setActiveTab] = useState('pending');
 
   return (
-    <RouteProtection 
-      requiredRole={['Admin', 'PM', 'Director', 'Supervisor']}
+    <RoleProtection 
+      allowedRoles={['Admin', 'PM', 'Director', 'Supervisor']}
       fallbackPath="/dashboard"
-      showAccessDenied={true}
     >
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-7xl mx-auto space-y-6">
@@ -110,7 +109,7 @@ const LogisticsAssistant = () => {
           </Card>
         </div>
       </div>
-    </RouteProtection>
+    </RoleProtection>
   );
 };
 
