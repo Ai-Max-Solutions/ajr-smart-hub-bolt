@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FolderOpen, MessageSquare, BarChart3, Brain, Search, Lightbulb } from 'lucide-react';
 import { DocumentFolders } from '@/components/project-info/DocumentFolders';
+import { DocumentList } from '@/components/project-info/DocumentList';
 import { GrokChat } from '@/components/project-info/GrokChat';
 import { AdvancedSearch } from '@/components/project-info/AdvancedSearch';
 import { DocumentAnalytics } from '@/components/project-info/DocumentAnalytics';
@@ -14,6 +15,7 @@ import { DocumentPreview } from '@/components/project-info/DocumentPreview';
 export default function ProjectInfoHub() {
   const { projectId } = useParams<{ projectId: string }>();
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
   if (!projectId) {
@@ -60,10 +62,30 @@ export default function ProjectInfoHub() {
         </TabsList>
 
         <TabsContent value="folders" className="space-y-6">
-          <DocumentFolders 
-            projectId={projectId} 
-            onDocumentSelect={setSelectedDocument}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Document Folders</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DocumentFolders 
+                    projectId={projectId}
+                    activeFolder={selectedFolder}
+                    onFolderSelect={setSelectedFolder}
+                    onDocumentSelect={setSelectedDocument}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+            <div className="lg:col-span-3">
+              <DocumentList
+                projectId={projectId}
+                folderId={selectedFolder}
+                onDocumentSelect={setSelectedDocument}
+              />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="search" className="space-y-6">

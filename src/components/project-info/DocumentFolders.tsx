@@ -112,6 +112,37 @@ export function DocumentFolders({ projectId, activeFolder, onFolderSelect, onDoc
     }
   };
 
+  const createCustomFolder = async (name: string) => {
+    try {
+      const { data: newFolder, error } = await supabase
+        .from('document_folders' as any)
+        .insert({
+          name,
+          folder_type: 'Custom',
+          project_id: projectId,
+          sequence_order: folders.length + 1
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const folderWithCount: DocumentFolder = {
+        id: (newFolder as any).id,
+        name: (newFolder as any).name,
+        folder_type: (newFolder as any).folder_type,
+        sequence_order: (newFolder as any).sequence_order,
+        document_count: 0
+      };
+
+      setFolders(prev => [...prev, folderWithCount]);
+      toast.success(`Folder "${name}" created successfully`);
+    } catch (error) {
+      console.error('Error creating custom folder:', error);
+      toast.error('Failed to create folder');
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -165,7 +196,12 @@ export function DocumentFolders({ projectId, activeFolder, onFolderSelect, onDoc
         variant="outline"
         className="w-full justify-start text-muted-foreground"
         size="sm"
-        onClick={() => toast.info('Custom folder creation coming soon')}
+        onClick={() => {
+          const folderName = prompt('Enter folder name:');
+          if (folderName) {
+            createCustomFolder(folderName);
+          }
+        }}
       >
         <Plus className="h-4 w-4 mr-2" />
         Add Custom Folder

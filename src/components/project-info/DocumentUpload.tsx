@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+// Remove useAuth import since we'll get user directly from supabase
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,9 @@ import { toast } from 'sonner';
 
 interface DocumentUploadProps {
   projectId: string;
+  folderId?: string | null;
   onUploadComplete: () => void;
+  onClose?: () => void;
 }
 
 interface UploadFile {
@@ -40,8 +42,7 @@ const DOCUMENT_TYPES = [
   { value: 'Other', label: 'Other Documents' }
 ];
 
-export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadProps) {
-  const { user } = useAuth();
+export function DocumentUpload({ projectId, folderId, onUploadComplete, onClose }: DocumentUploadProps) {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -81,14 +82,22 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
   };
 
   const uploadFiles = async () => {
-    if (!user) {
-      toast.error('You must be logged in to upload files');
-      return;
-    }
-
     setUploading(true);
 
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // Get user ID from users table
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (!userData) throw new Error('User not found');
+
       for (const fileData of files) {
         if (fileData.status === 'complete') continue;
 
@@ -109,6 +118,7 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
           .from('document_registry' as any)
           .insert({
             project_id: projectId,
+            folder_id: folderId,
             title: fileData.title,
             description: fileData.description,
             document_type: fileData.document_type,
@@ -116,9 +126,9 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
             file_path: uploadData.path,
             file_size: fileData.file.size,
             mime_type: fileData.file.type,
-            uploaded_by: user.id,
+            uploaded_by: userData.id,
             version_number: '1.0',
-            status: 'draft'
+            status: 'active'
           })
           .select('id')
           .single();
@@ -263,22 +273,31 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
             </Card>
           ))}
 
-          {/* Upload Button */}
-          <div className="flex justify-end space-x-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setFiles([])}
-              disabled={uploading}
-            >
-              Clear All
-            </Button>
-            <Button 
-              onClick={uploadFiles}
-              disabled={uploading || files.length === 0 || files.every(f => f.status === 'complete')}
-            >
-              {uploading ? 'Uploading...' : 'Upload Files'}
-            </Button>
-          </div>
+           {/* Upload Button */}
+           <div className="flex justify-end space-x-2">
+             {onClose && (
+               <Button 
+                 variant="outline" 
+                 onClick={onClose}
+                 disabled={uploading}
+               >
+                 Cancel
+               </Button>
+             )}
+             <Button 
+               variant="outline" 
+               onClick={() => setFiles([])}
+               disabled={uploading}
+             >
+               Clear All
+             </Button>
+             <Button 
+               onClick={uploadFiles}
+               disabled={uploading || files.length === 0 || files.every(f => f.status === 'complete')}
+             >
+               {uploading ? 'Uploading...' : 'Upload Files'}
+             </Button>
+           </div>
         </div>
       )}
     </div>
