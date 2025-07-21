@@ -4,9 +4,10 @@ import { useLocation, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Wifi, WifiOff, Sun, Moon, Menu, Home, Building2, Settings, Shield, Brain, UserCheck } from "lucide-react";
+import { Wifi, WifiOff, Sun, Moon, Menu, Home, Building2, Settings, Shield, Brain, UserCheck, LogOut } from "lucide-react";
 import { AJIcon } from "@/components/ui/aj-icon";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { theme, setTheme } = useTheme();
+  const { signOut } = useAuth();
   const location = useLocation();
 
   const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed);
@@ -108,6 +110,16 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
               <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="hidden md:flex items-center gap-2 hover:bg-aj-yellow/10"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Sign Out</span>
             </Button>
 
             <div className="flex items-center space-x-2">

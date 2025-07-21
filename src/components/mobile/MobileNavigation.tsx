@@ -18,11 +18,13 @@ import {
   Activity,
   Shield,
   Brain,
+  LogOut,
   LucideIcon
 } from 'lucide-react';
 import { useMobile } from '@/hooks/useMobile';
 import { AJIcon } from '@/components/ui/aj-icon';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NavigationItem {
   id: string;
@@ -43,6 +45,7 @@ interface MobileNavigationProps {
 export function MobileNavigation({ className, onNavigate }: MobileNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { triggerHaptics, isNative } = useMobile();
+  const { signOut } = useAuth();
   const location = useLocation();
 
   const navigationItems: NavigationItem[] = [
@@ -228,6 +231,15 @@ export function MobileNavigation({ className, onNavigate }: MobileNavigationProp
 
           {/* Footer */}
           <div className="p-4 border-t bg-muted/30">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={signOut}
+              className="w-full mb-3 hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
             <div className="text-center">
               <p className="text-sm text-muted-foreground font-poppins">
                 AJ Ryan Construction
