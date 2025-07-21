@@ -70,7 +70,6 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
                 alt="AJ Ryan Logo" 
                 className="h-8 w-auto rounded-sm"
               />
-              <span className="font-bold text-xl hidden sm:inline-block">SmartWork Hub</span>
             </NavLink>
           </div>
 
