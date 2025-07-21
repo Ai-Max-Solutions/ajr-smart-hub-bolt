@@ -22,7 +22,11 @@ interface ParsedForm {
   vehicleDetails: any;
 }
 
-export const UploadFormTab = () => {
+interface Props {
+  projectId: string;
+}
+
+export const UploadFormTab = ({ projectId }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedForm | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -114,7 +118,7 @@ export const UploadFormTab = () => {
   }, [toast]);
 
   const handleSubmitRequest = async () => {
-    if (!parsedData || !user) return;
+    if (!parsedData || !user || !projectId) return;
 
     try {
       setUploading(true);
@@ -124,6 +128,7 @@ export const UploadFormTab = () => {
       const { error } = await supabase
         .from('delivery_bookings')
         .insert({
+          project_id: projectId,
           request_id: requestId,
           submitted_by: user.id,
           supplier: parsedData.supplier,

@@ -22,7 +22,11 @@ interface BookedDelivery {
   created_at: string;
 }
 
-export const BookedDeliveriesTab = () => {
+interface Props {
+  projectId: string;
+}
+
+export const BookedDeliveriesTab = ({ projectId }: Props) => {
   const [deliveries, setDeliveries] = useState<BookedDelivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,10 +35,13 @@ export const BookedDeliveriesTab = () => {
   const { toast } = useToast();
 
   const fetchDeliveries = async () => {
+    if (!projectId) return;
+    
     try {
       const { data, error } = await supabase
         .from('delivery_bookings')
         .select('*')
+        .eq('project_id', projectId)
         .neq('status', 'pending')
         .order('booking_time', { ascending: false });
 
@@ -57,7 +64,7 @@ export const BookedDeliveriesTab = () => {
 
   useEffect(() => {
     fetchDeliveries();
-  }, []);
+  }, [projectId]);
 
   const handleExportCSV = () => {
     try {
@@ -119,6 +126,7 @@ export const BookedDeliveriesTab = () => {
       const { data, error } = await supabase
         .from('delivery_bookings')
         .select('*')
+        .eq('project_id', projectId)
         .eq('delivery_date', tomorrowStr)
         .eq('status', 'booked');
 
@@ -210,7 +218,7 @@ export const BookedDeliveriesTab = () => {
   return (
     <div className="space-y-4">
       {/* Filters and Actions */}
-      <div className="flex gap-4 items-center flex-wrap">
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
         <div className="relative flex-1 min-w-64">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -221,46 +229,52 @@ export const BookedDeliveriesTab = () => {
           />
         </div>
         
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="booked">Booked</SelectItem>
-            <SelectItem value="initiated">Initiated</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-32">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="booked">Booked</SelectItem>
+              <SelectItem value="initiated">Initiated</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="w-40">
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-full sm:w-32">
+              <Calendar className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Date" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Dates</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="tomorrow">Tomorrow</SelectItem>
+              <SelectItem value="this-week">This Week</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={handleExportCSV} variant="outline" className="w-full sm:w-auto">
+            <Download className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Export CSV</span>
+            <span className="sm:hidden">Export</span>
+          </Button>
+
+          <Button onClick={generateTomorrowReport} variant="default" className="w-full sm:w-auto">
             <Calendar className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Date" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Dates</SelectItem>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="tomorrow">Tomorrow</SelectItem>
-            <SelectItem value="this-week">This Week</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button onClick={handleExportCSV} variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </Button>
-
-        <Button onClick={generateTomorrowReport} variant="default">
-          <Calendar className="h-4 w-4 mr-2" />
-          Tomorrow's Report
-        </Button>
+            <span className="hidden sm:inline">Tomorrow's Report</span>
+            <span className="sm:hidden">Tomorrow</span>
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

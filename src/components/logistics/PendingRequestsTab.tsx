@@ -24,7 +24,11 @@ interface DeliveryRequest {
   status: string;
 }
 
-export const PendingRequestsTab = () => {
+interface Props {
+  projectId: string;
+}
+
+export const PendingRequestsTab = ({ projectId }: Props) => {
   const [requests, setRequests] = useState<DeliveryRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<DeliveryRequest | null>(null);
@@ -33,10 +37,13 @@ export const PendingRequestsTab = () => {
   const { toast } = useToast();
 
   const fetchRequests = async () => {
+    if (!projectId) return;
+    
     try {
       const { data, error } = await supabase
         .from('delivery_bookings')
         .select('*')
+        .eq('project_id', projectId)
         .order('submitted_date', { ascending: false });
 
       if (error) throw error;
@@ -58,7 +65,7 @@ export const PendingRequestsTab = () => {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [projectId]);
 
   const handleInitiateBooking = async (requestId: string) => {
     try {
@@ -163,7 +170,7 @@ export const PendingRequestsTab = () => {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex gap-4 items-center">
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -174,7 +181,7 @@ export const PendingRequestsTab = () => {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -190,7 +197,7 @@ export const PendingRequestsTab = () => {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

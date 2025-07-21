@@ -144,6 +144,7 @@ export type Database = {
           id: string
           items_json: Json
           notes: string | null
+          project_id: string
           request_id: string
           status: string
           submitted_by: string
@@ -162,6 +163,7 @@ export type Database = {
           id?: string
           items_json?: Json
           notes?: string | null
+          project_id: string
           request_id: string
           status?: string
           submitted_by: string
@@ -180,6 +182,7 @@ export type Database = {
           id?: string
           items_json?: Json
           notes?: string | null
+          project_id?: string
           request_id?: string
           status?: string
           submitted_by?: string
@@ -188,7 +191,15 @@ export type Database = {
           updated_at?: string
           vehicle_details?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "delivery_bookings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       emergency_contacts: {
         Row: {
@@ -1497,9 +1508,21 @@ export type Database = {
         Args: { p_contractor_id: string; p_project_id?: string }
         Returns: Json
       }
+      get_delivery_stats_by_project: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
       get_project_progress: {
         Args: { project_id_param: string }
         Returns: Json
+      }
+      get_user_accessible_projects: {
+        Args: { user_auth_id: string }
+        Returns: {
+          project_id: string
+          project_name: string
+          project_code: string
+        }[]
       }
       get_user_role: {
         Args: { user_auth_id: string }
