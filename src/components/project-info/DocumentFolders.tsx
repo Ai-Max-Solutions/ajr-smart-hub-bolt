@@ -15,8 +15,9 @@ interface DocumentFolder {
 
 interface DocumentFoldersProps {
   projectId: string;
-  activeFolder: string | null;
-  onFolderSelect: (folderId: string | null) => void;
+  activeFolder?: string | null;
+  onFolderSelect?: (folderId: string | null) => void;
+  onDocumentSelect?: (documentId: string) => void;
 }
 
 const DEFAULT_FOLDERS = [
@@ -31,7 +32,7 @@ const DEFAULT_FOLDERS = [
   { name: 'Other Documents', folder_type: 'Other', sequence_order: 9 }
 ];
 
-export function DocumentFolders({ projectId, activeFolder, onFolderSelect }: DocumentFoldersProps) {
+export function DocumentFolders({ projectId, activeFolder, onFolderSelect, onDocumentSelect }: DocumentFoldersProps) {
   const [folders, setFolders] = useState<DocumentFolder[]>([]);
   const [loading, setLoading] = useState(true);
 
