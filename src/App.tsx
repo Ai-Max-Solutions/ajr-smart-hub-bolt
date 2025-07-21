@@ -1,5 +1,4 @@
 import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -42,11 +41,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        <TooltipProvider>
-          <SecurityHeader />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+        <SecurityHeader />
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
             <AuthProvider>
               <OnboardingProvider>
             <Routes>
@@ -232,7 +230,6 @@ function App() {
               </OnboardingProvider>
             </AuthProvider>
           </BrowserRouter>
-        </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
