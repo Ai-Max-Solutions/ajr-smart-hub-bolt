@@ -16,7 +16,8 @@ import {
   Sun, 
   Moon, 
   Wrench,
-  Building
+  Building,
+  Truck
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -50,6 +51,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       icon: Users,
       path: '/admin/users',
       wittyHint: 'Crew roster—no leaks in personnel!'
+    },
+    {
+      title: 'Logistics Assistant',
+      icon: Truck,
+      path: '/logistics',
+      wittyHint: 'Delivery dispatch—keep the flow moving!'
     },
     {
       title: 'Audit Logs',
