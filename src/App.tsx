@@ -29,6 +29,7 @@ import ContractorAuth from "./pages/ContractorAuth";
 import ContractorOnboarding from "./pages/ContractorOnboarding";
 import ContractorDashboard from "./pages/ContractorDashboard";
 import LogisticsAssistant from "./pages/LogisticsAssistant";
+import RequestDelivery from "./pages/RequestDelivery";
 import NotFound from "./pages/NotFound";
 import InductionDemo from "./pages/InductionDemo";
 import MobileDashboard from "./pages/MobileDashboard";
@@ -256,6 +257,17 @@ function App() {
                   <RouteProtection requiredRole={['admin', 'pm', 'director', 'supervisor']}>
                     <AppLayout>
                       <LogisticsAssistant />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/request-delivery" 
+                element={
+                  <RouteProtection fallbackPath="/auth">
+                    <AppLayout>
+                      <RequestDelivery />
                     </AppLayout>
                   </RouteProtection>
                 } 
