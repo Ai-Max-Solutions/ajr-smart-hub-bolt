@@ -17,7 +17,8 @@ import {
   AlertCircle,
   Clock,
   Archive,
-  Trash2
+  Trash2,
+  FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -536,6 +537,14 @@ export const ProjectDetailsEnhanced: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              onClick={() => navigate(`/project-info-hub/${projectId}`)}
+              size="sm"
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Project Documents
+            </Button>
             <Button
               onClick={handleWorkAssignmentNavigation}
               size="sm"
