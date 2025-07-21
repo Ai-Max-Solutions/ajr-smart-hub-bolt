@@ -133,6 +133,63 @@ export type Database = {
           },
         ]
       }
+      delivery_bookings: {
+        Row: {
+          booking_reference: string | null
+          booking_time: string | null
+          created_at: string
+          delivery_date: string
+          delivery_method: Json
+          delivery_time: string
+          id: string
+          items_json: Json
+          notes: string | null
+          request_id: string
+          status: string
+          submitted_by: string
+          submitted_date: string
+          supplier: string
+          updated_at: string
+          vehicle_details: Json
+        }
+        Insert: {
+          booking_reference?: string | null
+          booking_time?: string | null
+          created_at?: string
+          delivery_date: string
+          delivery_method?: Json
+          delivery_time: string
+          id?: string
+          items_json?: Json
+          notes?: string | null
+          request_id: string
+          status?: string
+          submitted_by: string
+          submitted_date?: string
+          supplier: string
+          updated_at?: string
+          vehicle_details?: Json
+        }
+        Update: {
+          booking_reference?: string | null
+          booking_time?: string | null
+          created_at?: string
+          delivery_date?: string
+          delivery_method?: Json
+          delivery_time?: string
+          id?: string
+          items_json?: Json
+          notes?: string | null
+          request_id?: string
+          status?: string
+          submitted_by?: string
+          submitted_date?: string
+          supplier?: string
+          updated_at?: string
+          vehicle_details?: Json
+        }
+        Relationships: []
+      }
       emergency_contacts: {
         Row: {
           created_at: string
@@ -836,6 +893,36 @@ export type Database = {
           },
         ]
       }
+      role_change_audit: {
+        Row: {
+          changed_by_user_id: string | null
+          created_at: string | null
+          id: string
+          new_role: string
+          old_role: string
+          reason: string | null
+          target_user_id: string
+        }
+        Insert: {
+          changed_by_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          new_role: string
+          old_role: string
+          reason?: string | null
+          target_user_id: string
+        }
+        Update: {
+          changed_by_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          new_role?: string
+          old_role?: string
+          reason?: string | null
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       task_catalog: {
         Row: {
           category: string
@@ -1413,6 +1500,10 @@ export type Database = {
       get_project_progress: {
         Args: { project_id_param: string }
         Returns: Json
+      }
+      get_user_role: {
+        Args: { user_auth_id: string }
+        Returns: string
       }
       predict_task_delay: {
         Args: { p_assignment_id: string }

@@ -27,6 +27,7 @@ import { UnderReview } from "./pages/UnderReview";
 import ContractorAuth from "./pages/ContractorAuth";
 import ContractorOnboarding from "./pages/ContractorOnboarding";
 import ContractorDashboard from "./pages/ContractorDashboard";
+import LogisticsAssistant from "./pages/LogisticsAssistant";
 import NotFound from "./pages/NotFound";
 import InductionDemo from "./pages/InductionDemo";
 import MobileDashboard from "./pages/MobileDashboard";
@@ -232,6 +233,17 @@ function App() {
                   <RouteProtection requiredRole={['admin', 'director']}>
                     <AppLayout>
                       <AuthDashboard />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/logistics" 
+                element={
+                  <RouteProtection requiredRole={['admin', 'pm', 'director', 'supervisor']}>
+                    <AppLayout>
+                      <LogisticsAssistant />
                     </AppLayout>
                   </RouteProtection>
                 } 
