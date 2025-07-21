@@ -238,7 +238,16 @@ export const WorkTracker: React.FC<WorkTrackerProps> = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-6 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('View details for unit:', row.composite_code);
+                    // TODO: Navigate to unit details page
+                  }}
+                >
                   <Eye className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
@@ -248,7 +257,16 @@ export const WorkTracker: React.FC<WorkTrackerProps> = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-6 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Edit unit:', row.composite_code);
+                    // TODO: Open edit unit dialog
+                  }}
+                >
                   <Edit className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
@@ -258,7 +276,16 @@ export const WorkTracker: React.FC<WorkTrackerProps> = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-6 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Assign team to unit:', row.composite_code);
+                    // TODO: Open team assignment dialog
+                  }}
+                >
                   <UserPlus className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
@@ -271,29 +298,47 @@ export const WorkTracker: React.FC<WorkTrackerProps> = ({
   ];
 
   const handleExport = () => {
+    console.log('Exporting work tracker data...');
+    
+    if (filteredPlots.length === 0) {
+      console.warn('No data to export');
+      return;
+    }
+
     // Export filtered data to CSV
     const csvData = filteredPlots.map(plot => ({
       'Unit Code': plot.composite_code || plot.code,
       'Unit Name': plot.name,
-      'Type': plot.unit_type,
+      'Type': plot.unit_type || 'Residential',
       'Progress': `${plot.completion_percentage || 0}%`,
       'Status': plot.handed_over ? 'Completed' : (plot.completion_percentage || 0) > 0 ? 'In Progress' : 'Pending',
       'Team': plot.assigned_team?.join(', ') || 'Unassigned',
-      'Work Types': plot.work_types?.join(', ') || 'None'
+      'Work Types': plot.work_types?.join(', ') || 'None',
+      'Due Date': plot.due_date || 'Not set',
+      'Overdue': plot.overdue ? 'Yes' : 'No'
     }));
     
-    const csv = [
-      Object.keys(csvData[0]).join(','),
-      ...csvData.map(row => Object.values(row).join(','))
+    const headers = Object.keys(csvData[0]);
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => 
+        Object.values(row).map(value => 
+          typeof value === 'string' && value.includes(',') ? `"${value}"` : value
+        ).join(',')
+      )
     ].join('\n');
     
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `work-tracker-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    console.log('Export completed successfully');
   };
 
   if (isLoading) {
@@ -408,9 +453,10 @@ export const WorkTracker: React.FC<WorkTrackerProps> = ({
                 size="sm"
                 onClick={handleExport}
                 className="gap-2"
+                disabled={filteredPlots.length === 0}
               >
                 <Download className="h-4 w-4" />
-                Export
+                Export ({filteredPlots.length})
               </Button>
 
               <Select value={viewMode} onValueChange={(value: 'table' | 'compact') => setViewMode(value)}>
@@ -443,16 +489,49 @@ export const WorkTracker: React.FC<WorkTrackerProps> = ({
         emptyMessage="No units found"
         emptyDescription="Try adjusting your search or filters to find units."
         customActions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2">
-              <UserPlus className="h-4 w-4" />
-              Bulk Assign
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Save Filter
-            </Button>
-          </div>
+          selectedRows.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => {
+                  console.log('Bulk assign to selected units:', selectedRows);
+                  // TODO: Open bulk assignment dialog
+                }}
+              >
+                <UserPlus className="h-4 w-4" />
+                Bulk Assign ({selectedRows.length})
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => {
+                  console.log('Mark selected units as complete:', selectedRows);
+                  // TODO: Bulk status update
+                }}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Mark Complete
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => {
+                  console.log('Save current filter settings');
+                  // TODO: Save filter preset
+                }}
+              >
+                <Filter className="h-4 w-4" />
+                Save Filter
+              </Button>
+            </div>
+          )
         }
       />
     </div>
