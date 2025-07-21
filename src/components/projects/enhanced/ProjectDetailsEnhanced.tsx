@@ -83,6 +83,27 @@ interface ProgressData {
   progress_percentage: number;
 }
 
+interface DeleteProjectResult {
+  success: boolean;
+  message: string;
+  deleted_counts: {
+    project_name: string;
+    plots: number;
+    timesheets: number;
+    timesheet_entries: number;
+    unit_work_logs: number;
+    unit_work_assignments: number;
+    plot_tasks: number;
+    project_team_members: number;
+    project_levels: number;
+    project_blocks: number;
+    project_rams_requirements: number;
+    rams_documents: number;
+    users_updated: number;
+    hire_items_updated: number;
+  };
+}
+
 export const ProjectDetailsEnhanced: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -314,21 +335,44 @@ export const ProjectDetailsEnhanced: React.FC = () => {
     }
   });
 
-  // Delete project mutation
+  // Delete project mutation with enhanced safety
   const deleteProjectMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc('delete_project_cascade', { p_project_id: projectId });
-      if (error) throw error;
+      console.log('Deleting project with enhanced safety:', projectId);
+      
+      // Use the enhanced delete_project_safe function
+      const { data, error } = await supabase.rpc('delete_project_safe', {
+        p_project_id: projectId,
+      });
+      
+      if (error) {
+        console.error('Delete error:', error);
+        throw new Error(error.message || 'Failed to delete project');
+      }
+      
+      return data;
     },
-    onSuccess: () => {
-      toast('Deleted—clean slate, Mark. Back to building smart.', {
-        description: 'Project and all related data have been permanently removed.'
+    onSuccess: (data) => {
+      console.log('Project deleted successfully:', data);
+      
+      // Cast data to proper type with safety check
+      const result = data as unknown as DeleteProjectResult;
+      const deletedCounts = result?.deleted_counts;
+      
+      // Enhanced success message with deletion summary
+      const summary = deletedCounts ? 
+        `Cleaned up: ${deletedCounts.plots || 0} units, ${deletedCounts.timesheets || 0} timesheets, ${deletedCounts.timesheet_entries || 0} time entries` :
+        'All linked data removed';
+        
+      toast('✅ Project deleted—database spotless, Mark!', {
+        description: `"${deletedCounts?.project_name || 'Project'}" and all dependencies removed. ${summary}`
       });
       navigate('/projects');
     },
     onError: (error) => {
-      toast.error('Failed to delete project', {
-        description: error.message
+      console.error('Failed to delete project:', error);
+      toast.error('❌ Delete failed—foreign key issues resolved but error occurred', {
+        description: error.message || 'Delete operation failed. Check audit logs for details.'
       });
     }
   });

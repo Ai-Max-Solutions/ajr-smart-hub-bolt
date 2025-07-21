@@ -1398,6 +1398,10 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: boolean
       }
+      delete_project_safe: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
       detect_suspicious_activity: {
         Args: Record<PropertyKey, never>
         Returns: Json
