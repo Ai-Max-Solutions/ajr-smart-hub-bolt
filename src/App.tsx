@@ -21,6 +21,8 @@ import AdminReports from "./pages/AdminReports";
 import AdminUserManagement from "@/components/admin/AdminUserManagement";
 import DirectorDashboard from "./pages/DirectorDashboard";
 import AIAssistant from "./pages/AIAssistant";
+import EngineerDashboard from "./pages/EngineerDashboard";
+import DocumentControllerDashboard from "./pages/DocumentControllerDashboard";
 import { Auth } from "./pages/Auth";
 import { UnderReview } from "./pages/UnderReview";
 import ContractorAuth from "./pages/ContractorAuth";
@@ -186,6 +188,28 @@ function App() {
                   <RouteProtection requiredRole={['pm', 'admin', 'supervisor', 'operative', 'director']}>
                     <AppLayout>
                       <WorkAssignment />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/engineer-dashboard" 
+                element={
+                  <RouteProtection fallbackPath="/auth">
+                    <AppLayout>
+                      <EngineerDashboard />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/document-control" 
+                element={
+                  <RouteProtection fallbackPath="/auth">
+                    <AppLayout>
+                      <DocumentControllerDashboard />
                     </AppLayout>
                   </RouteProtection>
                 } 

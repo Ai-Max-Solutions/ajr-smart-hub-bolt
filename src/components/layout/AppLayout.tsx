@@ -32,8 +32,9 @@ export function AppLayout({ children, showNavigation = true }: AppLayoutProps) {
     { label: 'Dashboard', href: '/', icon: Home },
     { label: 'Projects', href: '/projects', icon: Building2 },
     { label: 'Work Assignment', href: '/work-assignment', icon: UserCheck },
+    { label: 'Engineer Tools', href: '/engineer-dashboard', icon: Settings },
+    { label: 'Document Control', href: '/document-control', icon: Shield },
     { label: 'Admin', href: '/admin', icon: Settings },
-    { label: 'Compliance', href: '/compliance', icon: Shield },
     { label: 'AI Assistant', href: '/ai', icon: Brain },
   ];
 
