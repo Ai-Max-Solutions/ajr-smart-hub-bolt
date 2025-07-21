@@ -25,6 +25,8 @@ interface User {
   created_at: string;
   last_sign_in: string;
   currentproject: string;
+  account_status: string;
+  trial_expires_at: string | null;
 }
 
 const USER_ROLES = ['Operative', 'Supervisor', 'PM', 'Director', 'Admin'];
@@ -62,7 +64,7 @@ export const UserManagement = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setUsers(data || []);
+      setUsers(data as any || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
@@ -119,19 +121,77 @@ export const UserManagement = () => {
 
   const updateUserStatus = async (userId: string, isVerified: boolean) => {
     try {
+      // Update user verification status
       const { error } = await supabase
         .from('users')
-        .update({ is_verified: isVerified })
+        .update({ is_verified: true } as any)
         .eq('id', userId);
 
       if (error) throw error;
       
-      toast.success(`User ${isVerified ? 'approved' : 'suspended'} successfully`);
+      toast.success('User activated successfully');
       fetchUsers();
     } catch (error) {
-      console.error('Error updating user status:', error);
-      toast.error('Failed to update user status');
+      console.error('Error activating user:', error);
+      toast.error('Failed to activate user');
     }
+  };
+
+  const extendTrialPeriod = async (userId: string, hours: number = 24) => {
+    try {
+      const extendedDate = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+      
+      // Use raw update with any type assertion
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          trial_expires_at: extendedDate,
+          account_status: 'trial'
+        } as any)
+        .eq('id', userId);
+
+      if (error) throw error;
+      
+      toast.success(`Trial extended by ${hours} hours`);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error extending trial:', error);
+      toast.error('Failed to extend trial');
+    }
+  };
+
+  const getAccountStatusBadge = (user: any) => {
+    const account_status = user.account_status;
+    const trial_expires_at = user.trial_expires_at;
+    
+    if (account_status === 'active') {
+      return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>;
+    }
+    
+    if (account_status === 'trial') {
+      const hoursLeft = trial_expires_at ? 
+        Math.max(0, Math.floor((new Date(trial_expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60))) : 0;
+      
+      if (hoursLeft <= 0) {
+        return <Badge variant="destructive">Trial Expired</Badge>;
+      }
+      
+      return (
+        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+          Trial ({hoursLeft}h left)
+        </Badge>
+      );
+    }
+    
+    if (account_status === 'expired') {
+      return <Badge variant="destructive">Expired</Badge>;
+    }
+    
+    if (account_status === 'suspended') {
+      return <Badge variant="destructive">Suspended</Badge>;
+    }
+    
+    return <Badge variant="secondary">{account_status || 'Unknown'}</Badge>;
   };
 
   const updateUserRole = async (userId: string, newRole: "Operative" | "Supervisor" | "PM" | "Director" | "Admin") => {
@@ -183,9 +243,9 @@ export const UserManagement = () => {
 
   const userStats = {
     total: users.length,
-    active: users.filter(u => u.employmentstatus === 'Active').length,
-    pending: users.filter(u => u.employmentstatus === 'Pending').length,
-    verified: users.filter(u => u.is_verified).length
+    active: users.filter(u => (u as any).account_status === 'active').length,
+    trial: users.filter(u => (u as any).account_status === 'trial').length,
+    expired: users.filter(u => (u as any).account_status === 'expired').length
   };
 
   return (
@@ -314,10 +374,10 @@ export const UserManagement = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
-              <XCircle className="h-8 w-8 text-orange-500" />
+              <XCircle className="h-8 w-8 text-blue-500" />
               <div>
-                <p className="text-2xl font-bold">{userStats.pending}</p>
-                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-2xl font-bold">{userStats.trial}</p>
+                <p className="text-sm text-muted-foreground">Trial</p>
               </div>
             </div>
           </CardContent>
@@ -326,10 +386,10 @@ export const UserManagement = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
-              <Shield className="h-8 w-8 text-blue-500" />
+              <Shield className="h-8 w-8 text-red-500" />
               <div>
-                <p className="text-2xl font-bold">{userStats.verified}</p>
-                <p className="text-sm text-muted-foreground">Verified</p>
+                <p className="text-2xl font-bold">{userStats.expired}</p>
+                <p className="text-sm text-muted-foreground">Expired</p>
               </div>
             </div>
           </CardContent>
@@ -390,8 +450,7 @@ export const UserManagement = () => {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Verification</TableHead>
+                <TableHead>Account Status</TableHead>
                 <TableHead>Last Sign In</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -421,19 +480,13 @@ export const UserManagement = () => {
                     </Select>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.employmentstatus === 'Active' ? 'default' : 'secondary'}>
-                      {user.employmentstatus}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={user.is_verified}
-                        onCheckedChange={(checked) => updateUserStatus(user.id, checked)}
-                      />
-                      <span className="text-sm">
-                        {user.is_verified ? 'Verified' : 'Pending'}
-                      </span>
+                    <div className="flex flex-col gap-1">
+                      {getAccountStatusBadge(user)}
+                      {(user as any).account_status === 'trial' && (user as any).trial_expires_at && (
+                        <span className="text-xs text-muted-foreground">
+                          Expires: {new Date((user as any).trial_expires_at).toLocaleString()}
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -444,6 +497,27 @@ export const UserManagement = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
+                      {(user as any).account_status === 'trial' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => extendTrialPeriod(user.id, 24)}
+                          className="text-blue-600"
+                        >
+                          Extend 24h
+                        </Button>
+                      )}
+                      {(user as any).account_status !== 'active' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateUserStatus(user.id, true)}
+                          className="text-green-600"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Activate
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

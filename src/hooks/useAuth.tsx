@@ -124,23 +124,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 // Set the user profile in state
                 setUserProfile(userData);
 
-                // STRENGTHENED ADMIN BYPASS - Admins and Directors always bypass verification
+                // Check account status and trial expiry
                 const isAdminRole = ['Admin', 'Director', 'PM'].includes(userData?.role);
-                const shouldBypassVerification = isAdminRole;
+                const accountStatus = (userData as any)?.account_status;
+                const trialExpired = (userData as any)?.trial_expires_at && new Date((userData as any).trial_expires_at) < new Date();
                 
-                console.log('🛡️ Admin bypass check:', {
+                console.log('🛡️ Account status check:', {
                   role: userData?.role,
-                  isAdminRole,
-                  shouldBypassVerification,
-                  original_is_verified: userData?.is_verified
+                  account_status: accountStatus,
+                  trial_expires_at: (userData as any)?.trial_expires_at,
+                  trialExpired,
+                  isAdminRole
                 });
 
-                if (shouldBypassVerification) {
-                  console.log('✅ Admin bypass granted - skipping verification requirement');
-                  setIsVerified(true);
+                // Determine if user has access
+                let hasAccess = false;
+                
+                if (isAdminRole) {
+                  // Admins always have access
+                  hasAccess = true;
+                  console.log('✅ Admin access granted');
+                } else if (accountStatus === 'active') {
+                  // Permanently activated users have access
+                  hasAccess = true;
+                  console.log('✅ Active account access granted');
+                } else if (accountStatus === 'trial' && !trialExpired) {
+                  // Trial users within trial period have access
+                  hasAccess = true;
+                  console.log('✅ Trial access granted');
                 } else {
-                  setIsVerified(userData?.is_verified || false);
+                  // Expired or suspended accounts don't have access
+                  hasAccess = false;
+                  console.log('❌ Access denied - account expired or suspended');
                 }
+                
+                setIsVerified(hasAccess);
 
                 // Update last sign in
                 const { error: updateError } = await supabase
@@ -152,13 +170,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   console.warn('Failed to update last sign in:', updateError);
                 }
 
-                // Only redirect non-admin users who aren't verified
-                if (!shouldBypassVerification && !userData?.is_verified) {
-                  console.log('❌ Non-admin user not verified, redirecting to under-review');
+                // Handle navigation based on access
+                if (!hasAccess) {
+                  console.log('❌ User denied access, redirecting to under-review');
                   if (!location.pathname.startsWith('/under-review') && !location.pathname.startsWith('/auth')) {
                     navigate('/under-review');
                   }
-                } else if (shouldBypassVerification || userData?.is_verified) {
+                } else {
                   console.log('✅ User has access, ensuring not stuck on under-review page');
                   if (location.pathname.startsWith('/under-review')) {
                     navigate('/');
