@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar } from '@/components/ui/calendar';
@@ -25,7 +26,9 @@ import {
   CheckCircle,
   ArrowLeft,
   ArrowRight,
-  Hash
+  Hash,
+  Save,
+  AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -70,6 +73,9 @@ interface ProjectTemplate {
   includes_mezzanine: boolean;
 }
 
+const DRAFT_KEY = 'project_setup_draft';
+const STEP_KEY = 'project_setup_step';
+
 export const ProjectSetupWizard: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -81,6 +87,11 @@ export const ProjectSetupWizard: React.FC = () => {
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [customLevelInput, setCustomLevelInput] = useState('');
   const [isCheckingCode, setIsCheckingCode] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const totalSteps = 3;
+  const progressPercentage = (currentStep / totalSteps) * 100;
 
   const projectForm = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -94,6 +105,72 @@ export const ProjectSetupWizard: React.FC = () => {
       includeMezzanine: false,
     }
   });
+
+  // Auto-save functionality
+  const saveDraft = async (data: any) => {
+    try {
+      setAutoSaveStatus('saving');
+      const draftData = {
+        projectData: data.projectData || projectData,
+        blocks: data.blocks || blocks,
+        currentStep: data.currentStep || currentStep,
+        timestamp: new Date().toISOString()
+      };
+      
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+      localStorage.setItem(STEP_KEY, currentStep.toString());
+      
+      setAutoSaveStatus('saved');
+      setHasUnsavedChanges(false);
+      
+      setTimeout(() => setAutoSaveStatus(null), 2000);
+    } catch (error) {
+      console.error('Failed to save draft:', error);
+      setAutoSaveStatus('error');
+      setTimeout(() => setAutoSaveStatus(null), 3000);
+    }
+  };
+
+  // Load draft on component mount
+  useEffect(() => {
+    const loadDraft = () => {
+      try {
+        const draftData = localStorage.getItem(DRAFT_KEY);
+        const savedStep = localStorage.getItem(STEP_KEY);
+        
+        if (draftData) {
+          const parsed = JSON.parse(draftData);
+          if (parsed.projectData) {
+            setProjectData(parsed.projectData);
+            projectForm.reset(parsed.projectData);
+          }
+          if (parsed.blocks) {
+            setBlocks(parsed.blocks);
+          }
+          if (savedStep) {
+            setCurrentStep(parseInt(savedStep));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load draft:', error);
+      }
+    };
+    
+    loadDraft();
+    fetchTemplates();
+  }, [projectForm]);
+
+  // Auto-save when data changes
+  useEffect(() => {
+    if (projectData || blocks.length > 0) {
+      setHasUnsavedChanges(true);
+      const timeoutId = setTimeout(() => {
+        saveDraft({ projectData, blocks, currentStep });
+      }, 1000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [projectData, blocks, currentStep]);
 
   useEffect(() => {
     fetchTemplates();
@@ -229,6 +306,10 @@ export const ProjectSetupWizard: React.FC = () => {
           const totalBlocks = results?.length || 0;
           const totalLevels = results?.reduce((sum: number, result: any) => sum + (result.levelsCreated || 0), 0) || 0;
           
+          // Clear draft data on success
+          localStorage.removeItem(DRAFT_KEY);
+          localStorage.removeItem(STEP_KEY);
+          
           toast({
             title: "🎉 PM Nailed It!",
             description: `${projectCode} - ${projectData.name}: Pipeline flowing! ${totalBlocks} blocks, ${totalLevels} levels, ${totalUnits} units—job done! 🚧💪`,
@@ -324,6 +405,16 @@ export const ProjectSetupWizard: React.FC = () => {
     });
   };
 
+  const goToStep = (step: number) => {
+    setCurrentStep(step);
+  };
+
+  const canProceedToNextStep = () => {
+    if (currentStep === 1) return projectData !== null;
+    if (currentStep === 2) return blocks.length > 0;
+    return true;
+  };
+
   const totalUnits = blocks.reduce((sum, block) => {
     const specialLevels = 
       (block.includeGroundFloor ? 1 : 0) + 
@@ -335,53 +426,99 @@ export const ProjectSetupWizard: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center space-x-4 mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/projects/dashboard')}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-primary">Project Setup Wizard</h1>
-          <p className="text-muted-foreground">Create a new project with AI-assisted setup</p>
+      {/* Header with auto-save status */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/projects/dashboard')}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-primary">Project Setup Wizard</h1>
+            <p className="text-muted-foreground">Create a new project with AI-assisted setup</p>
+          </div>
+        </div>
+        
+        {/* Auto-save status indicator */}
+        <div className="flex items-center space-x-2">
+          {autoSaveStatus === 'saving' && (
+            <div className="flex items-center text-muted-foreground">
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              <span className="text-sm">Saving...</span>
+            </div>
+          )}
+          {autoSaveStatus === 'saved' && (
+            <div className="flex items-center text-green-600">
+              <Save className="w-4 h-4 mr-1" />
+              <span className="text-sm">Draft saved</span>
+            </div>
+          )}
+          {autoSaveStatus === 'error' && (
+            <div className="flex items-center text-red-600">
+              <AlertCircle className="w-4 h-4 mr-1" />
+              <span className="text-sm">Save failed</span>
+            </div>
+          )}
+          {hasUnsavedChanges && !autoSaveStatus && (
+            <div className="flex items-center text-amber-600">
+              <AlertCircle className="w-4 h-4 mr-1" />
+              <span className="text-sm">Unsaved changes</span>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Progress indicator */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div className={cn("flex items-center space-x-2", currentStep >= 1 && "text-primary")}>
-              <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border-2", 
-                currentStep >= 1 ? "bg-primary text-primary-foreground border-primary" : "border-muted"
-              )}>
-                {currentStep > 1 ? <CheckCircle className="w-4 h-4" /> : "1"}
-              </div>
-              <span className="font-medium">Project Details</span>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Step {currentStep} of {totalSteps}</span>
+              <span>{Math.round(progressPercentage)}% complete</span>
             </div>
+            <Progress value={progressPercentage} className="w-full" />
             
-            <div className="flex-1 h-0.5 bg-muted mx-4" />
-            
-            <div className={cn("flex items-center space-x-2", currentStep >= 2 && "text-primary")}>
-              <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border-2", 
-                currentStep >= 2 ? "bg-primary text-primary-foreground border-primary" : "border-muted"
-              )}>
-                {currentStep > 2 ? <CheckCircle className="w-4 h-4" /> : "2"}
+            <div className="flex items-center justify-between">
+              <div className={cn("flex items-center space-x-2 cursor-pointer", 
+                currentStep >= 1 ? "text-primary" : "text-muted-foreground"
+              )} onClick={() => goToStep(1)}>
+                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border-2", 
+                  currentStep >= 1 ? "bg-primary text-primary-foreground border-primary" : "border-muted"
+                )}>
+                  {currentStep > 1 ? <CheckCircle className="w-4 h-4" /> : "1"}
+                </div>
+                <span className="font-medium">Project Details</span>
               </div>
-              <span className="font-medium">Blocks & Levels</span>
-            </div>
-            
-            <div className="flex-1 h-0.5 bg-muted mx-4" />
-            
-            <div className={cn("flex items-center space-x-2", currentStep >= 3 && "text-primary")}>
-              <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border-2", 
-                currentStep >= 3 ? "bg-primary text-primary-foreground border-primary" : "border-muted"
-              )}>
-                {currentStep > 3 ? <CheckCircle className="w-4 h-4" /> : "3"}
+              
+              <div className="flex-1 h-0.5 bg-muted mx-4" />
+              
+              <div className={cn("flex items-center space-x-2 cursor-pointer", 
+                currentStep >= 2 ? "text-primary" : "text-muted-foreground"
+              )} onClick={() => projectData && goToStep(2)}>
+                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border-2", 
+                  currentStep >= 2 ? "bg-primary text-primary-foreground border-primary" : "border-muted"
+                )}>
+                  {currentStep > 2 ? <CheckCircle className="w-4 h-4" /> : "2"}
+                </div>
+                <span className="font-medium">Blocks & Levels</span>
               </div>
-              <span className="font-medium">Review & Generate</span>
+              
+              <div className="flex-1 h-0.5 bg-muted mx-4" />
+              
+              <div className={cn("flex items-center space-x-2 cursor-pointer", 
+                currentStep >= 3 ? "text-primary" : "text-muted-foreground"
+              )} onClick={() => projectData && blocks.length > 0 && goToStep(3)}>
+                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border-2", 
+                  currentStep >= 3 ? "bg-primary text-primary-foreground border-primary" : "border-muted"
+                )}>
+                  {currentStep > 3 ? <CheckCircle className="w-4 h-4" /> : "3"}
+                </div>
+                <span className="font-medium">Review & Generate</span>
+              </div>
             </div>
           </div>
         </CardContent>

@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +29,7 @@ const ProjectsManagement = () => {
       <Routes>
         <Route path="/" element={<ProjectsDashboard />} />
         <Route path="/dashboard" element={<ProjectDashboard />} />
-        <Route path="/create" element={<CreateProject />} />
+        <Route path="/create" element={<Navigate to="/projects/setup-wizard" replace />} />
         <Route path="/setup-wizard" element={<ProjectSetupWizard />} />
         <Route path="/:projectId/units" element={<ProjectUnitsPage />} />
         <Route path="/:projectId" element={<ProjectDetailsEnhanced />} />

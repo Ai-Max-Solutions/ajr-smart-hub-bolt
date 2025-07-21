@@ -1,15 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -17,7 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useSupabaseError } from '@/hooks/useSupabaseError';
 import { SupabaseErrorBoundary } from '@/components/errors/SupabaseErrorBoundary';
-import { ProjectSuccessPopup } from '@/components/projects/ProjectSuccessPopup';
 import { 
   Building, 
   Plus, 
@@ -35,6 +28,7 @@ import {
   Wrench,
   Zap
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface Project {
   id: string;
@@ -56,24 +50,6 @@ interface ProjectStats {
   inProgressTasks: number;
 }
 
-interface ProjectSetupData {
-  code?: string;
-  name: string;
-  description: string;
-  client: string;
-  startDate: string;
-  endDate: string;
-  blocks: Array<{
-    name: string;
-    code: string;
-    levels: number;
-    unitsPerLevel: number;
-    includeGroundFloor: boolean;
-    includeMezzanine: boolean;
-    includeBasement: boolean;
-  }>;
-}
-
 export function ProjectsDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -92,26 +68,6 @@ export function ProjectsDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showSetupModal, setShowSetupModal] = useState(false);
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [successData, setSuccessData] = useState<any>(null);
-  const [setupData, setSetupData] = useState<ProjectSetupData>({
-    code: '',
-    name: '',
-    description: '',
-    client: '',
-    startDate: '',
-    endDate: '',
-    blocks: [{
-      name: 'Block A',
-      code: 'A',
-      levels: 10,
-      unitsPerLevel: 12,
-      includeGroundFloor: true,
-      includeMezzanine: false,
-      includeBasement: false
-    }]
-  });
 
   // Check if user can edit projects
   const userRole = profile?.role?.toLowerCase() || 'operative';
@@ -211,130 +167,6 @@ export function ProjectsDashboard() {
     }
   };
 
-  const handleCreateProject = async () => {
-    if (!canEdit) {
-      toast({
-        title: "Access Denied",
-        description: "🔒 Only master plumbers can create new projects!",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!setupData.code?.trim()) {
-      toast({
-        title: "Project Code Required",
-        description: "🔧 Please enter a project code before creating the project!",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate project code format (should be numbers only)
-    const codeRegex = /^\d+$/;
-    if (!codeRegex.test(setupData.code.trim())) {
-      toast({
-        title: "Invalid Project Code",
-        description: "🔧 Project code must contain only numbers (e.g., 799, 382)!",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const data = await withRetry(
-        async () => {
-          const { data, error } = await supabase.functions.invoke('project-bulk-generator', {
-            body: { 
-              projectData: setupData,
-              applyTemplate: true 
-            }
-          });
-
-          if (error) {
-            console.error('Function invoke error:', error);
-            throw error;
-          }
-
-          if (!data.success) {
-            throw new Error(data.error || data.message || 'Project creation failed');
-          }
-
-          return data;
-        },
-        { operation: 'createProject' }
-      );
-
-      if (data.success) {
-        // Show success popup instead of toast
-        setSuccessData({
-          code: data.projectCode,
-          name: setupData.name,
-          totalBlocks: data.totalBlocks || setupData.blocks.length,
-          totalLevels: data.totalLevels || 0,
-          totalUnits: data.totalUnits || 0,
-          samplePlots: data.samplePlots || []
-        });
-
-        setShowSetupModal(false);
-        setShowSuccessPopup(true);
-        
-        // Refresh data in background
-        fetchProjects();
-        fetchStats();
-      } else {
-        throw new Error(data.error || 'Project creation failed');
-      }
-    } catch (error) {
-      handleError(error as Error, { operation: 'createProject' });
-      
-      let errorMessage = "🔧 Project hit a snag – check the blueprints and try again!";
-      const errorMsg = (error as Error).message || '';
-      
-      if (errorMsg.includes('duplicate') || errorMsg.includes('collision') || errorMsg.includes('already in use')) {
-        errorMessage = `🔧 Project code "${setupData.code}" collision detected – code already exists! Try a different number.`;
-      } else if (errorMsg.includes('validation')) {
-        errorMessage = `📋 ${errorMsg}`;
-      } else if (errorMsg.includes('Data validation failed')) {
-        errorMessage = `📋 ${errorMsg}`;
-      } else if (errorMsg.includes('non-2xx')) {
-        errorMessage = `🚨 Server error – function crashed! Check logs and try again.`;
-      } else if (errorMsg.includes('FunctionsHttpError')) {
-        errorMessage = `🚨 Function error – pipeline blocked! Try again or check different code.`;
-      }
-      
-      toast({
-        title: "Creation Failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleSuccessViewDetails = () => {
-    setShowSuccessPopup(false);
-    if (successData?.code) {
-      // Find the project and navigate to it
-      const project = projects.find(p => p.code === successData.code);
-      if (project) {
-        navigate(`/projects/${project.id}`);
-      } else {
-        // If not found immediately, refresh and try again
-        fetchProjects().then(() => {
-          const updatedProject = projects.find(p => p.code === successData.code);
-          if (updatedProject) {
-            navigate(`/projects/${updatedProject.id}`);
-          }
-        });
-      }
-    }
-  };
-
-  const handleSuccessBackToWizard = () => {
-    setShowSuccessPopup(false);
-    setShowSetupModal(true);
-  };
-
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -395,228 +227,17 @@ export function ProjectsDashboard() {
           </div>
           
           {canEdit && (
-            <SupabaseErrorBoundary operation="ProjectSetup">
-              <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
-                <DialogTrigger asChild>
-                  <Button variant="default" size="lg" className="flex items-center gap-2">
-                    <Plus className="h-5 w-5" />
-                    Setup New Project
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Wrench className="h-5 w-5" />
-                      Project Setup Wizard
-                    </DialogTitle>
-                    <DialogDescription>
-                      Quick project generation – let's build something watertight!
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="space-y-6">
-                    {/* Basic Info */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Basic Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="code">Project Code *</Label>
-                          <Input
-                            id="code"
-                            value={setupData.code || ''}
-                            onChange={(e) => setSetupData(prev => ({ ...prev, code: e.target.value }))}
-                            placeholder="e.g., 382, 379"
-                            className="font-mono"
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Unique project identifier
-                          </p>
-                        </div>
-                        <div>
-                          <Label htmlFor="name">Project Name *</Label>
-                          <Input
-                            id="name"
-                            value={setupData.name}
-                            onChange={(e) => setSetupData(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="e.g., Sunrise Apartments"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="client">Client *</Label>
-                          <Input
-                            id="client"
-                            value={setupData.client}
-                            onChange={(e) => setSetupData(prev => ({ ...prev, client: e.target.value }))}
-                            placeholder="e.g., Sunrise Developments"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="description">Description / Address</Label>
-                        <Textarea
-                          id="description"
-                          value={setupData.description}
-                          onChange={(e) => setSetupData(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Site address and project details..."
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="startDate">Start Date *</Label>
-                          <Input
-                            id="startDate"
-                            type="date"
-                            value={setupData.startDate}
-                            onChange={(e) => setSetupData(prev => ({ ...prev, startDate: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="endDate">End Date (Optional)</Label>
-                          <Input
-                            id="endDate"
-                            type="date"
-                            value={setupData.endDate}
-                            onChange={(e) => setSetupData(prev => ({ ...prev, endDate: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Block Configuration */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">Block Configuration</h3>
-                        <div className="text-sm text-muted-foreground">
-                          Configure your project structure
-                        </div>
-                      </div>
-
-                      {setupData.blocks.map((block, index) => (
-                        <Card key={index} className="p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div>
-                              <Label htmlFor={`block-name-${index}`}>Block Name</Label>
-                              <Input
-                                id={`block-name-${index}`}
-                                value={block.name}
-                                onChange={(e) => {
-                                  const newBlocks = [...setupData.blocks];
-                                  newBlocks[index].name = e.target.value;
-                                  setSetupData(prev => ({ ...prev, blocks: newBlocks }));
-                                }}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor={`block-code-${index}`}>Block Code</Label>
-                              <Input
-                                id={`block-code-${index}`}
-                                value={block.code}
-                                onChange={(e) => {
-                                  const newBlocks = [...setupData.blocks];
-                                  newBlocks[index].code = e.target.value;
-                                  setSetupData(prev => ({ ...prev, blocks: newBlocks }));
-                                }}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor={`levels-${index}`}>Number of Levels</Label>
-                              <Input
-                                id={`levels-${index}`}
-                                type="number"
-                                min="1"
-                                value={block.levels}
-                                onChange={(e) => {
-                                  const newBlocks = [...setupData.blocks];
-                                  newBlocks[index].levels = parseInt(e.target.value) || 1;
-                                  setSetupData(prev => ({ ...prev, blocks: newBlocks }));
-                                }}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor={`units-${index}`}>Units per Level</Label>
-                              <Input
-                                id={`units-${index}`}
-                                type="number"
-                                min="1"
-                                value={block.unitsPerLevel}
-                                onChange={(e) => {
-                                  const newBlocks = [...setupData.blocks];
-                                  newBlocks[index].unitsPerLevel = parseInt(e.target.value) || 1;
-                                  setSetupData(prev => ({ ...prev, blocks: newBlocks }));
-                                }}
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-4 mt-4">
-                            <div className="flex items-center space-x-2">
-                              <Switch
-                                id={`gf-${index}`}
-                                checked={block.includeGroundFloor}
-                                onCheckedChange={(checked) => {
-                                  const newBlocks = [...setupData.blocks];
-                                  newBlocks[index].includeGroundFloor = checked;
-                                  setSetupData(prev => ({ ...prev, blocks: newBlocks }));
-                                }}
-                              />
-                              <Label htmlFor={`gf-${index}`}>Ground Floor</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Switch
-                                id={`mezz-${index}`}
-                                checked={block.includeMezzanine}
-                                onCheckedChange={(checked) => {
-                                  const newBlocks = [...setupData.blocks];
-                                  newBlocks[index].includeMezzanine = checked;
-                                  setSetupData(prev => ({ ...prev, blocks: newBlocks }));
-                                }}
-                              />
-                              <Label htmlFor={`mezz-${index}`}>Mezzanine</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Switch
-                                id={`basement-${index}`}
-                                checked={block.includeBasement}
-                                onCheckedChange={(checked) => {
-                                  const newBlocks = [...setupData.blocks];
-                                  newBlocks[index].includeBasement = checked;
-                                  setSetupData(prev => ({ ...prev, blocks: newBlocks }));
-                                }}
-                              />
-                              <Label htmlFor={`basement-${index}`}>Basement</Label>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setShowSetupModal(false)}>
-                        Cancel
-                      </Button>
-                      <Button variant="default" onClick={handleCreateProject} disabled={!setupData.code?.trim()}>
-                        {!setupData.code?.trim() ? 'Enter Project Code' : 'Create Project'}
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </SupabaseErrorBoundary>
+            <Button 
+              variant="default" 
+              size="lg" 
+              className="flex items-center gap-2"
+              onClick={() => navigate('/projects/setup-wizard')}
+            >
+              <Plus className="h-5 w-5" />
+              Setup New Project
+            </Button>
           )}
         </div>
-
-        {/* Success Popup */}
-        {successData && (
-          <ProjectSuccessPopup
-            open={showSuccessPopup}
-            onOpenChange={setShowSuccessPopup}
-            projectData={successData}
-            onViewDetails={handleSuccessViewDetails}
-            onBackToWizard={handleSuccessBackToWizard}
-          />
-        )}
 
         {/* Metrics Grid */}
         <SupabaseErrorBoundary operation="ProjectMetrics">
@@ -695,7 +316,7 @@ export function ProjectsDashboard() {
                     {searchTerm ? 'Try adjusting your search' : 'Ready to build something amazing?'}
                   </p>
                   {canEdit && (
-                    <Button onClick={() => setShowSetupModal(true)}>
+                    <Button onClick={() => navigate('/projects/setup-wizard')}>
                       <Plus className="h-4 w-4 mr-2" />
                       Create First Project
                     </Button>

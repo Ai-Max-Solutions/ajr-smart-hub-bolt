@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ interface Project {
 }
 
 export const ProjectDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [animatingStatuses, setAnimatingStatuses] = useState<Set<string>>(new Set());
@@ -183,7 +185,7 @@ export const ProjectDashboard: React.FC = () => {
             Check Delays
           </Button>
           <Button 
-            onClick={() => window.location.href = '/projects/setup-wizard'}
+            onClick={() => navigate('/projects/setup-wizard')}
             className="btn-primary"
           >
             <Building2 className="w-4 h-4 mr-2" />
@@ -237,7 +239,7 @@ export const ProjectDashboard: React.FC = () => {
             <Card 
               key={project.id} 
               className="hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => window.location.href = `/projects/${project.id}`}
+              onClick={() => navigate(`/projects/${project.id}`)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
