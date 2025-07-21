@@ -1,223 +1,228 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Trophy, Medal, Award, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { Trophy, Award, Calendar, Check } from 'lucide-react';
 
 interface LeaderboardEntry {
   user_id: string;
   user_name: string;
+  completions: number;
+  hours_logged: number;
   points: number;
-  completed_tasks: number;
-  bonus_hours: number;
-  efficiency_rating: number;
-  rank: number;
 }
 
 interface LeaderboardProps {
   projectId?: string;
   timeframe?: 'week' | 'month' | 'all';
+  maxEntries?: number;
 }
 
-export const Leaderboard: React.FC<LeaderboardProps> = ({ 
-  projectId, 
-  timeframe = 'week' 
+export const Leaderboard: React.FC<LeaderboardProps> = ({
+  projectId,
+  timeframe = 'week',
+  maxEntries = 5
 }) => {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTimeframe, setActiveTimeframe] = useState<'week' | 'month' | 'all'>(timeframe);
 
   useEffect(() => {
-    loadLeaderboard();
-  }, [projectId, timeframe]);
+    loadLeaderboardData(activeTimeframe);
+  }, [projectId, activeTimeframe]);
 
-  const loadLeaderboard = async () => {
+  const loadLeaderboardData = async (period: 'week' | 'month' | 'all') => {
     try {
       setLoading(true);
       
-      // Calculate date filter based on timeframe
+      // Set date filter based on timeframe
+      let dateFilter;
       const now = new Date();
-      let dateFilter = '';
       
-      switch (timeframe) {
-        case 'week':
-          const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-          dateFilter = weekStart.toISOString();
-          break;
-        case 'month':
-          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-          dateFilter = monthStart.toISOString();
-          break;
-        default:
-          dateFilter = '1900-01-01';
+      if (period === 'week') {
+        const lastWeek = new Date();
+        lastWeek.setDate(now.getDate() - 7);
+        dateFilter = lastWeek.toISOString();
+      } else if (period === 'month') {
+        const lastMonth = new Date();
+        lastMonth.setDate(now.getDate() - 30);
+        dateFilter = lastMonth.toISOString();
       }
-
-      // Query work logs for leaderboard data
+      
+      // Query logs with date filter
       let query = supabase
         .from('unit_work_logs')
         .select(`
           user_id,
-          hours,
-          assignment:unit_work_assignments(estimated_hours),
-          user:users(name),
-          created_at
-        `)
-        .eq('status', 'completed')
-        .gte('created_at', dateFilter);
-
-      if (projectId) {
-        query = query.eq('assignment.plot.project_id', projectId);
-      }
-
-      const { data: workLogs, error } = await query;
+          users (name),
+          status,
+          hours
+        `);
       
-      if (error) throw error;
-
-      // Calculate leaderboard stats
+      if (dateFilter) {
+        query = query.gte('created_at', dateFilter);
+      }
+      
+      if (projectId) {
+        query = query.eq('plot.project_id', projectId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error loading leaderboard:', error);
+        return;
+      }
+      
+      // Process data
       const userStats: Record<string, {
-        name: string;
-        totalHours: number;
-        completedTasks: number;
-        bonusHours: number;
-        points: number;
+        user_id: string,
+        user_name: string,
+        completions: number,
+        hours_logged: number
       }> = {};
-
-      workLogs?.forEach(log => {
+      
+      data?.forEach(log => {
         const userId = log.user_id;
-        const userName = log.user?.name || 'Unknown';
-        const hours = log.hours || 0;
-        const estimatedHours = log.assignment?.estimated_hours || hours;
-        const bonusHours = Math.max(0, estimatedHours - hours);
+        const userName = log.users?.name || 'Unknown User';
         
         if (!userStats[userId]) {
           userStats[userId] = {
-            name: userName,
-            totalHours: 0,
-            completedTasks: 0,
-            bonusHours: 0,
-            points: 0
+            user_id: userId,
+            user_name: userName,
+            completions: 0,
+            hours_logged: 0
           };
         }
-
-        userStats[userId].totalHours += hours;
-        userStats[userId].completedTasks += 1;
-        userStats[userId].bonusHours += bonusHours;
         
-        // Points calculation: 10 per task + 50 per bonus hour
-        userStats[userId].points += 10 + (bonusHours * 50);
+        if (log.status === 'completed') {
+          userStats[userId].completions += 1;
+        }
+        
+        userStats[userId].hours_logged += log.hours || 0;
       });
-
-      // Convert to leaderboard entries and sort
-      const entries: LeaderboardEntry[] = Object.entries(userStats)
-        .map(([userId, stats], index) => ({
-          user_id: userId,
-          user_name: stats.name,
-          points: stats.points,
-          completed_tasks: stats.completedTasks,
-          bonus_hours: parseFloat(stats.bonusHours.toFixed(1)),
-          efficiency_rating: stats.totalHours > 0 ? 
-            parseFloat(((stats.bonusHours / stats.totalHours) * 100).toFixed(1)) : 0,
-          rank: index + 1
-        }))
-        .sort((a, b) => b.points - a.points)
-        .map((entry, index) => ({ ...entry, rank: index + 1 }));
-
-      setLeaderboard(entries);
+      
+      // Calculate points (1 point per hour + 5 points per completion)
+      const leaderboardData = Object.values(userStats).map(user => ({
+        ...user,
+        points: Math.round(user.hours_logged + (user.completions * 5))
+      }));
+      
+      // Sort by points
+      const sortedData = leaderboardData.sort((a, b) => b.points - a.points);
+      
+      setEntries(sortedData.slice(0, maxEntries));
     } catch (error) {
-      console.error('Error loading leaderboard:', error);
+      console.error('Error processing leaderboard data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1: return <Trophy className="h-5 w-5 text-yellow-500" />;
-      case 2: return <Medal className="h-5 w-5 text-gray-400" />;
-      case 3: return <Award className="h-5 w-5 text-amber-600" />;
-      default: return <div className="h-5 w-5 flex items-center justify-center text-sm font-bold">{rank}</div>;
+  const getMedalColor = (index: number) => {
+    switch (index) {
+      case 0: return 'text-yellow-500'; // Gold
+      case 1: return 'text-gray-400';   // Silver
+      case 2: return 'text-amber-600';  // Bronze
+      default: return 'text-gray-300';  // Others
     }
   };
-
-  const getRankColor = (rank: number) => {
-    switch (rank) {
-      case 1: return 'border-yellow-200 bg-yellow-50';
-      case 2: return 'border-gray-200 bg-gray-50';
-      case 3: return 'border-amber-200 bg-amber-50';
-      default: return '';
+  
+  const getTimeframeLabel = () => {
+    switch (activeTimeframe) {
+      case 'week': return 'Weekly';
+      case 'month': return 'Monthly';
+      case 'all': return 'All-Time';
     }
   };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Leaderboard
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-sm text-muted-foreground mt-2">Loading rankings...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          Top Performers - {timeframe === 'week' ? 'This Week' : timeframe === 'month' ? 'This Month' : 'All Time'}
-        </CardTitle>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            {getTimeframeLabel()} Leaderboard
+          </CardTitle>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* Timeframe selection */}
+        <div className="flex justify-center space-x-2 mb-2">
+          <Button 
+            variant={activeTimeframe === 'week' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTimeframe('week')}
+          >
+            Week
+          </Button>
+          <Button 
+            variant={activeTimeframe === 'month' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTimeframe('month')}
+          >
+            Month
+          </Button>
+          <Button 
+            variant={activeTimeframe === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTimeframe('all')}
+          >
+            All Time
+          </Button>
+        </div>
+
+        {/* Leaderboard entries */}
         <div className="space-y-3">
-          {leaderboard.slice(0, 10).map((entry) => (
-            <div 
-              key={entry.user_id}
-              className={`flex items-center justify-between p-3 rounded-lg transition-all hover:shadow-md ${getRankColor(entry.rank)}`}
-            >
-              <div className="flex items-center gap-3">
-                {getRankIcon(entry.rank)}
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">
-                    {entry.user_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{entry.user_name}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{entry.completed_tasks} tasks</span>
-                    <span>•</span>
-                    <span>{entry.bonus_hours}h bonus</span>
-                    <span>•</span>
-                    <span>{entry.efficiency_rating}% efficiency</span>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : entries.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Award className="h-12 w-12 mx-auto mb-2 opacity-30" />
+              <p>No work completions recorded yet</p>
+            </div>
+          ) : (
+            entries.map((entry, index) => (
+              <div 
+                key={entry.user_id} 
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 flex items-center justify-center rounded-full bg-muted ${getMedalColor(index)}`}>
+                    {index <= 2 ? (
+                      <Award className="h-5 w-5" />
+                    ) : (
+                      <span className="text-sm font-bold">{index + 1}</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium">{entry.user_name}</p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Check className="h-3 w-3" /> 
+                        {entry.completions} tasks
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> 
+                        {entry.hours_logged} hrs
+                      </span>
+                    </div>
                   </div>
                 </div>
+                <div className="text-right">
+                  <span className="font-bold text-lg text-primary">
+                    {entry.points}
+                  </span>
+                  <p className="text-xs text-muted-foreground">points</p>
+                </div>
               </div>
-              <Badge variant="secondary" className="ml-auto">
-                {entry.points} pts
-              </Badge>
-            </div>
-          ))}
-          
-          {leaderboard.length === 0 && (
-            <div className="text-center py-6">
-              <p className="text-muted-foreground">No rankings yet.</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Complete some work to appear on the leaderboard!
-              </p>
-            </div>
+            ))
           )}
         </div>
       </CardContent>
     </Card>
   );
 };
-
-export default Leaderboard;

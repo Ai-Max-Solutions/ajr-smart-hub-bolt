@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,7 @@ export const ProjectUnitsPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingAssignments, setSavingAssignments] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [selectedPlots, setSelectedPlots] = useState<string[]>([]);
 
@@ -63,6 +64,7 @@ export const ProjectUnitsPage: React.FC = () => {
 
   const loadData = async () => {
     try {
+      console.log("Loading project data for projectId:", projectId);
       setLoading(true);
       
       // Load plots
@@ -72,7 +74,12 @@ export const ProjectUnitsPage: React.FC = () => {
         .eq('project_id', projectId)
         .order('plot_sequence_order');
 
-      if (plotsError) throw plotsError;
+      if (plotsError) {
+        console.error("Error loading plots:", plotsError);
+        throw plotsError;
+      }
+      
+      console.log("Loaded plots:", plotsData?.length || 0);
 
       // Load work categories
       const { data: workCategoriesData, error: workCategoriesError } = await supabase
@@ -80,7 +87,12 @@ export const ProjectUnitsPage: React.FC = () => {
         .select('*')
         .order('sequence_order');
 
-      if (workCategoriesError) throw workCategoriesError;
+      if (workCategoriesError) {
+        console.error("Error loading work categories:", workCategoriesError);
+        throw workCategoriesError;
+      }
+      
+      console.log("Loaded work categories:", workCategoriesData?.length || 0);
 
       // Load users
       const { data: usersData, error: usersError } = await supabase
@@ -88,7 +100,12 @@ export const ProjectUnitsPage: React.FC = () => {
         .select('id, name, role')
         .in('role', ['Operative', 'Supervisor', 'PM']);
 
-      if (usersError) throw usersError;
+      if (usersError) {
+        console.error("Error loading users:", usersError);
+        throw usersError;
+      }
+      
+      console.log("Loaded users:", usersData?.length || 0);
 
       // Load existing assignments
       const { data: assignmentsData, error: assignmentsError } = await supabase
@@ -96,7 +113,12 @@ export const ProjectUnitsPage: React.FC = () => {
         .select('*')
         .in('plot_id', plotsData?.map(p => p.id) || []);
 
-      if (assignmentsError) throw assignmentsError;
+      if (assignmentsError) {
+        console.error("Error loading assignments:", assignmentsError);
+        throw assignmentsError;
+      }
+      
+      console.log("Loaded assignments:", assignmentsData?.length || 0);
 
       setPlots(plotsData || []);
       setWorkCategories(workCategoriesData || []);
@@ -125,22 +147,34 @@ export const ProjectUnitsPage: React.FC = () => {
     }
   };
 
-  const updateAssignment = (plotId: string, workCategoryId: string, assignedUserId: string, estimatedHours: number, dueDate: string) => {
+  const updateAssignment = useCallback((plotId: string, workCategoryId: string, assignedUserId: string, estimatedHours: number, dueDate: string) => {
+    console.log("updateAssignment called with:", { plotId, workCategoryId, assignedUserId, estimatedHours, dueDate });
+    
     setAssignments(prev => {
       const existing = prev.findIndex(a => a.plotId === plotId && a.workCategoryId === workCategoryId);
       const newAssignment = { plotId, workCategoryId, assignedUserId, estimatedHours, dueDate };
       
       if (existing >= 0) {
+        console.log("Updating existing assignment at index:", existing);
         const updated = [...prev];
         updated[existing] = newAssignment;
         return updated;
       } else {
+        console.log("Adding new assignment");
         return [...prev, newAssignment];
       }
     });
-  };
+  }, []);
 
-  const handleBulkAssignment = (workCategoryId: string, assignedUserId: string, estimatedHours: number, dueDate: string) => {
+  const handleBulkAssignment = useCallback((workCategoryId: string, assignedUserId: string, estimatedHours: number, dueDate: string) => {
+    console.log("handleBulkAssignment called with:", { 
+      workCategoryId, 
+      assignedUserId, 
+      estimatedHours, 
+      dueDate, 
+      totalPlots: plots.length 
+    });
+    
     const newAssignments: Assignment[] = [];
     let skippedCount = 0;
     let addedCount = 0;
@@ -164,52 +198,91 @@ export const ProjectUnitsPage: React.FC = () => {
         skippedCount++;
       }
     });
+    
+    console.log(`Bulk assignment summary: ${addedCount} added, ${skippedCount} skipped`);
 
     // Update the assignments state
-    setAssignments(prev => [...prev, ...newAssignments]);
+    setAssignments(prev => {
+      console.log("Current assignments:", prev.length);
+      console.log("New assignments to add:", newAssignments.length);
+      return [...prev, ...newAssignments];
+    });
 
     // Show feedback to user
     const workCategory = workCategories.find(wc => wc.id === workCategoryId);
     const workCategoryName = workCategory ? `${workCategory.main_category} - ${workCategory.sub_task}` : 'Work';
+    const userName = users.find(u => u.id === assignedUserId)?.name || 'User';
     
     toast({
       title: "Bulk Assignment Complete",
-      description: `${workCategoryName} assigned to ${addedCount} plots${skippedCount > 0 ? ` (${skippedCount} already assigned)` : ''}`,
+      description: `${workCategoryName} assigned to ${userName} for ${addedCount} plots${skippedCount > 0 ? ` (${skippedCount} already assigned)` : ''}`,
     });
-  };
+  }, [plots, assignments, workCategories, users, toast]);
 
-  const removeAssignment = (plotId: string, workCategoryId: string) => {
-    setAssignments(prev => prev.filter(a => !(a.plotId === plotId && a.workCategoryId === workCategoryId)));
-  };
+  const removeAssignment = useCallback((plotId: string, workCategoryId: string) => {
+    console.log("removeAssignment called for:", { plotId, workCategoryId });
+    
+    setAssignments(prev => {
+      const filtered = prev.filter(a => !(a.plotId === plotId && a.workCategoryId === workCategoryId));
+      console.log(`Removed assignment. Previous count: ${prev.length}, new count: ${filtered.length}`);
+      return filtered;
+    });
+    
+    toast({
+      title: "Assignment Removed",
+      description: "The assignment has been removed",
+    });
+  }, [toast]);
 
   const saveAssignments = async () => {
+    if (assignments.length === 0) {
+      toast({
+        title: "No Assignments",
+        description: "There are no assignments to save",
+      });
+      return;
+    }
+    
     try {
-      setLoading(true);
+      console.log("Saving assignments:", assignments.length);
+      setSavingAssignments(true);
 
       // Delete existing assignments for these plots
       const plotIds = plots.map(p => p.id);
-      await supabase
+      console.log("Deleting existing assignments for plots:", plotIds.length);
+      
+      const { error: deleteError } = await supabase
         .from('unit_work_assignments')
         .delete()
         .in('plot_id', plotIds);
+        
+      if (deleteError) {
+        console.error("Error deleting existing assignments:", deleteError);
+        throw deleteError;
+      }
 
       // Insert new assignments
-      const assignmentsToInsert = assignments.map(a => ({
-        plot_id: a.plotId,
-        work_category_id: a.workCategoryId,
-        assigned_user_id: a.assignedUserId,
-        estimated_hours: a.estimatedHours,
-        due_date: a.dueDate || null,
-        ai_suggested: false,
-        status: 'assigned' as 'assigned'
-      }));
+      if (assignments.length > 0) {
+        const assignmentsToInsert = assignments.map(a => ({
+          plot_id: a.plotId,
+          work_category_id: a.workCategoryId,
+          assigned_user_id: a.assignedUserId,
+          estimated_hours: a.estimatedHours,
+          due_date: a.dueDate || null,
+          ai_suggested: false,
+          status: 'assigned' as 'assigned'
+        }));
+        
+        console.log("Inserting new assignments:", assignmentsToInsert.length);
 
-      if (assignmentsToInsert.length > 0) {
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('unit_work_assignments')
           .insert(assignmentsToInsert);
 
-        if (error) throw error;
+        if (insertError) {
+          console.error("Error inserting assignments:", insertError);
+          throw insertError;
+        }
       }
 
       toast({
@@ -221,15 +294,17 @@ export const ProjectUnitsPage: React.FC = () => {
       console.error('Error saving assignments:', error);
       toast({
         title: "Error",
-        description: "Failed to save assignments",
+        description: "Failed to save assignments. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setSavingAssignments(false);
     }
   };
 
   const handleAIAssignment = (suggestions: any[]) => {
+    console.log("AI assignment suggestions received:", suggestions.length);
+    
     // Apply AI suggestions to assignments
     const newAssignments = suggestions.map(s => ({
       plotId: s.plotId,
@@ -250,21 +325,25 @@ export const ProjectUnitsPage: React.FC = () => {
     });
   };
 
-  const togglePlotSelection = (plotId: string) => {
+  const togglePlotSelection = useCallback((plotId: string) => {
+    console.log("Plot selection toggled:", plotId);
+    
     setSelectedPlots(prev => 
       prev.includes(plotId) 
         ? prev.filter(id => id !== plotId)
         : [...prev, plotId]
     );
-  };
+  }, []);
 
-  const selectAllPlots = () => {
+  const selectAllPlots = useCallback(() => {
+    console.log("Selecting all plots");
     setSelectedPlots(plots.map(p => p.id));
-  };
+  }, [plots]);
 
-  const clearSelection = () => {
+  const clearSelection = useCallback(() => {
+    console.log("Clearing plot selection");
     setSelectedPlots([]);
-  };
+  }, []);
 
   if (loading && plots.length === 0) {
     return (
@@ -288,7 +367,10 @@ export const ProjectUnitsPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            onClick={() => setShowAIModal(true)}
+            onClick={() => {
+              console.log("Opening AI modal");
+              setShowAIModal(true);
+            }}
             className="gap-2"
           >
             <Sparkles className="h-4 w-4" />
@@ -296,17 +378,27 @@ export const ProjectUnitsPage: React.FC = () => {
           </Button>
           <Button
             onClick={saveAssignments}
-            disabled={loading || assignments.length === 0}
+            disabled={savingAssignments || assignments.length === 0}
             className="gap-2"
           >
-            <Save className="h-4 w-4" />
-            Save Assignments ({assignments.length})
+            {savingAssignments ? (
+              <>
+                <span className="animate-spin mr-2">⟳</span>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save Assignments ({assignments.length})
+              </>
+            )}
           </Button>
         </div>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
@@ -372,7 +464,10 @@ export const ProjectUnitsPage: React.FC = () => {
               </div>
               <Button
                 variant="outline"
-                onClick={() => setShowAIModal(true)}
+                onClick={() => {
+                  console.log("Opening AI modal for selected plots");
+                  setShowAIModal(true);
+                }}
                 className="gap-2"
               >
                 <Sparkles className="h-4 w-4" />
