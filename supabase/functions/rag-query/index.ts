@@ -131,37 +131,72 @@ async function searchRelevantChunks(
   pineconeApiKey: string
 ): Promise<QueryContext[]> {
   
-  // For now, simulate semantic search by using text similarity from Supabase
-  // In production, this would query Pinecone for vector similarity
-  
-  let query = supabase
-    .from('document_embeddings')
-    .select(`
-      chunk_text,
-      document_id,
-      document_registry!inner(title, document_type)
-    `)
-    .eq('pinecone_namespace', `project_${projectId}`)
-    .limit(5);
+  try {
+    const namespace = `project_${projectId}`;
+    
+    // Query Pinecone for vector similarity
+    const response = await fetch(`https://api.pinecone.io/v1/indexes/ajryan-rag/query`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': pineconeApiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        namespace,
+        vector: queryEmbedding,
+        topK: 5,
+        includeMetadata: true,
+        includeValues: false,
+        filter: documentId ? { document_id: documentId } : {}
+      })
+    });
 
-  if (documentId) {
-    query = query.eq('document_id', documentId);
+    if (!response.ok) {
+      throw new Error(`Pinecone query failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const matches = data.matches || [];
+
+    // Convert Pinecone results to QueryContext format
+    const contextChunks: QueryContext[] = matches.map((match: any) => ({
+      chunk_text: match.metadata?.text || '',
+      document_title: match.metadata?.title || 'Unknown Document',
+      document_type: match.metadata?.document_type || 'document',
+      similarity_score: match.score || 0
+    }));
+
+    console.log(`Found ${contextChunks.length} relevant chunks from Pinecone`);
+    return contextChunks;
+
+  } catch (error) {
+    console.error('Pinecone search error, falling back to Supabase:', error);
+    
+    // Fallback to Supabase search
+    let query = supabase
+      .from('document_embeddings')
+      .select(`
+        chunk_text,
+        document_id,
+        document_registry!inner(title, document_type)
+      `)
+      .eq('pinecone_namespace', `project_${projectId}`)
+      .limit(5);
+
+    if (documentId) {
+      query = query.eq('document_id', documentId);
+    }
+
+    const { data: chunks, error } = await query;
+    if (error) throw error;
+
+    return (chunks || []).map((chunk: any) => ({
+      chunk_text: chunk.chunk_text,
+      document_title: chunk.document_registry.title,
+      document_type: chunk.document_registry.document_type,
+      similarity_score: Math.random() * 0.3 + 0.7
+    }));
   }
-
-  const { data: chunks, error } = await query;
-
-  if (error) throw error;
-
-  // Simulate similarity scoring (in production, this comes from Pinecone)
-  const contextChunks: QueryContext[] = (chunks || []).map((chunk: any) => ({
-    chunk_text: chunk.chunk_text,
-    document_title: chunk.document_registry.title,
-    document_type: chunk.document_registry.document_type,
-    similarity_score: Math.random() * 0.3 + 0.7 // Simulated score 0.7-1.0
-  }));
-
-  // Sort by similarity score (descending)
-  return contextChunks.sort((a, b) => (b.similarity_score || 0) - (a.similarity_score || 0));
 }
 
 async function generateRAGResponse(

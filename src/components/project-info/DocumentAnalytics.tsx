@@ -1,246 +1,259 @@
-import { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { TrendingUp, Eye, MessageSquare, Clock, FileText, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { 
+  FileText, 
+  Clock, 
+  TrendingUp, 
+  AlertTriangle,
+  Eye,
+  Download,
+  Upload,
+  BarChart3
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface DocumentStats {
+  totalDocuments: number;
+  totalSize: number;
+  recentUploads: number;
+  expiringDocuments: number;
+  mostAccessedDocs: Array<{
+    name: string;
+    views: number;
+    folder: string;
+  }>;
+  folderStats: Array<{
+    folder: string;
+    count: number;
+    percentage: number;
+  }>;
+  uploadTrend: Array<{
+    date: string;
+    count: number;
+  }>;
+}
 
 interface DocumentAnalyticsProps {
   projectId: string;
+  className?: string;
 }
 
-export function DocumentAnalytics({ projectId }: DocumentAnalyticsProps) {
-  const [analytics, setAnalytics] = useState({
-    documentStats: {
-      totalDocuments: 0,
-      totalQueries: 0,
-      avgResponseTime: 0,
-      uniqueUsers: 0
-    },
-    queryTrends: [],
-    documentPopularity: [],
-    userActivity: []
-  });
+export const DocumentAnalytics: React.FC<DocumentAnalyticsProps> = ({ 
+  projectId, 
+  className 
+}) => {
+  const [stats, setStats] = useState<DocumentStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate analytics data - in real implementation, fetch from Supabase
-    const mockData = {
-      documentStats: {
-        totalDocuments: 47,
-        totalQueries: 523,
-        avgResponseTime: 1.2,
-        uniqueUsers: 12
-      },
-      queryTrends: [
-        { date: '2024-01-15', queries: 23, responses: 21 },
-        { date: '2024-01-16', queries: 31, responses: 29 },
-        { date: '2024-01-17', queries: 28, responses: 26 },
-        { date: '2024-01-18', queries: 42, responses: 38 },
-        { date: '2024-01-19', queries: 35, responses: 33 },
-        { date: '2024-01-20', queries: 38, responses: 36 },
-        { date: '2024-01-21', queries: 45, responses: 42 }
-      ],
-      documentPopularity: [
-        { name: 'Safety Protocols', views: 89, queries: 34 },
-        { name: 'Electrical RAMS', views: 67, queries: 28 },
-        { name: 'Site Plans', views: 45, queries: 19 },
-        { name: 'Equipment Manual', views: 38, queries: 15 },
-        { name: 'Quality Standards', views: 29, queries: 12 }
-      ],
-      userActivity: [
-        { user: 'Site Manager', queries: 87, documents: 23 },
-        { user: 'Safety Officer', queries: 65, documents: 18 },
-        { user: 'Electrician', queries: 43, documents: 12 },
-        { user: 'Engineer', queries: 38, documents: 15 },
-        { user: 'Supervisor', queries: 29, documents: 9 }
-      ]
-    };
-    
-    setAnalytics(mockData);
+    fetchAnalytics();
   }, [projectId]);
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      
+      // Mock document data for now - will be replaced with actual DB integration
+      const documents = [
+        { id: '1', folder: 'RAMS', expiry_date: '2024-12-31', created_at: '2024-01-01' },
+        { id: '2', folder: 'Drawings', expiry_date: null, created_at: '2024-01-15' },
+        { id: '3', folder: 'Health & Safety', expiry_date: '2024-06-30', created_at: '2024-02-01' }
+      ];
+
+      // Calculate statistics
+      const totalDocuments = documents?.length || 0;
+      const recentUploads = documents?.filter(doc => {
+        const uploadDate = new Date(doc.created_at);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return uploadDate > weekAgo;
+      }).length || 0;
+
+      const expiringDocuments = documents?.filter(doc => {
+        if (!doc.expiry_date) return false;
+        const expiryDate = new Date(doc.expiry_date);
+        const monthFromNow = new Date();
+        monthFromNow.setMonth(monthFromNow.getMonth() + 1);
+        return expiryDate < monthFromNow;
+      }).length || 0;
+
+      // Folder statistics
+      const folderCounts: Record<string, number> = {};
+      documents?.forEach(doc => {
+        const folder = doc.folder || 'Uncategorized';
+        folderCounts[folder] = (folderCounts[folder] || 0) + 1;
+      });
+
+      const folderStats = Object.entries(folderCounts).map(([folder, count]) => ({
+        folder,
+        count,
+        percentage: (count / totalDocuments) * 100
+      })).sort((a, b) => b.count - a.count);
+
+      // Mock additional data for demo
+      const mostAccessedDocs = [
+        { name: 'RAMS Document v2.pdf', views: 45, folder: 'RAMS' },
+        { name: 'Site Layout Drawing.dwg', views: 32, folder: 'Drawings' },
+        { name: 'Safety Inspection Report.pdf', views: 28, folder: 'Health & Safety' }
+      ];
+
+      const uploadTrend = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        return {
+          date: date.toISOString().split('T')[0],
+          count: Math.floor(Math.random() * 5) + 1
+        };
+      }).reverse();
+
+      setStats({
+        totalDocuments,
+        totalSize: totalDocuments * 2.5, // Mock size calculation
+        recentUploads,
+        expiringDocuments,
+        mostAccessedDocs,
+        folderStats,
+        uploadTrend
+      });
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  if (loading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Document Analytics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-muted rounded w-3/4"></div>
+            <div className="h-4 bg-muted rounded w-1/2"></div>
+            <div className="h-4 bg-muted rounded w-2/3"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!stats) return null;
+
   return (
-    <div className="space-y-6">
-      {/* Stats Overview */}
+    <div className={`space-y-6 ${className}`}>
+      {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <FileText className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-3">
+              <FileText className="h-8 w-8 text-primary" />
               <div>
-                <p className="text-2xl font-bold">{analytics.documentStats.totalDocuments}</p>
-                <p className="text-sm text-muted-foreground">Documents</p>
+                <p className="text-2xl font-bold">{stats.totalDocuments}</p>
+                <p className="text-sm text-muted-foreground">Total Documents</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <MessageSquare className="h-5 w-5 text-green-500" />
+            <div className="flex items-center gap-3">
+              <Upload className="h-8 w-8 text-green-500" />
               <div>
-                <p className="text-2xl font-bold">{analytics.documentStats.totalQueries}</p>
-                <p className="text-sm text-muted-foreground">Queries</p>
+                <p className="text-2xl font-bold">{stats.recentUploads}</p>
+                <p className="text-sm text-muted-foreground">Recent Uploads</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-orange-500" />
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-8 w-8 text-orange-500" />
               <div>
-                <p className="text-2xl font-bold">{analytics.documentStats.avgResponseTime}s</p>
-                <p className="text-sm text-muted-foreground">Avg Response</p>
+                <p className="text-2xl font-bold">{stats.expiringDocuments}</p>
+                <p className="text-sm text-muted-foreground">Expiring Soon</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-blue-500" />
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-8 w-8 text-blue-500" />
               <div>
-                <p className="text-2xl font-bold">{analytics.documentStats.uniqueUsers}</p>
-                <p className="text-sm text-muted-foreground">Active Users</p>
+                <p className="text-2xl font-bold">{stats.totalSize.toFixed(1)}MB</p>
+                <p className="text-sm text-muted-foreground">Total Size</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Analytics Tabs */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <TrendingUp className="h-5 w-5" />
-            <span>Document Intelligence</span>
-            <Badge variant="outline">AI Analytics</Badge>
-          </CardTitle>
-        </CardHeader>
-        
-        <CardContent>
-          <Tabs defaultValue="trends" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="trends">Query Trends</TabsTrigger>
-              <TabsTrigger value="popularity">Document Popularity</TabsTrigger>
-              <TabsTrigger value="users">User Activity</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="trends" className="space-y-4">
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={analytics.queryTrends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tickFormatter={formatDate} />
-                    <YAxis />
-                    <Tooltip labelFormatter={(label) => formatDate(label)} />
-                    <Line type="monotone" dataKey="queries" stroke="#8884d8" strokeWidth={2} />
-                    <Line type="monotone" dataKey="responses" stroke="#82ca9d" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              
-              <div className="flex items-center space-x-4 text-sm">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-[#8884d8] rounded-full"></div>
-                  <span>Total Queries</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Folder Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Folder Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {stats.folderStats.slice(0, 5).map((folder, index) => (
+                <div key={folder.folder} className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>{folder.folder}</span>
+                    <span className="text-muted-foreground">
+                      {folder.count} ({folder.percentage.toFixed(1)}%)
+                    </span>
+                  </div>
+                  <Progress value={folder.percentage} className="h-2" />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-[#82ca9d] rounded-full"></div>
-                  <span>Successful Responses</span>
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="popularity" className="space-y-4">
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analytics.documentPopularity}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="views" fill="#8884d8" />
-                    <Bar dataKey="queries" fill="#82ca9d" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium">Most Viewed Documents</h4>
-                  {analytics.documentPopularity.slice(0, 3).map((doc, index) => (
-                    <div key={doc.name} className="flex items-center justify-between p-2 bg-muted rounded">
-                      <span className="text-sm">{doc.name}</span>
-                      <div className="flex items-center space-x-2">
-                        <Eye className="h-3 w-3" />
-                        <span className="text-sm font-medium">{doc.views}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="space-y-2">
-                  <h4 className="font-medium">Most Queried Documents</h4>
-                  {analytics.documentPopularity
-                    .sort((a, b) => b.queries - a.queries)
-                    .slice(0, 3)
-                    .map((doc, index) => (
-                    <div key={doc.name} className="flex items-center justify-between p-2 bg-muted rounded">
-                      <span className="text-sm">{doc.name}</span>
-                      <div className="flex items-center space-x-2">
-                        <MessageSquare className="h-3 w-3" />
-                        <span className="text-sm font-medium">{doc.queries}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="users" className="space-y-4">
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analytics.userActivity} layout="horizontal">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="user" type="category" width={100} />
-                    <Tooltip />
-                    <Bar dataKey="queries" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium">User Engagement Summary</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {analytics.userActivity.map((user) => (
-                    <div key={user.user} className="flex items-center justify-between p-3 border rounded">
-                      <div>
-                        <p className="font-medium">{user.user}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {user.documents} documents accessed
-                        </p>
-                      </div>
-                      <Badge variant="outline">
-                        {user.queries} queries
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Most Accessed Documents */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Most Accessed Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {stats.mostAccessedDocs.map((doc, index) => (
+                <div key={index} className="flex items-center justify-between p-2 rounded border">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{doc.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        {doc.folder}
                       </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {doc.views} views
+                      </span>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
-}
+};
