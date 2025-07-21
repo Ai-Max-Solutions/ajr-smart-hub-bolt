@@ -34,6 +34,7 @@ import MobileDashboard from "./pages/MobileDashboard";
 import WorkAssignment from "./pages/WorkAssignment";
 import { JobTrackerDashboard } from "./components/job-tracker/JobTrackerDashboard";
 import { SecurityHeader } from "@/components/ui/security-header";
+import ProjectInfoHub from "./pages/ProjectInfoHub";
 
 const queryClient = new QueryClient();
 
@@ -210,6 +211,17 @@ function App() {
                   <RouteProtection fallbackPath="/auth">
                     <AppLayout>
                       <DocumentControllerDashboard />
+                    </AppLayout>
+                  </RouteProtection>
+                } 
+              />
+              
+              <Route 
+                path="/project-info-hub/:projectId" 
+                element={
+                  <RouteProtection fallbackPath="/auth">
+                    <AppLayout>
+                      <ProjectInfoHub />
                     </AppLayout>
                   </RouteProtection>
                 } 

@@ -70,29 +70,42 @@ What would you like to know about the project documents?`,
     setIsLoading(true);
 
     try {
-      // Store the query in history
-      await supabase
-        .from('rag_query_history' as any)
-        .insert({
-          user_id: user.id,
+      // Call the real RAG system
+      const { data: ragResponse, error: ragError } = await supabase.functions.invoke('rag-query', {
+        body: {
+          query: userMessage.content,
           project_id: projectId,
           document_id: documentId,
-          query_text: userMessage.content,
+          user_id: user.id,
           query_type: documentId ? 'document_specific' : 'general'
-        });
+        }
+      });
 
-      // For now, simulate AI response (will be replaced with actual RAG implementation)
-      const simulatedResponse = await simulateGrokResponse(userMessage.content);
-      
+      if (ragError) {
+        throw ragError;
+      }
+
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: simulatedResponse.content,
+        content: ragResponse.response,
         role: 'assistant',
         timestamp: new Date(),
-        sources: simulatedResponse.sources
+        sources: ragResponse.sources
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Update query history with the response
+      await supabase
+        .from('rag_query_history' as any)
+        .update({ 
+          response_text: ragResponse.response,
+          response_time_ms: ragResponse.response_time_ms 
+        })
+        .eq('query_text', userMessage.content)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
     } catch (error) {
       console.error('Error sending message:', error);
@@ -111,69 +124,6 @@ What would you like to know about the project documents?`,
     }
   };
 
-  const simulateGrokResponse = async (query: string): Promise<{ content: string; sources?: string[] }> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-
-    const lowerQuery = query.toLowerCase();
-
-    if (lowerQuery.includes('rams') || lowerQuery.includes('risk') || lowerQuery.includes('safety')) {
-      return {
-        content: `Based on the RAMS documents in your project, here are the key safety considerations:
-
-• **High Risk Activities**: Working at height, electrical work, and confined space entry
-• **Required PPE**: Hard hats, safety harnesses, and electrical protection equipment
-• **Emergency Procedures**: Emergency assembly points are clearly marked on site plans
-• **Permit Requirements**: Hot work permits required for welding and cutting operations
-
-The RAMS documents emphasize the importance of daily safety briefings and proper equipment inspection before use.`,
-        sources: ['RAMS_Project_Safety_Plan_v2.1.pdf', 'Site_Emergency_Procedures.pdf']
-      };
-    }
-
-    if (lowerQuery.includes('drawing') || lowerQuery.includes('technical') || lowerQuery.includes('plan')) {
-      return {
-        content: `I found several technical drawings for this project:
-
-• **Architectural Plans**: Floor plans for all levels (Blocks A-C)
-• **MEP Drawings**: Electrical, plumbing, and HVAC layouts
-• **Structural Details**: Foundation and steel frame specifications
-• **As-Built Status**: 75% of drawings have been updated to as-built status
-
-The latest revisions show modifications to the electrical distribution on Level 2, Block B. Would you like me to highlight the specific changes?`,
-        sources: ['Architectural_Plans_Rev_C.pdf', 'MEP_Drawings_Rev_B.pdf', 'Structural_Details_Rev_A.pdf']
-      };
-    }
-
-    if (lowerQuery.includes('completion') || lowerQuery.includes('progress') || lowerQuery.includes('status')) {
-      return {
-        content: `Based on the latest project documentation:
-
-• **Overall Progress**: 68% complete
-• **Current Phase**: Mechanical and electrical installation
-• **Critical Path**: HVAC system commissioning
-• **Upcoming Milestones**: 
-  - Final electrical testing (Next week)
-  - Building handover preparations (In 3 weeks)
-
-Recent inspection reports show all work is meeting quality standards. The project remains on track for the scheduled completion date.`,
-        sources: ['Weekly_Progress_Report.pdf', 'Quality_Inspection_Checklist.pdf']
-      };
-    }
-
-    // Default response
-    return {
-      content: `I understand you're asking about "${query}". I can help you find information in your project documents, but I'll need to implement the full RAG functionality to provide detailed answers.
-
-In the meantime, I can help you with:
-• Searching for specific documents
-• Understanding project status
-• Safety and compliance questions
-• Technical drawing queries
-
-Could you provide more specific details about what you're looking for?`
-    };
-  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

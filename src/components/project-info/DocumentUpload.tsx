@@ -105,7 +105,7 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
         updateFile(fileData.id, { progress: 100 });
 
         // Create document registry entry
-        const { error: dbError } = await supabase
+        const { data: documentData, error: dbError } = await supabase
           .from('document_registry' as any)
           .insert({
             project_id: projectId,
@@ -119,11 +119,27 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
             uploaded_by: user.id,
             version_number: '1.0',
             status: 'draft'
-          });
+          })
+          .select('id')
+          .single();
 
         if (dbError) throw dbError;
 
         updateFile(fileData.id, { status: 'complete' });
+
+        // Trigger document ingestion for AI processing
+        try {
+          await supabase.functions.invoke('document-ingestion', {
+            body: {
+              document_id: (documentData as any)?.id,
+              file_path: uploadData.path,
+              project_id: projectId
+            }
+          });
+          console.log('Document ingestion triggered successfully');
+        } catch (ingestionError) {
+          console.warn('Document ingestion failed, but upload succeeded:', ingestionError);
+        }
       }
 
       toast.success('All files uploaded successfully');
