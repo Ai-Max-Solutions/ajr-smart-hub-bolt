@@ -53,7 +53,7 @@ export function RFITab() {
   const fetchRFIs = async () => {
     try {
       const { data, error } = await supabase
-        .from('rfi_tracker')
+        .from('rfi_tracker' as any)
         .select(`
           *,
           submitted_by_user:users!rfi_tracker_submitted_by_fkey(name),
@@ -64,7 +64,7 @@ export function RFITab() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRfis(data || []);
+      setRfis((data as any) || []);
     } catch (error) {
       console.error('Error fetching RFIs:', error);
     } finally {
@@ -280,7 +280,7 @@ export function RFITab() {
                     <Button size="sm" variant="outline">
                       View Details
                     </Button>
-                    {rfi.status === 'Open' && rfi.submitted_by_user.name === user?.name && (
+                    {rfi.status === 'Open' && rfi.submitted_by_user.name === user?.email && (
                       <Button size="sm">
                         Edit RFI
                       </Button>

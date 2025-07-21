@@ -43,7 +43,7 @@ export function DrawingRegisterTab() {
   const fetchDrawings = async () => {
     try {
       const { data, error } = await supabase
-        .from('drawing_register')
+        .from('drawing_register' as any)
         .select(`
           *,
           plot:plots(
@@ -57,7 +57,7 @@ export function DrawingRegisterTab() {
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      setDrawings(data || []);
+      setDrawings((data as any) || []);
     } catch (error) {
       console.error('Error fetching drawings:', error);
     } finally {

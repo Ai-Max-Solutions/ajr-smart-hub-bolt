@@ -129,7 +129,7 @@ export function CreateRFIForm({ onSuccess }: CreateRFIFormProps) {
 
       // Create RFI
       const { error } = await supabase
-        .from('rfi_tracker')
+        .from('rfi_tracker' as any)
         .insert({
           project_id: selectedProjectId,
           plot_id: selectedPlotId || null,

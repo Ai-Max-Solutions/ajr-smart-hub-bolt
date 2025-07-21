@@ -15,7 +15,7 @@ export default function EngineerDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('tasks');
 
-  if (!user || !['Engineer', 'Admin', 'PM', 'Director'].includes(user.role)) {
+  if (!user) {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -37,7 +37,7 @@ export default function EngineerDashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Engineer Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {user.name}. Track your tasks, manage RFIs, and monitor project progress.
+            Welcome back, {user.email}. Track your tasks, manage RFIs, and monitor project progress.
           </p>
         </div>
         

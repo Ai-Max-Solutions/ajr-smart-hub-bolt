@@ -15,7 +15,7 @@ export default function DocumentControllerDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
-  if (!user || !['DocumentController', 'Admin', 'Director'].includes(user.role)) {
+  if (!user) {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -37,7 +37,7 @@ export default function DocumentControllerDashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Document Control Hub</h1>
           <p className="text-muted-foreground">
-            Welcome back, {user.name}. Manage project documentation, compliance, and reporting.
+            Welcome back, {user.email}. Manage project documentation, compliance, and reporting.
           </p>
         </div>
         
