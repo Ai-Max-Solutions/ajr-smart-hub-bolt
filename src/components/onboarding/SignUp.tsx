@@ -212,7 +212,7 @@ const SignUp = ({ data, updateData }: SignUpProps) => {
                   htmlFor="terms"
                   className="text-sm font-normal leading-snug peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  I agree to AJ Ryan&apos;s Terms & Conditions and Privacy Policy
+                  I agree to AJ Ryan Terms & Conditions and Privacy Policy
                 </Label>
               </div>
             </div>
