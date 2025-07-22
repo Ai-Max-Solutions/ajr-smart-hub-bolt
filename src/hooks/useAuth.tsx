@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { validateEmail, validatePasswordStrength } from '@/utils/inputSanitization';
+import { ACTIVATION_STATUS } from '@/lib/constants';
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +12,7 @@ interface AuthContextType {
   userProfile: any;
   loading: boolean;
   isVerified: boolean;
+  checkActivationStatus: (userProfile: any) => string;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
@@ -304,6 +306,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const checkActivationStatus = (userProfile: any) => {
+    if (!userProfile) return ACTIVATION_STATUS.PROVISIONAL;
+    
+    const now = new Date();
+    const expiry = userProfile.activation_expiry ? new Date(userProfile.activation_expiry) : null;
+    
+    if (userProfile.activation_status === ACTIVATION_STATUS.PROVISIONAL && expiry && now > expiry) {
+      return ACTIVATION_STATUS.PENDING;
+    }
+    
+    return userProfile.activation_status || ACTIVATION_STATUS.PROVISIONAL;
+  };
+
   const signOut = async () => {
     try {
       setLoading(true);
@@ -326,6 +341,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     userProfile,
     loading,
     isVerified,
+    checkActivationStatus,
     signIn,
     signUp,
     resetPassword,

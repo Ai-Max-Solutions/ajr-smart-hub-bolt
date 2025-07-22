@@ -71,10 +71,10 @@ const SignUp = ({ data, updateData }: SignUpProps) => {
         return;
       }
 
-      // Account created successfully
+      // Account created successfully - set provisional status with 24-hour expiry
       toast({
         title: "Account Created Successfully",
-        description: "Welcome to AJ Ryan SmartWork Hub. Let's complete your profile.",
+        description: "Welcome to AJ Ryan SmartWork Hub. You have 24 hours to complete your profile.",
       });
       
       // Navigate to personal details step
@@ -212,10 +212,7 @@ const SignUp = ({ data, updateData }: SignUpProps) => {
                   htmlFor="terms"
                   className="text-sm font-normal leading-snug peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  I agree to AJ Ryan's{' '}
-                  <a href="#" className="text-primary hover:underline">Terms & Conditions</a>
-                  {' '}and{' '}
-                  <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+                  I agree to AJ Ryan&apos;s Terms & Conditions and Privacy Policy
                 </Label>
               </div>
             </div>

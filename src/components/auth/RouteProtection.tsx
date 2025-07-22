@@ -59,11 +59,11 @@ export const RouteProtection = ({
   // Check dashboard access for special dashboard routes
   let hasDashboardAccess = true;
   if (location.pathname.includes('/admin')) {
-    hasDashboardAccess = RBACService.canAccessDashboard(userRole, 'admin_dashboard');
+    hasDashboardAccess = RBACService.canAccessDashboard(userRole as any, 'admin_dashboard');
   } else if (location.pathname.includes('/director')) {
-    hasDashboardAccess = RBACService.canAccessDashboard(userRole, 'director_dashboard');
+    hasDashboardAccess = RBACService.canAccessDashboard(userRole as any, 'director_dashboard');
   } else if (location.pathname.includes('/projects') && location.pathname.includes('dashboard')) {
-    hasDashboardAccess = RBACService.canAccessDashboard(userRole, 'pm_dashboard');
+    hasDashboardAccess = RBACService.canAccessDashboard(userRole as any, 'pm_dashboard');
   }
 
   const hasAccess = hasRequiredRole && hasResourceAccess && hasDashboardAccess;
@@ -191,7 +191,7 @@ export const usePermissions = () => {
   };
 
   const canManageRole = (targetRole: string) => {
-    return RBACService.canManageRole(userRole, targetRole);
+    return RBACService.canManageRole(userRole as any, targetRole as any);
   };
 
   return {
@@ -200,7 +200,7 @@ export const usePermissions = () => {
     hasPermission,
     canAccessDashboard,
     canManageRole,
-    roleLevel: RBACService.getRoleLevel(userRole)
+    roleLevel: RBACService.getRoleLevel(userRole as any)
   };
 };
 
