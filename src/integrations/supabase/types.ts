@@ -1347,6 +1347,7 @@ export type Database = {
       }
       users: {
         Row: {
+          account_status: string | null
           ai_avatar_opt_out: boolean | null
           airtable_created_time: string | null
           avatar_url: string | null
@@ -1369,9 +1370,11 @@ export type Database = {
           profile_image_url: string | null
           role: Database["public"]["Enums"]["user_role_enum"]
           supabase_auth_id: string | null
+          trial_expires_at: string | null
           updated_at: string
         }
         Insert: {
+          account_status?: string | null
           ai_avatar_opt_out?: boolean | null
           airtable_created_time?: string | null
           avatar_url?: string | null
@@ -1394,9 +1397,11 @@ export type Database = {
           profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role_enum"]
           supabase_auth_id?: string | null
+          trial_expires_at?: string | null
           updated_at?: string
         }
         Update: {
+          account_status?: string | null
           ai_avatar_opt_out?: boolean | null
           airtable_created_time?: string | null
           avatar_url?: string | null
@@ -1419,6 +1424,7 @@ export type Database = {
           profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role_enum"]
           supabase_auth_id?: string | null
+          trial_expires_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1463,6 +1469,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_user_permanently: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
       ai_suggest_user_for_task: {
         Args: {
           p_work_category_id: string
@@ -1503,6 +1513,10 @@ export type Database = {
       detect_suspicious_activity: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      extend_trial_period: {
+        Args: { user_id_param: string; hours_to_add?: number }
+        Returns: boolean
       }
       get_contractor_rams_compliance: {
         Args: { p_contractor_id: string; p_project_id?: string }

@@ -121,10 +121,14 @@ export const UserManagement = () => {
 
   const updateUserStatus = async (userId: string, isVerified: boolean) => {
     try {
-      // Update user verification status
+      // Update user verification status AND account status
       const { error } = await supabase
         .from('users')
-        .update({ is_verified: true } as any)
+        .update({ 
+          is_verified: true,
+          account_status: 'active',
+          trial_expires_at: null
+        } as any)
         .eq('id', userId);
 
       if (error) throw error;
