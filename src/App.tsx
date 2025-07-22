@@ -9,6 +9,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { IndexWrapper } from "@/components/dashboard/IndexWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OnboardingProvider } from "@/context/OnboardingContext";
+import { AccountBlocked } from "@/pages/AccountBlocked";
 import Index from "./pages/Index";
 import DocumentStatusChecker from "./pages/DocumentStatusChecker";
 import OnboardingFlow from "./pages/OnboardingFlow";
@@ -55,6 +56,7 @@ function App() {
               {/* Public routes without navigation */}
               <Route path="/auth" element={<Auth />} />
               <Route path="/under-review" element={<UnderReview />} />
+              <Route path="/account-blocked" element={<AccountBlocked />} />
               <Route path="/contractor/auth" element={<ContractorAuth />} />
               <Route path="/contractor/onboarding" element={<ContractorOnboarding />} />
               <Route path="/contractor/dashboard" element={<ContractorDashboard />} />

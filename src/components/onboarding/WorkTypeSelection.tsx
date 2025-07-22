@@ -302,11 +302,12 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
         return;
       }
 
-      // ✅ 2. Flag user as onboarded
+      // ✅ 2. Flag user as onboarded and set to pending for admin review
       const { error: userError } = await supabase
         .from('users')
         .update({ 
           onboarding_completed: true,
+          activation_status: 'pending',
           role: data.selectedWorkTypes.includes('supervisor') ? 'Supervisor' : 'Operative'
         })
         .eq('id', userData.id);
@@ -322,26 +323,12 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
       }
 
       toast({
-        title: "Done! To dashboard...",
-        description: "Welcome aboard! Your onboarding is complete.",
+        title: "Onboarding Complete!",
+        description: "Your account is now pending admin activation. You'll be notified once approved.",
       });
 
-      // ✅ 3. Dynamic role-based redirect
-      const userRole = data.selectedWorkTypes.includes('supervisor') ? 'Supervisor' : 'Operative';
-      const rolePathMap = {
-        'operative': '/operative',
-        'supervisor': '/operative', // Supervisors also use operative dashboard for now
-        'pm': '/projects',
-        'admin': '/admin',
-        'director': '/director',
-        'manager': '/projects'
-      };
-      
-      const redirectPath = rolePathMap[userRole.toLowerCase().trim()] || '/operative';
-      console.log(`Redirecting ${userRole} to ${redirectPath}`);
-      
       setTimeout(() => {
-        navigate(redirectPath);
+        navigate('/under-review');
       }, 800);
 
     } catch (err) {
@@ -554,7 +541,7 @@ const WorkTypeSelection = ({ data, updateData }: WorkTypeSelectionProps) => {
           onClick={handleContinue}
           disabled={!canContinue}
           variant="default"
-          className="w-full mt-4"
+          className="w-full"
         >
           Finish & Go to Dashboard
         </Button>

@@ -4,10 +4,29 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Mail, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ACTIVATION_STATUS } from "@/lib/constants";
 
 export const UnderReview = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, userProfile, checkActivationStatus } = useAuth();
+  
+  const getStatusMessage = (status: string, expiry: Date | null, onboardingComplete: boolean) => {
+    if (status === ACTIVATION_STATUS.PENDING) {
+      return "Your account is pending admin activation after completing onboarding.";
+    }
+    if (status === ACTIVATION_STATUS.PROVISIONAL && expiry) {
+      const hoursLeft = Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60)));
+      if (hoursLeft > 0 && !onboardingComplete) {
+        return `You have ${hoursLeft} hours remaining to complete onboarding.`;
+      }
+      return "Your provisional access has expired. Please wait for admin activation.";
+    }
+    return "Your account is under review.";
+  };
+  
+  const currentStatus = checkActivationStatus(userProfile);
+  const expiryDate = userProfile?.activation_expiry ? new Date(userProfile.activation_expiry) : null;
+  const statusMessage = getStatusMessage(currentStatus, expiryDate, userProfile?.onboarding_completed);
 
   const handleBackToLogin = async () => {
     await signOut();
@@ -36,8 +55,7 @@ export const UnderReview = () => {
           {/* Message */}
           <div className="space-y-4 text-muted-foreground">
             <p className="text-base leading-relaxed">
-              Hang tight! Your account is currently being reviewed by our admin team. 
-              We'll have you sorted out quickly so you can get back to what matters most.
+              {statusMessage}
             </p>
             
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">

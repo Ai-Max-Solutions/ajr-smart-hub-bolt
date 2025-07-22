@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, XCircle, Clock, Users, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Users, FileText, AlertTriangle } from 'lucide-react';
 
 interface PendingUser {
   id: string;
@@ -12,8 +12,10 @@ interface PendingUser {
   email: string;
   phone: string;
   created_at: string;
-  is_verified: boolean;
   onboarding_completed: boolean;
+  activation_status: string;
+  activation_expiry: string | null;
+  signup_timestamp: string;
 }
 
 export const UserApprovalPanel = () => {
@@ -30,8 +32,8 @@ export const UserApprovalPanel = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, phone, created_at, onboarding_completed, is_verified')
-        .eq('is_verified', false)
+        .select('id, name, email, phone, created_at, onboarding_completed, activation_status, activation_expiry, signup_timestamp')
+        .in('activation_status', ['provisional', 'pending'])
         .eq('onboarding_completed', true)
         .order('created_at', { ascending: false });
 
@@ -54,7 +56,10 @@ export const UserApprovalPanel = () => {
     try {
       const { error } = await supabase
         .from('users')
-        .update({ is_verified: true })
+        .update({ 
+          activation_status: 'active',
+          activation_expiry: null
+        })
         .eq('id', userId);
 
       if (error) throw error;
@@ -81,11 +86,22 @@ export const UserApprovalPanel = () => {
   const rejectUser = async (userId: string) => {
     setProcessing(userId);
     try {
-      // For now, we'll keep the user blocked but could add a "rejected" status
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          activation_status: 'inactive'
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
       toast({
         title: "User Rejected",
         description: "User access has been denied",
       });
+
+      // Remove from pending list
+      setPendingUsers(prev => prev.filter(user => user.id !== userId));
     } catch (error) {
       console.error('Error rejecting user:', error);
       toast({
@@ -147,14 +163,32 @@ export const UserApprovalPanel = () => {
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         <p className="text-sm text-muted-foreground">{user.phone}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-amber-100 text-amber-800">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Pending Review
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className={
+                          user.activation_status === 'provisional' 
+                            ? "bg-blue-100 text-blue-800" 
+                            : "bg-amber-100 text-amber-800"
+                        }>
+                          {user.activation_status === 'provisional' ? (
+                            <>
+                              <Clock className="w-3 h-3 mr-1" />
+                              Provisional Access
+                            </>
+                          ) : (
+                            <>
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              Pending Review
+                            </>
+                          )}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          Submitted {new Date(user.created_at).toLocaleDateString()}
+                          Signed up {new Date(user.signup_timestamp || user.created_at).toLocaleDateString()}
                         </span>
+                        {user.activation_expiry && user.activation_status === 'provisional' && (
+                          <span className="text-xs text-orange-600 font-medium">
+                            Expires {new Date(user.activation_expiry).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

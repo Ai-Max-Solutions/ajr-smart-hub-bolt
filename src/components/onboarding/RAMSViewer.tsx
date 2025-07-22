@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { AlertTriangle, ArrowLeft, PenTool, Clock, CheckCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, PenTool, Clock, CheckCircle, FileText } from 'lucide-react';
 import { SignatureCanvas } from '@/components/ui/signature-canvas';
 
 interface RAMSViewerProps {
@@ -22,6 +22,8 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
   const [readingTime, setReadingTime] = useState(0);
   const [isReading, setIsReading] = useState(false);
   const [currentSignature, setCurrentSignature] = useState<string>('');
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
 
   const startReading = () => {
     setIsReading(true);
@@ -38,6 +40,16 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
     }, 1000);
 
     return () => clearInterval(timer);
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const progress = (scrollTop / (scrollHeight - clientHeight)) * 100;
+    setScrollProgress(progress);
+    
+    if (progress >= 90) {
+      setHasScrolledToEnd(true);
+    }
   };
 
   const clearSignature = () => {
@@ -162,24 +174,44 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
           </div>
         </div>
 
-        {/* Reading Timer */}
+        {/* Reading Timer and Scroll Progress */}
         {(isReading || readingTime > 0) && (
-          <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 mb-4">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-warning" />
-              <span className="text-sm font-medium">
-                Reading time: {formatTime(readingTime)}
-                {readingTime < 15 && " (minimum 15 seconds required)"}
-              </span>
+          <div className="space-y-3 mb-4">
+            <div className="bg-warning/10 border border-warning/20 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-warning" />
+                <span className="text-sm font-medium">
+                  Reading time: {formatTime(readingTime)}
+                  {readingTime < 15 && " (minimum 15 seconds required)"}
+                </span>
+              </div>
             </div>
+            {readingTime > 0 && (
+              <div className="bg-info/10 border border-info/20 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4 text-info" />
+                  <span className="text-sm font-medium">
+                    Reading progress: {Math.round(scrollProgress)}%
+                    {!hasScrolledToEnd && " (scroll to end required)"}
+                  </span>
+                </div>
+                <div className="w-full bg-border rounded-full h-2">
+                  <div 
+                    className="bg-info h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${scrollProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Document Content */}
         <div className="prose prose-sm max-w-none mb-6">
           <div 
-            className="bg-muted/30 rounded-lg p-4 border font-mono text-sm whitespace-pre-line cursor-pointer"
+            className="bg-muted/30 rounded-lg p-4 border font-mono text-sm whitespace-pre-line cursor-pointer max-h-96 overflow-y-auto"
             onClick={!isReading ? startReading : undefined}
+            onScroll={isReading ? handleScroll : undefined}
           >
             {!isReading && readingTime === 0 ? (
               <div className="text-center py-8">
@@ -201,7 +233,7 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
                   id="hasRead"
                   checked={hasRead}
                   onCheckedChange={(checked) => setHasRead(!!checked)}
-                  disabled={readingTime < 15}
+                  disabled={readingTime < 15 || !hasScrolledToEnd}
                 />
                 <div className="grid gap-1.5 leading-none">
                   <Label
@@ -211,14 +243,14 @@ const RAMSViewer = ({ document, onBack, onSigned, isAlreadySigned }: RAMSViewerP
                     I have read and understood this safety document
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Minimum review time: 15 seconds • Current time: {formatTime(readingTime)}
+                    Requirements: 15 seconds reading time • Scroll to end • Current time: {formatTime(readingTime)} • Progress: {Math.round(scrollProgress)}%
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Signature Section */}
-            {hasRead && readingTime >= 15 && (
+            {hasRead && readingTime >= 15 && hasScrolledToEnd && (
               <div className="border rounded-lg p-4 bg-muted/20">
                 <h3 className="font-medium mb-3">Digital Signature Required</h3>
                 <p className="text-sm text-muted-foreground mb-4">

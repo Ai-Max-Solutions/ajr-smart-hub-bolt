@@ -3,6 +3,7 @@ import React, { createContext, useContext, useCallback, useMemo, useState, useEf
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ACTIVATION_STATUS, type ActivationStatus } from '@/lib/constants';
 
 export interface OnboardingFlags {
   personalComplete: boolean;
@@ -18,6 +19,8 @@ interface OnboardingContextType {
   error: string | null;
   firstIncompleteStep: string;
   missingSteps: string[];
+  activationStatus: ActivationStatus;
+  activationExpiry: Date | null;
   refreshOnboarding: () => Promise<void>;
   markStepComplete: (step: string) => void;
 }
@@ -36,6 +39,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [activationStatus, setActivationStatus] = useState<ActivationStatus>(ACTIVATION_STATUS.PROVISIONAL);
+  const [activationExpiry, setActivationExpiry] = useState<Date | null>(null);
 
   const performOnboardingCheck = useCallback(async (retryCount = 0) => {
     if (!user) {
@@ -80,7 +85,10 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             name: user.user_metadata?.full_name || '',
             firstname: user.user_metadata?.first_name || '',
             lastname: user.user_metadata?.last_name || '',
-            role: 'Operative'
+            role: 'Operative',
+            activation_status: ACTIVATION_STATUS.PROVISIONAL,
+            activation_expiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            signup_timestamp: new Date().toISOString()
           })
           .select()
           .single();
@@ -190,6 +198,9 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       setFlags(newFlags);
       console.log('[OnboardingContext] Detailed validation flags:', newFlags);
+      
+      setActivationStatus(userData.activation_status || ACTIVATION_STATUS.PROVISIONAL);
+      setActivationExpiry(userData.activation_expiry ? new Date(userData.activation_expiry) : null);
 
       // If all complete but onboarding_completed is false, update it
       if (allComplete && !userData.onboarding_completed) {
@@ -267,9 +278,11 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     error,
     firstIncompleteStep,
     missingSteps,
+    activationStatus,
+    activationExpiry,
     refreshOnboarding,
     markStepComplete
-  }), [flags, isLoading, error, firstIncompleteStep, missingSteps, refreshOnboarding, markStepComplete]);
+  }), [flags, isLoading, error, firstIncompleteStep, missingSteps, activationStatus, activationExpiry, refreshOnboarding, markStepComplete]);
 
   return (
     <OnboardingContext.Provider value={value}>
