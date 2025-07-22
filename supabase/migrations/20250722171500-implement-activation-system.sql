@@ -21,10 +21,6 @@ WHERE activation_status IS NULL;
 CREATE INDEX idx_users_activation_status ON public.users(activation_status);
 CREATE INDEX idx_users_activation_expiry ON public.users(activation_expiry) WHERE activation_expiry IS NOT NULL;
 
-DROP POLICY IF EXISTS "Users can view all users" ON public.users;
-CREATE POLICY "Users can view all users" ON public.users FOR SELECT USING (
-  auth.role() = 'authenticated'
-);
 
 CREATE OR REPLACE FUNCTION update_expired_provisional_users()
 RETURNS void
