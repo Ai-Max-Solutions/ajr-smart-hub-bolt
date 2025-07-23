@@ -13,9 +13,8 @@ interface PendingUser {
   phone: string;
   created_at: string;
   onboarding_completed: boolean;
-  activation_status: string;
-  activation_expiry: string | null;
-  signup_timestamp: string;
+  account_status: string;
+  trial_expires_at: string | null;
 }
 
 export const UserApprovalPanel = () => {
@@ -32,9 +31,9 @@ export const UserApprovalPanel = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, phone, created_at, onboarding_completed, activation_status, activation_expiry, signup_timestamp')
-        .in('activation_status', ['provisional', 'pending'])
+        .select('id, name, email, phone, created_at, onboarding_completed, account_status, trial_expires_at')
         .eq('onboarding_completed', true)
+        .neq('account_status', 'active')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -57,8 +56,7 @@ export const UserApprovalPanel = () => {
       const { error } = await supabase
         .from('users')
         .update({ 
-          activation_status: 'active',
-          activation_expiry: null
+          account_status: 'active'
         })
         .eq('id', userId);
 
@@ -89,7 +87,7 @@ export const UserApprovalPanel = () => {
       const { error } = await supabase
         .from('users')
         .update({ 
-          activation_status: 'inactive'
+          account_status: 'inactive'
         })
         .eq('id', userId);
 
@@ -165,14 +163,14 @@ export const UserApprovalPanel = () => {
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="outline" className={
-                          user.activation_status === 'provisional' 
+                          user.account_status === 'trial' 
                             ? "bg-blue-100 text-blue-800" 
                             : "bg-amber-100 text-amber-800"
                         }>
-                          {user.activation_status === 'provisional' ? (
+                          {user.account_status === 'trial' ? (
                             <>
                               <Clock className="w-3 h-3 mr-1" />
-                              Provisional Access
+                              Trial Access
                             </>
                           ) : (
                             <>
@@ -182,11 +180,11 @@ export const UserApprovalPanel = () => {
                           )}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          Signed up {new Date(user.signup_timestamp || user.created_at).toLocaleDateString()}
+                          Signed up {new Date(user.created_at).toLocaleDateString()}
                         </span>
-                        {user.activation_expiry && user.activation_status === 'provisional' && (
+                        {user.trial_expires_at && user.account_status === 'trial' && (
                           <span className="text-xs text-orange-600 font-medium">
-                            Expires {new Date(user.activation_expiry).toLocaleDateString()}
+                            Trial expires {new Date(user.trial_expires_at).toLocaleDateString()}
                           </span>
                         )}
                       </div>

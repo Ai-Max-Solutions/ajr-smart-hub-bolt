@@ -198,8 +198,22 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setFlags(newFlags);
       console.log('[OnboardingContext] Detailed validation flags:', newFlags);
       
-      setActivationStatus((userData as any).activation_status || ACTIVATION_STATUS.PROVISIONAL);
-      setActivationExpiry((userData as any).activation_expiry ? new Date((userData as any).activation_expiry) : null);
+      // Map account_status to ActivationStatus
+      const mapAccountStatusToActivationStatus = (status: string | null): ActivationStatus => {
+        switch (status) {
+          case 'active':
+            return ACTIVATION_STATUS.ACTIVE;
+          case 'inactive':
+            return ACTIVATION_STATUS.INACTIVE;
+          case 'trial':
+            return ACTIVATION_STATUS.PROVISIONAL;
+          default:
+            return ACTIVATION_STATUS.PROVISIONAL;
+        }
+      };
+      
+      setActivationStatus(mapAccountStatusToActivationStatus(userData.account_status));
+      setActivationExpiry(userData.trial_expires_at ? new Date(userData.trial_expires_at) : null);
 
       // If all complete but onboarding_completed is false, update it
       if (allComplete && !userData.onboarding_completed) {

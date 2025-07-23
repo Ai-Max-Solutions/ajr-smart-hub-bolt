@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,31 +64,102 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  // Debounced fetch function to prevent rapid-fire requests
-  const debouncedFetch = (() => {
-    let timeoutId: any;
-    return (fn: Function, delay: number) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(fn, delay);
-    };
-  })();
+  // Handle profile updates asynchronously outside of auth state change
+  const handleProfileUpdate = async (user: User) => {
+    try {
+      console.log('📊 Fetching user profile for verification check...');
+      
+      const userData = await fetchUserProfileSafe(user.id);
 
-  // Retry logic for failed requests
-  const withRetry = async (fn: Function, maxAttempts = 3, delay = 1000) => {
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (!userData) {
+        console.warn('Failed to fetch user data safely');
+        setIsVerified(false);
+        setUserProfile(null);
+        return;
+      }
+
+      console.log('👤 User profile loaded:', {
+        name: userData?.name,
+        role: userData?.role,
+        is_verified: userData?.is_verified,
+        email: user.email
+      });
+
+      setUserProfile(userData);
+
+      // Check account status and trial expiry
+      const isAdminRole = ['Admin', 'Director', 'PM'].includes(userData?.role);
+      const accountStatus = userData?.account_status;
+      const trialExpired = userData?.trial_expires_at && new Date(userData.trial_expires_at) < new Date();
+      
+      console.log('🛡️ Account status check:', {
+        role: userData?.role,
+        account_status: accountStatus,
+        trial_expires_at: userData?.trial_expires_at,
+        trialExpired,
+        isAdminRole
+      });
+
+      // Determine if user has access
+      let hasAccess = false;
+      
+      if (isAdminRole) {
+        hasAccess = true;
+        console.log('✅ Admin access granted');
+      } else if (accountStatus === 'active') {
+        hasAccess = true;
+        console.log('✅ Active account access granted');
+      } else if (accountStatus === 'trial' && !trialExpired) {
+        hasAccess = true;
+        console.log('✅ Trial access granted');
+      } else {
+        hasAccess = false;
+        console.log('❌ Access denied - account expired or suspended');
+      }
+      
+      setIsVerified(hasAccess);
+
+      // Update last sign in without calling the problematic function
       try {
-        return await fn();
-      } catch (error) {
-        console.warn(`Auth retry attempt ${attempt}/${maxAttempts}:`, error);
-        if (attempt === maxAttempts) throw error;
-        await new Promise(resolve => setTimeout(resolve, delay * attempt));
+        await supabase
+          .from('users')
+          .update({ last_sign_in: new Date().toISOString() })
+          .eq('supabase_auth_id', user.id);
+      } catch (updateError) {
+        console.warn('Failed to update last sign in:', updateError);
+      }
+
+      // Handle navigation based on access
+      if (!hasAccess) {
+        console.log('❌ User denied access, redirecting to under-review');
+        if (!location.pathname.startsWith('/under-review') && !location.pathname.startsWith('/auth')) {
+          navigate('/under-review');
+        }
+      } else {
+        console.log('✅ User has access, ensuring not stuck on under-review page');
+        if (location.pathname.startsWith('/under-review')) {
+          navigate('/');
+        }
+      }
+    } catch (error) {
+      console.error('Profile update failed:', error);
+      // For network errors, don't block admin access
+      const isAdminEmail = user.email?.includes('@ajryan.') || 
+                          user.email === 'markcroud@icloud.com';
+      if (isAdminEmail) {
+        console.log('🚨 Admin email detected during error, granting access');
+        setIsVerified(true);
+      } else {
+        setIsVerified(false);
       }
     }
   };
 
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
-    const getInitialSession = async () => {
+    const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
@@ -95,167 +167,77 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
         
+        if (!mounted) return;
+
         console.log('🔐 Initial session loaded:', session?.user?.email);
         setUser(session?.user ?? null);
         setSession(session);
         
         if (session?.user) {
-          // Debounce the profile fetch to avoid race conditions
-          debouncedFetch(async () => {
-            try {
-              await withRetry(async () => {
-                console.log('📊 Fetching user profile for verification check...');
-                
-                // Use the safe fetch function
-                const userData = await fetchUserProfileSafe(session.user.id);
-
-                if (!userData) {
-                  console.warn('Failed to fetch user data safely');
-                  setIsVerified(false);
-                  setUserProfile(null);
-                  return;
-                }
-
-                console.log('👤 User profile loaded:', {
-                  name: userData?.name,
-                  role: userData?.role,
-                  is_verified: userData?.is_verified,
-                  email: session.user.email
-                });
-
-                // Set the user profile in state
-                setUserProfile(userData);
-
-                // Check account status and trial expiry
-                const isAdminRole = ['Admin', 'Director', 'PM'].includes(userData?.role);
-                const accountStatus = (userData as any)?.account_status;
-                const trialExpired = (userData as any)?.trial_expires_at && new Date((userData as any).trial_expires_at) < new Date();
-                
-                console.log('🛡️ Account status check:', {
-                  role: userData?.role,
-                  account_status: accountStatus,
-                  trial_expires_at: (userData as any)?.trial_expires_at,
-                  trialExpired,
-                  isAdminRole
-                });
-
-                // Determine if user has access
-                let hasAccess = false;
-                
-                if (isAdminRole) {
-                  // Admins always have access
-                  hasAccess = true;
-                  console.log('✅ Admin access granted');
-                } else if (accountStatus === 'active') {
-                  // Permanently activated users have access
-                  hasAccess = true;
-                  console.log('✅ Active account access granted');
-                } else if (accountStatus === 'trial' && !trialExpired) {
-                  // Trial users within trial period have access
-                  hasAccess = true;
-                  console.log('✅ Trial access granted');
-                } else {
-                  // Expired or suspended accounts don't have access
-                  hasAccess = false;
-                  console.log('❌ Access denied - account expired or suspended');
-                }
-                
-                setIsVerified(hasAccess);
-
-                // Update last sign in
-                const { error: updateError } = await supabase
-                  .from('users')
-                  .update({ last_sign_in: new Date().toISOString() })
-                  .eq('supabase_auth_id', session.user.id);
-
-                if (updateError) {
-                  console.warn('Failed to update last sign in:', updateError);
-                }
-
-                // Handle navigation based on access
-                if (!hasAccess) {
-                  console.log('❌ User denied access, redirecting to under-review');
-                  if (!location.pathname.startsWith('/under-review') && !location.pathname.startsWith('/auth')) {
-                    navigate('/under-review');
-                  }
-                } else {
-                  console.log('✅ User has access, ensuring not stuck on under-review page');
-                  if (location.pathname.startsWith('/under-review')) {
-                    navigate('/');
-                  }
-                }
-              });
-            } catch (error) {
-              console.error('Auth profile update failed:', error);
-              // For network errors, don't block admin access
-              const isAdminEmail = session.user.email?.includes('@ajryan.') || 
-                                  session.user.email === 'markcroud@icloud.com';
-              if (isAdminEmail) {
-                console.log('🚨 Admin email detected during error, granting access');
-                setIsVerified(true);
-              } else {
-                setIsVerified(false);
-              }
+          // Defer profile update to avoid blocking auth initialization
+          setTimeout(() => {
+            if (mounted) {
+              handleProfileUpdate(session.user);
             }
-          }, 300);
+          }, 100);
         } else {
           setIsVerified(false);
+          setUserProfile(null);
         }
       } catch (error) {
-        console.error('Error in getInitialSession:', error);
+        console.error('Error in auth initialization:', error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
-    getInitialSession();
+    initializeAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes - CRITICAL: No async in callback
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (!mounted) return;
+
         console.log('🔄 Auth state changed:', event, session?.user?.email);
+        
+        // Only synchronous state updates in callback
         setUser(session?.user ?? null);
         setSession(session);
         
-        setTimeout(async () => {
-          if (event === 'SIGNED_IN' && session?.user) {
-            // Debounce profile updates on sign in
-            debouncedFetch(async () => {
-              try {
-                await withRetry(async () => {
-                  const { error } = await supabase
-                    .from('users')
-                    .update({ last_sign_in: new Date().toISOString() })
-                    .eq('supabase_auth_id', session.user.id);
-
-                  if (error) {
-                    console.warn('Failed to update last sign in:', error);
-                  }
-                });
-              } catch (error) {
-                console.warn('Sign in profile update failed:', error);
-              }
-            }, 300);
-          }
+        if (event === 'SIGNED_IN' && session?.user) {
+        // Defer any async operations outside the callback
+          setTimeout(() => {
+            if (mounted) {
+              handleProfileUpdate(session.user);
+            }
+          }, 100);
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setUserProfile(null);
+          setIsVerified(false);
           
-          if (event === 'SIGNED_OUT') {
-            // Clear all user state
-            setUser(null);
-            setUserProfile(null);
-            setIsVerified(false);
-            
-            // Only redirect if not already on auth page
-            if (!location.pathname.startsWith('/auth')) {
+          // Defer navigation to avoid conflicts
+          setTimeout(() => {
+            if (mounted && !location.pathname.startsWith('/auth')) {
               navigate('/auth');
             }
-          }
-          
+          }, 0);
+        }
+        
+        if (mounted) {
           setLoading(false);
-        }, 0);
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate, location.pathname]);
 
   const signIn = async (email: string, password: string) => {
@@ -266,6 +248,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
       return { error };
     } catch (error) {
+      console.error('Sign in error:', error);
       return { error };
     }
   };
@@ -283,7 +266,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return { error: { message: 'Please enter a valid email address' } };
       }
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase().trim(),
         password,
         options: {
@@ -291,8 +274,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           data: metadata,
         },
       });
+
+      // If signup successful but no user profile was created, try to create it manually
+      if (!error && data.user && !data.session) {
+        try {
+          // Give the trigger a moment to run, then check if profile exists
+          setTimeout(async () => {
+            const { data: profile } = await supabase
+              .from('users')
+              .select('*')
+              .eq('supabase_auth_id', data.user.id)
+              .single();
+            
+            if (!profile) {
+              console.warn('Profile not created by trigger, calling ensure function');
+              await supabase.rpc('ensure_user_profile', { auth_user_id: data.user.id });
+            }
+          }, 1000);
+        } catch (fallbackError) {
+          console.warn('Fallback profile creation failed:', fallbackError);
+        }
+      }
       return { error };
     } catch (error) {
+      console.error('Sign up error:', error);
       return { error };
     }
   };
@@ -304,6 +309,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
       return { error };
     } catch (error) {
+      console.error('Reset password error:', error);
       return { error };
     }
   };
@@ -312,13 +318,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (!userProfile) return ACTIVATION_STATUS.PROVISIONAL;
     
     const now = new Date();
-    const expiry = userProfile.activation_expiry ? new Date(userProfile.activation_expiry) : null;
+    const expiry = userProfile.trial_expires_at ? new Date(userProfile.trial_expires_at) : null;
     
-    if (userProfile.activation_status === ACTIVATION_STATUS.PROVISIONAL && expiry && now > expiry) {
+    // Map account_status to activation status
+    const accountStatus = userProfile.account_status;
+    if (accountStatus === 'trial' && expiry && now > expiry) {
       return ACTIVATION_STATUS.PENDING;
     }
     
-    return userProfile.activation_status || ACTIVATION_STATUS.PROVISIONAL;
+    // Map account status to activation status enum
+    switch (accountStatus) {
+      case 'active': return ACTIVATION_STATUS.ACTIVATED;
+      case 'trial': return ACTIVATION_STATUS.PROVISIONAL;
+      case 'suspended': return ACTIVATION_STATUS.PENDING;
+      default: return ACTIVATION_STATUS.PROVISIONAL;
+    }
   };
 
   const signOut = async () => {
