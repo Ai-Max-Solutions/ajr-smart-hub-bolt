@@ -11,7 +11,7 @@ import { IndexWrapper } from "@/components/dashboard/IndexWrapper";
 import Auth from "@/pages/Auth";
 import { UserManagement } from "@/pages/UserManagement";
 import { SessionManagement } from "@/components/auth/SessionManagement";
-import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
+
 
 const queryClient = new QueryClient();
 
@@ -26,7 +26,7 @@ function App() {
               <OnboardingProvider>
                 <Routes>
                   <Route path="/auth/*" element={<Auth />} />
-                  <Route path="/onboarding/*" element={<OnboardingLayout />} />
+                  
                   <Route 
                     path="/" 
                     element={
