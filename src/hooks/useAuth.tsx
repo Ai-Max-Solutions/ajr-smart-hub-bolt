@@ -328,7 +328,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     
     // Map account status to activation status enum
     switch (accountStatus) {
-      case 'active': return ACTIVATION_STATUS.ACTIVATED;
+      case 'active': return ACTIVATION_STATUS.ACTIVE;
       case 'trial': return ACTIVATION_STATUS.PROVISIONAL;
       case 'suspended': return ACTIVATION_STATUS.PENDING;
       default: return ACTIVATION_STATUS.PROVISIONAL;
