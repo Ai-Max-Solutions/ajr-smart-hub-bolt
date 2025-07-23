@@ -2,6 +2,8 @@
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
+DROP FUNCTION IF EXISTS public.ensure_user_profile(uuid);
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
@@ -54,7 +56,6 @@ BEGIN
         RETURN;
     END IF;
     
-    -- Get auth user data
     INSERT INTO public.users (
         supabase_auth_id,
         email,
