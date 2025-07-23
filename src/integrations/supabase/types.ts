@@ -125,6 +125,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "cscs_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_cscs_cards_user_id"
             columns: ["user_id"]
             isOneToOne: true
@@ -199,6 +206,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_bookings_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       emergency_contacts: {
@@ -233,6 +247,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "emergency_contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_emergency_contacts_user_id"
             columns: ["user_id"]
@@ -270,6 +291,13 @@ export type Database = {
             columns: ["notification_id"]
             isOneToOne: false
             referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_recipients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -738,7 +766,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_templates: {
         Row: {
@@ -932,7 +968,15 @@ export type Database = {
           reason?: string | null
           target_user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "role_change_audit_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_catalog: {
         Row: {
@@ -1343,11 +1387,22 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_work_types_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       users: {
         Row: {
           account_status: string | null
+          activation_expiry: string | null
+          activation_status:
+            | Database["public"]["Enums"]["activation_status_enum"]
+            | null
           ai_avatar_opt_out: boolean | null
           airtable_created_time: string | null
           avatar_url: string | null
@@ -1369,12 +1424,17 @@ export type Database = {
           phone: string | null
           profile_image_url: string | null
           role: Database["public"]["Enums"]["user_role_enum"]
+          signup_timestamp: string | null
           supabase_auth_id: string | null
           trial_expires_at: string | null
           updated_at: string
         }
         Insert: {
           account_status?: string | null
+          activation_expiry?: string | null
+          activation_status?:
+            | Database["public"]["Enums"]["activation_status_enum"]
+            | null
           ai_avatar_opt_out?: boolean | null
           airtable_created_time?: string | null
           avatar_url?: string | null
@@ -1396,12 +1456,17 @@ export type Database = {
           phone?: string | null
           profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role_enum"]
+          signup_timestamp?: string | null
           supabase_auth_id?: string | null
           trial_expires_at?: string | null
           updated_at?: string
         }
         Update: {
           account_status?: string | null
+          activation_expiry?: string | null
+          activation_status?:
+            | Database["public"]["Enums"]["activation_status_enum"]
+            | null
           ai_avatar_opt_out?: boolean | null
           airtable_created_time?: string | null
           avatar_url?: string | null
@@ -1423,6 +1488,7 @@ export type Database = {
           phone?: string | null
           profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role_enum"]
+          signup_timestamp?: string | null
           supabase_auth_id?: string | null
           trial_expires_at?: string | null
           updated_at?: string
@@ -1514,6 +1580,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      ensure_user_profile: {
+        Args: { auth_user_id: string }
+        Returns: boolean
+      }
       extend_trial_period: {
         Args: { user_id_param: string; hours_to_add?: number }
         Returns: boolean
@@ -1554,6 +1624,10 @@ export type Database = {
           delay_reason: string
         }[]
       }
+      update_expired_provisional_users: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_plot_order: {
         Args: { plot_ids: string[]; project_id_param: string }
         Returns: undefined
@@ -1564,6 +1638,7 @@ export type Database = {
       }
     }
     Enums: {
+      activation_status_enum: "provisional" | "active" | "pending" | "inactive"
       hire_status_enum: "Available" | "On Hire" | "Maintenance" | "Damaged"
       project_status_enum:
         | "Planning"
@@ -1707,6 +1782,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activation_status_enum: ["provisional", "active", "pending", "inactive"],
       hire_status_enum: ["Available", "On Hire", "Maintenance", "Damaged"],
       project_status_enum: [
         "Planning",

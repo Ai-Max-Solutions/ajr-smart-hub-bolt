@@ -207,12 +207,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setSession(session);
         
         if (event === 'SIGNED_IN' && session?.user) {
-          // Defer any async operations outside the callback
+        // Defer any async operations outside the callback
           setTimeout(() => {
             if (mounted) {
               handleProfileUpdate(session.user);
             }
-          }, 0);
+          }, 100);
         }
         
         if (event === 'SIGNED_OUT') {
@@ -266,7 +266,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return { error: { message: 'Please enter a valid email address' } };
       }
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase().trim(),
         password,
         options: {
@@ -274,6 +274,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           data: metadata,
         },
       });
+
+      // If signup successful but no user profile was created, try to create it manually
+      if (!error && data.user && !data.session) {
+        try {
+          // Give the trigger a moment to run, then check if profile exists
+          setTimeout(async () => {
+            const { data: profile } = await supabase
+              .from('users')
+              .select('*')
+              .eq('supabase_auth_id', data.user.id)
+              .single();
+            
+            if (!profile) {
+              console.warn('Profile not created by trigger, calling ensure function');
+              await supabase.rpc('ensure_user_profile', { auth_user_id: data.user.id });
+            }
+          }, 1000);
+        } catch (fallbackError) {
+          console.warn('Fallback profile creation failed:', fallbackError);
+        }
+      }
       return { error };
     } catch (error) {
       console.error('Sign up error:', error);
@@ -297,13 +318,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (!userProfile) return ACTIVATION_STATUS.PROVISIONAL;
     
     const now = new Date();
-    const expiry = userProfile.activation_expiry ? new Date(userProfile.activation_expiry) : null;
+    const expiry = userProfile.trial_expires_at ? new Date(userProfile.trial_expires_at) : null;
     
-    if (userProfile.activation_status === ACTIVATION_STATUS.PROVISIONAL && expiry && now > expiry) {
+    // Map account_status to activation status
+    const accountStatus = userProfile.account_status;
+    if (accountStatus === 'trial' && expiry && now > expiry) {
       return ACTIVATION_STATUS.PENDING;
     }
     
-    return userProfile.activation_status || ACTIVATION_STATUS.PROVISIONAL;
+    // Map account status to activation status enum
+    switch (accountStatus) {
+      case 'active': return ACTIVATION_STATUS.ACTIVATED;
+      case 'trial': return ACTIVATION_STATUS.PROVISIONAL;
+      case 'suspended': return ACTIVATION_STATUS.PENDING;
+      default: return ACTIVATION_STATUS.PROVISIONAL;
+    }
   };
 
   const signOut = async () => {
