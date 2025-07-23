@@ -212,44 +212,46 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('🔄 Auth state changed:', event, session?.user?.email);
         setUser(session?.user ?? null);
         setSession(session);
         
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Debounce profile updates on sign in
-          debouncedFetch(async () => {
-            try {
-              await withRetry(async () => {
-                const { error } = await supabase
-                  .from('users')
-                  .update({ last_sign_in: new Date().toISOString() })
-                  .eq('supabase_auth_id', session.user.id);
+        setTimeout(async () => {
+          if (event === 'SIGNED_IN' && session?.user) {
+            // Debounce profile updates on sign in
+            debouncedFetch(async () => {
+              try {
+                await withRetry(async () => {
+                  const { error } = await supabase
+                    .from('users')
+                    .update({ last_sign_in: new Date().toISOString() })
+                    .eq('supabase_auth_id', session.user.id);
 
-                if (error) {
-                  console.warn('Failed to update last sign in:', error);
-                }
-              });
-            } catch (error) {
-              console.warn('Sign in profile update failed:', error);
-            }
-          }, 300);
-        }
-        
-        if (event === 'SIGNED_OUT') {
-          // Clear all user state
-          setUser(null);
-          setUserProfile(null);
-          setIsVerified(false);
-          
-          // Only redirect if not already on auth page
-          if (!location.pathname.startsWith('/auth')) {
-            navigate('/auth');
+                  if (error) {
+                    console.warn('Failed to update last sign in:', error);
+                  }
+                });
+              } catch (error) {
+                console.warn('Sign in profile update failed:', error);
+              }
+            }, 300);
           }
-        }
-        
-        setLoading(false);
+          
+          if (event === 'SIGNED_OUT') {
+            // Clear all user state
+            setUser(null);
+            setUserProfile(null);
+            setIsVerified(false);
+            
+            // Only redirect if not already on auth page
+            if (!location.pathname.startsWith('/auth')) {
+              navigate('/auth');
+            }
+          }
+          
+          setLoading(false);
+        }, 0);
       }
     );
 

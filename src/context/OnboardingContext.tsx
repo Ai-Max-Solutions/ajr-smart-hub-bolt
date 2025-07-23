@@ -86,9 +86,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             firstname: user.user_metadata?.first_name || '',
             lastname: user.user_metadata?.last_name || '',
             role: 'Operative',
-            activation_status: ACTIVATION_STATUS.PROVISIONAL,
-            activation_expiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            signup_timestamp: new Date().toISOString()
+            account_status: 'trial',
+            trial_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
           })
           .select()
           .single();
@@ -199,8 +198,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setFlags(newFlags);
       console.log('[OnboardingContext] Detailed validation flags:', newFlags);
       
-      setActivationStatus(userData.activation_status || ACTIVATION_STATUS.PROVISIONAL);
-      setActivationExpiry(userData.activation_expiry ? new Date(userData.activation_expiry) : null);
+      setActivationStatus((userData as any).activation_status || ACTIVATION_STATUS.PROVISIONAL);
+      setActivationExpiry((userData as any).activation_expiry ? new Date((userData as any).activation_expiry) : null);
 
       // If all complete but onboarding_completed is false, update it
       if (allComplete && !userData.onboarding_completed) {
