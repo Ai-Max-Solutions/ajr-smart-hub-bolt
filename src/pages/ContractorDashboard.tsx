@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,6 +72,14 @@ const ContractorDashboard = () => {
   const location = useLocation();
   const { toast } = useToast();
 
+  const deliveryStats = useMemo(() => {
+    return deliveryRequests.reduce((acc, request) => {
+      acc[request.status] = (acc[request.status] || 0) + 1;
+      acc.total = (acc.total || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [deliveryRequests]);
+
   useEffect(() => {
     if (user) {
       loadContractorData();
@@ -119,7 +127,7 @@ const ContractorDashboard = () => {
     }
   };
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOut();
       navigate('/contractor/auth');
@@ -130,7 +138,7 @@ const ContractorDashboard = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [signOut, navigate, toast]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -260,7 +268,7 @@ const ContractorDashboard = () => {
                     <div>
                       <p className="text-sm font-medium">Pending</p>
                       <p className="text-2xl font-bold contractor-accent-text">
-                        {deliveryRequests.filter(r => r.status === 'pending').length}
+                        {deliveryStats.pending || 0}
                       </p>
                     </div>
                   </div>
@@ -274,7 +282,7 @@ const ContractorDashboard = () => {
                     <div>
                       <p className="text-sm font-medium">Approved</p>
                       <p className="text-2xl font-bold contractor-accent-text">
-                        {deliveryRequests.filter(r => r.status === 'approved').length}
+                        {deliveryStats.approved || 0}
                       </p>
                     </div>
                   </div>
@@ -288,7 +296,7 @@ const ContractorDashboard = () => {
                     <div>
                       <p className="text-sm font-medium">Rejected</p>
                       <p className="text-2xl font-bold contractor-accent-text">
-                        {deliveryRequests.filter(r => r.status === 'rejected').length}
+                        {deliveryStats.rejected || 0}
                       </p>
                     </div>
                   </div>
@@ -301,7 +309,7 @@ const ContractorDashboard = () => {
                     <Truck className="h-5 w-5 text-contractor-accent" />
                     <div>
                       <p className="text-sm font-medium">Total</p>
-                      <p className="text-2xl font-bold contractor-accent-text">{deliveryRequests.length}</p>
+                      <p className="text-2xl font-bold contractor-accent-text">{deliveryStats.total || 0}</p>
                     </div>
                   </div>
                 </CardContent>
